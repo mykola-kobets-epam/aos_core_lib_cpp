@@ -88,7 +88,7 @@ Error Instance::Stop()
         stopErr = err;
     }
 
-    err = FS::RemoveDir(instanceDir, true);
+    err = FS::RemoveAll(instanceDir);
     if (!err.IsNone() && stopErr.IsNone()) {
         stopErr = AOS_ERROR_WRAP(err);
     }
@@ -132,6 +132,10 @@ Error Instance::CreateRuntimeSpec(const String& path)
     if (imageSpec.mValue.mConfig.mCmd.Size() == 0) {
         return AOS_ERROR_WRAP(ErrorEnum::eInvalidArgument);
     }
+
+    // Set default HW config values. Normally they should be taken from service config.
+    runtimeSpec->mVM->mHWConfig.mVCPUs = 1;
+    runtimeSpec->mVM->mHWConfig.mMemKB = 4096;
 
     runtimeSpec->mVM->mKernel.mPath = FS::JoinPath(serviceFS.mValue, imageSpec.mValue.mConfig.mCmd[0]);
 

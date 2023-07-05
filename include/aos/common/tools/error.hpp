@@ -32,7 +32,7 @@ namespace aos {
 class Error {
 public:
     // NOTE: new error type should be added also to private GetStrings() method below and covered
-    // with unit test: TEST(common, ErrorMessages).
+    // with unit test: TEST(CommonTest, ErrorMessages).
     /**
      * Error enum.
      */
@@ -47,6 +47,7 @@ public:
         eTimeout,
         eAlreadyExist,
         eWrongState,
+        eInvalidChecksum,
         eNumErrors
     };
 
@@ -114,7 +115,7 @@ public:
      */
     Error(int errNo, const char* fileName = nullptr, int lineNumber = 0)
         : mErr(errNo == 0 ? Enum::eNone : Enum::eRuntime)
-        , mErrno(errNo)
+        , mErrno(errNo < 0 ? -errNo : errNo)
         , mFileName(fileName)
         , mLineNumber(lineNumber)
     {
@@ -155,7 +156,7 @@ public:
     const char* Message() const
     {
         if (mErrno != 0) {
-            auto strErrno = strerror(mErrno > 0 ? mErrno : -mErrno);
+            auto strErrno = strerror(mErrno);
 
             if (strErrno[0] != 0) {
                 return strErrno;
@@ -248,6 +249,7 @@ private:
             "timeout",
             "already exist",
             "wrong state",
+            "invalid checksum",
         };
 
         return Pair<const char* const*, size_t>(sErrorTypeStrings, ArraySize(sErrorTypeStrings));
