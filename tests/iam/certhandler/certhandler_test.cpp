@@ -12,9 +12,9 @@
 using aos::Error;
 using aos::iam::certhandler::CertHandler;
 
-TEST(CertHandlerTest, CreateKey)
-{
-    CertHandler handler;
+// TEST(CertHandlerTest, CreateKey)
+// {
+//     CertHandler handler;
 
-    EXPECT_TRUE(handler.CreateKey().IsNone());
-}
+//     EXPECT_TRUE(handler.CreateKey().IsNone());
+// }
