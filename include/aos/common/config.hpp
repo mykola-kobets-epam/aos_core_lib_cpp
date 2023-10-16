@@ -155,4 +155,95 @@
 #define AOS_CONFIG_MONITORING_POLL_PERIOD_SEC 10
 #endif
 
+/**
+ * Certificate public key len.
+ */
+#ifndef AOS_CONFIG_CRYPTO_CERT_PUB_KEY_LEN
+#define AOS_CONFIG_CRYPTO_CERT_PUB_KEY_LEN 2048
+#endif
+
+/**
+ * Certificate private key len.
+ */
+#ifndef AOS_CONFIG_CRYPTO_CERT_PRIV_KEY_LEN
+#define AOS_CONFIG_CRYPTO_CERT_PRIV_KEY_LEN 2048
+#endif
+
+/**
+ * Certificate serial number len.
+ */
+#ifndef AOS_CONFIG_CRYPTO_CERT_SERIAL_LEN
+#define AOS_CONFIG_CRYPTO_CERT_SERIAL_LEN 40
+#endif
+
+/**
+ * Certificate issuer len.
+ */
+#ifndef AOS_CONFIG_CRYPTO_CERT_ISSUER_ID_LEN
+#define AOS_CONFIG_CRYPTO_CERT_ISSUER_ID_LEN 40
+#endif
+
+/**
+ * Max length of alternative DNS module name.
+ */
+#ifndef AOS_CONFIG_CRYPTO_DNS_NAME_LEN
+#define AOS_CONFIG_CRYPTO_DNS_NAME_LEN 42
+#endif
+
+/**
+ * Max number of alternative DNS names for a module.
+ */
+#ifndef AOS_CONFIG_CRYPTO_ALT_DNS_NAMES_MAX_COUNT
+#define AOS_CONFIG_CRYPTO_ALT_DNS_NAMES_MAX_COUNT 10
+#endif
+
+/**
+ * Certificate subject size.
+ */
+#ifndef AOS_CONFIG_CRYPTO_CERT_SUBJECT_SIZE
+#define AOS_CONFIG_CRYPTO_CERT_SUBJECT_SIZE 24
+#endif
+
+/**
+ * Raw certificate request size.
+ */
+#ifndef AOS_CONFIG_CRYPTO_RAW_CSR_SIZE
+#define AOS_CONFIG_CRYPTO_RAW_CSR_SIZE AOS_CONFIG_CRYPTO_CERT_PUB_KEY_LEN + 1024
+#endif
+
+/**
+ * Raw certificate request size.
+ */
+#ifndef AOS_CONFIG_CRYPTO_EXTRA_EXTENSIONS_COUNT
+#define AOS_CONFIG_CRYPTO_EXTRA_EXTENSIONS_COUNT 10
+#endif
+
+/**
+ * Certificate type length.
+ */
+#ifndef AOS_CONFIG_CRYPTO_CERTIFICATE_TYPE_LEN
+#define AOS_CONFIG_CRYPTO_CERTIFICATE_TYPE_LEN 16
+#endif
+
+/**
+ * Password length.
+ */
+#ifndef AOS_CONFIG_CRYPTO_PASSWORD_LEN
+#define AOS_CONFIG_CRYPTO_PASSWORD_LEN 40
+#endif
+
+/**
+ * Maximum length of numeric string representing ASN.1 Object Identifier.
+ */
+#ifndef AOS_CONFIG_CRYPTO_OBJECT_ID_LEN
+#define AOS_CONFIG_CRYPTO_OBJECT_ID_LEN 16
+#endif
+
+/**
+ * Maximum size(in bytes) of a certificate extension value.
+ */
+#ifndef AOS_CONFIG_CRYPTO_CERT_EXTENSION_VALUE_SIZE
+#define AOS_CONFIG_CRYPTO_CERT_EXTENSION_VALUE_SIZE 16
+#endif
+
 #endif

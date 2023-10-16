@@ -18,36 +18,11 @@
 #include "aos/common/tools/thread.hpp"
 #include "aos/common/tools/utils.hpp"
 #include "aos/common/types.hpp"
+#include "aos/iam/certmodule.hpp"
 
 namespace aos {
 namespace iam {
 namespace certhandler {
-
-/**
- * General information information about certificate.
- */
-struct CertInfo {
-    /**
-     * Certificate issuer name.
-     */
-    StaticString<cCertificateIssuerLen> mIssuer;
-    /**
-     * Certificate serial number.
-     */
-    StaticString<cCertificateSerialNumberLen> mSerial;
-    /**
-     * Certificate url.
-     */
-    StaticString<cURLLen> mCertURL;
-    /**
-     * Certificate's public key url.
-     */
-    StaticString<cURLLen> mKeyURL;
-    /**
-     * Certificate expiration time.
-     */
-    time::Time mNotAfter;
-};
 
 /**
  * StorageItf provides API to store/retrieve certificates info.
@@ -104,87 +79,6 @@ public:
     virtual ~StorageItf() = default;
 };
 
-/**
- * CertModule provides API to manage module certificates.
- */
-class CertModuleItf {
-public:
-    /**
-     * Validates certificates in a module and returns information about valid/invalid certificates.
-     *
-     * @param[out] validInfo information about valid certificates.
-     * @param[out] invalidCerts invalid certificate URLs.
-     * @param[out] invalidKeys URLs of invalid certificate keys.
-     * @return Error.
-     */
-    virtual Error ValidateCertificates(Array<CertInfo>& validInfo, Array<StaticString<cURLLen>>& invalidCerts,
-        Array<StaticString<cURLLen>>& invalidKeys)
-        = 0;
-
-    /**
-     * Owns the module.
-     *
-     * @param password certficate password.
-     * @return Error.
-     */
-    virtual Error SetOwner(const String& password) = 0;
-
-    /**
-     * Removes all module certificates.
-     *
-     * @return Error.
-     */
-    virtual Error Clear() = 0;
-
-    /**
-     * Generates private key using given password and algorithm.
-     *
-     * @param algorithm certificate generation algorithm.
-     * @param password certificate password.
-     *
-     * @return RetWithError<crypto::PrivateKey&>.
-     */
-    virtual RetWithError<crypto::PrivateKey&> CreateKey(const String& algorithm, const String& password) = 0;
-
-    /**
-     * Applies certificate chain to a module.
-     *
-     * @param certChain certificate chain.
-     * @param[out] topCertInfo info about a top certificate in a chain.
-     * @param[out] password password for a top certificate.
-     * @return Error.
-     */
-    virtual Error ApplyCertificateChain(
-        const Array<crypto::x509::Certificate*>& certChain, CertInfo& topCertInfo, StaticString<cPasswordLen>& password)
-        = 0;
-
-    /**
-     * Removes certificate chain using top level certificate URL and password.
-     *
-     * @param certURL top level certificate URL.
-     * @param password certificate password.
-     *
-     * @return Error.
-     */
-    virtual Error RemoveCertificateChain(const String& certURL, const String& password) = 0;
-
-    /**
-     * Removes private key from a module.
-     *
-     * @param keyURL private key URL.
-     * @param password certificate password.
-     *
-     * @return Error.
-     */
-
-    virtual Error RemoveKey(const String& keyURL, const String& password) = 0;
-
-    /**
-     * Destroys certificate module interface.
-     */
-    virtual ~CertModuleItf() = default;
-};
-
 /** @addtogroup iam Identification and Access Manager
  *  @{
  */
@@ -213,8 +107,8 @@ public:
     /**
      * Owns security storage.
      *
-     * @param certTypes certificate type.
-     * @param password certificate password.
+     * @param certType certificate type.
+     * @param password owner password.
      * @returns Error.
      */
     Error SetOwner(const String& certType, const String& password);
@@ -232,11 +126,11 @@ public:
      *
      * @param certType certificate type.
      * @param subject subject of CSR.
-     * @param password certificate password.
+     * @param password owner password.
      * @param[out] csr certificate signing request.
      * @returns Error.
      */
-    Error CreateKey(const String& certType, const String& subject, const String& password, Array<uint8_t>& csr);
+    Error CreateKey(const String& certType, const String& subject, const String& password, crypto::x509::CSR& csr);
 
     /**
      * Applies certificate.
@@ -261,7 +155,7 @@ public:
      * Creates a self signed certificate.
      *
      * @param certType certificate type.
-     * @param password certificate password.
+     * @param password owner password.
      * @returns Error.
      */
     Error CreateSelfSignedCert(const String& certType, const String& password);
