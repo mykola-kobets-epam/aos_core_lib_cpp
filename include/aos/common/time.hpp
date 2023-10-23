@@ -16,8 +16,27 @@ namespace time {
 
 /**
  * A certain point in time.
+ * TODO: Add implementation
  */
-struct Time { };
+struct Time {
+    bool IsZero() const { return true; }
+
+    Time AddYears(int /*year*/) { return Time(); }
+
+    uint64_t UnixNano() const { return 0ULL; }
+
+    bool operator<(const Time& /*right*/) const { return true; }
+    bool operator==(const Time& /*right*/) const { return true; }
+    bool operator!=(const Time& time) const { return !operator==(time); }
+
+    static Time Now() { return Time(); }
+};
+
+template <class Stream>
+Stream& operator<<(Stream& stream, const Time& /*time*/)
+{
+    return stream;
+}
 
 /**
  * An hour time interval.

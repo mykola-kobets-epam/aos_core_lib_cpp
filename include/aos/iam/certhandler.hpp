@@ -25,6 +25,15 @@ namespace iam {
 namespace certhandler {
 
 /**
+ * Max number of certificate modules.
+ */
+constexpr auto cIAMCertModulesMaxCount = AOS_CONFIG_CERTHANDLER_MODULES_MAX_COUNT;
+
+/** @addtogroup iam Identification and Access Manager
+ *  @{
+ */
+
+/**
  * StorageItf provides API to store/retrieve certificates info.
  */
 class StorageItf {
@@ -79,22 +88,26 @@ public:
     virtual ~StorageItf() = default;
 };
 
-/** @addtogroup iam Identification and Access Manager
- *  @{
- */
-
 /**
  * Handles keys and certificates.
  */
 class CertHandler {
 public:
     /**
+     * Creates a new object instance.
+     *
+     * @param storage a reference to a storage interface.
+     * @param certProvider a reference to x509 certificate provider instance.
+     */
+    CertHandler(StorageItf& storage, crypto::x509::CertificateProviderItf& certProvider);
+
+    /**
      * Registers module.
      *
      * @param module a reference to a module.
-     * @returns void.
+     * @returns Error.
      */
-    void RegisterModule(CertModuleItf& module);
+    Error RegisterModule(CertModuleItf& module);
 
     /**
      * Returns IAM cert types.
@@ -136,10 +149,11 @@ public:
      * Applies certificate.
      *
      * @param certType certificate type.
-     * @param cert certificate.
-     * @returns RetWithError<CertInfo>.
+     * @param pemCert certificate in a pem format.
+     * @param[out] info result certificate information.
+     * @returns Error.
      */
-    RetWithError<CertInfo> ApplyCertificate(const String& certType, const Array<uint8_t>& cert);
+    Error ApplyCertificate(const String& certType, const Array<uint8_t>& pemCert, CertInfo& info);
 
     /**
      * Returns certificate info.
@@ -161,9 +175,25 @@ public:
     Error CreateSelfSignedCert(const String& certType, const String& password);
 
     /**
-     * Destroys handler.
+     * Destroys certificate handler object instance.
      */
-    ~CertHandler() = default;
+    ~CertHandler();
+
+private:
+    static constexpr auto cCertChainSize = AOS_CONFIG_CERTHANDLER_CERTS_CHAIN_SIZE;
+    static constexpr auto cMaxSelfSignedCertSize = AOS_CONFIG_CERTHANDLER_PEM_SELFSIGNED_CERT_SIZE;
+    static constexpr auto cPasswordLen = AOS_CONFIG_CERTHANDLER_PASSWORD_LEN;
+
+    CertModuleItf*                    FindModule(const String& certType);
+    RetWithError<crypto::PrivateKey*> CreatePrivateKey(CertModuleItf& module, const String& password);
+    Error                             CheckCertificateChain(const Array<crypto::x509::Certificate>& chain);
+    Error                             SyncValidCerts(CertModuleItf& module);
+    Error                             TrimCerts(CertModuleItf& module, const String& password);
+
+    StorageItf&                                          mStorage;
+    crypto::x509::CertificateProviderItf&                mCertProvider;
+    Mutex                                                mMutex;
+    StaticArray<CertModuleItf*, cIAMCertModulesMaxCount> mModules;
 };
 
 /** @}*/

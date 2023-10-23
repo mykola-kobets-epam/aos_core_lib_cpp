@@ -43,11 +43,6 @@ constexpr auto cCertificateSerialNumberLen = AOS_CONFIG_CRYPTO_CERT_SERIAL_LEN;
 constexpr auto cCertificateIssuerLen = AOS_CONFIG_CRYPTO_CERT_ISSUER_ID_LEN;
 
 /**
- * Password max length.
- */
-constexpr auto cPasswordLen = AOS_CONFIG_CRYPTO_PASSWORD_LEN;
-
-/**
  * Max length of alternative module name.
  */
 constexpr auto cDnsNameLen = AOS_CONFIG_CRYPTO_DNS_NAME_LEN;
@@ -83,6 +78,28 @@ constexpr auto cASN1ObjIdLen = AOS_CONFIG_CRYPTO_OBJECT_ID_LEN;
 constexpr auto cCertExtValueSize = AOS_CONFIG_CRYPTO_CERT_EXTENSION_VALUE_SIZE;
 
 /**
+ * Maximum certificate key id size(in bytes).
+ */
+constexpr auto cCertKeyIdSize = AOS_CONFIG_CRYPTO_CERT_KEY_ID_SIZE;
+
+/**
+ * Base64 encoder
+ */
+class Base64Encoder {
+public:
+    /**
+     * Encodes byte array to base64 string.
+     *
+     * @param blob input array data.
+     * @param[out] result  base64 encoded result string.
+     * @return void.
+     *
+     * TODO: add implementation
+     */
+    static void Encode(const Array<uint8_t>& /*data*/, String& /*result*/) { }
+};
+
+/**
  * General certificate private key type.
  */
 class PrivateKey {
@@ -115,6 +132,19 @@ struct Extension {
     ObjectIdentifier                        mId;
     StaticArray<uint8_t, cCertExtValueSize> mValue;
 };
+
+/**
+ * ASN1 Encodes string into ASN1 value
+ */
+
+inline void Encode(const String& /*src*/, Array<uint8_t>& /*asn1Value*/)
+{
+}
+
+/**
+ *
+ */
+
 } // namespace asn1
 
 namespace x509 {
@@ -124,9 +154,20 @@ namespace x509 {
  */
 struct Certificate {
     /**
-     * Certificate subject size.
+     * Certificate subject.
      */
     StaticString<cCertificateSubjSize> mSubject;
+
+    /**
+     * Certificate subject key id.
+     */
+    StaticArray<uint8_t, cCertKeyIdSize> mSubjectKeyId;
+
+    /**
+     * Certificate authority key id.
+     */
+    StaticArray<uint8_t, cCertKeyIdSize> mAuthorityKeyId;
+
     /**
      * Certificate issuer name.
      */
@@ -134,7 +175,7 @@ struct Certificate {
     /**
      * Certificate serial number.
      */
-    StaticString<cCertificateSerialNumberLen> mSerial;
+    StaticArray<uint8_t, cCertificateSerialNumberLen> mSerial;
     /**
      * Certificate validity period.
      */
@@ -153,21 +194,21 @@ public:
      * @param parent a parent certificate in a certificate chain.
      * @param pubKey public key.
      * @param privKey private key.
-     * @param[out] resultCert a new generated certificate.
+     * @param[out] resultCert result certificate in PEM format.
      * @result Error.
      */
     virtual Error CreateCertificate(
-        const Certificate& templ, const Certificate& parent, const PrivateKey& privKey, Certificate& resultCert)
+        const Certificate& templ, const Certificate& parent, const PrivateKey& privKey, Array<uint8_t>& pemCert)
         = 0;
 
     /**
-     * Creates certificate from a PEM blob.
+     * Creates certificates from a PEM blob.
      *
      * @param pemBlob raw certificate in a PEM format.
-     * @param[out] resultCert result certificate.
+     * @param[out] resultCerts result certificates.
      * @result Error.
      */
-    virtual Error CreateCertificateFromPEM(const Array<uint8_t>& pemBlob, Certificate& resultCert) = 0;
+    virtual Error CreateCertificatesFromPEM(const Array<uint8_t>& pemBlob, Array<Certificate>& resultCerts) = 0;
 
     /**
      * Destroys object instace.
@@ -205,12 +246,12 @@ public:
     /**
      * Creates a new certificate request, based on a template.
      *
-     * @param template a pattern for a new certificate.
+     * @param templ template for a new certificate request.
      * @param privKey private key.
      * @param[out] resultCSR generated CSR.
      * @result Error.
      */
-    virtual Error CreateCSR(const Certificate& templ, const PrivateKey& privKey, CSR& resultCSR) = 0;
+    virtual Error CreateCSR(const CSR& templ, const PrivateKey& privKey, CSR& resultCSR) = 0;
 
     /**
      * Destroys object instace.

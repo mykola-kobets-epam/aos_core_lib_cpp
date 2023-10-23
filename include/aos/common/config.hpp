@@ -226,13 +226,6 @@
 #endif
 
 /**
- * Password length.
- */
-#ifndef AOS_CONFIG_CRYPTO_PASSWORD_LEN
-#define AOS_CONFIG_CRYPTO_PASSWORD_LEN 40
-#endif
-
-/**
  * Maximum length of numeric string representing ASN.1 Object Identifier.
  */
 #ifndef AOS_CONFIG_CRYPTO_OBJECT_ID_LEN
@@ -244,6 +237,13 @@
  */
 #ifndef AOS_CONFIG_CRYPTO_CERT_EXTENSION_VALUE_SIZE
 #define AOS_CONFIG_CRYPTO_CERT_EXTENSION_VALUE_SIZE 16
+#endif
+
+/**
+ * Maximum certificate key id size(in bytes).
+ */
+#ifndef AOS_CONFIG_CRYPTO_CERT_KEY_ID_SIZE
+#define AOS_CONFIG_CRYPTO_CERT_KEY_ID_SIZE 24
 #endif
 
 #endif
