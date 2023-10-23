@@ -155,4 +155,74 @@
 #define AOS_CONFIG_MONITORING_POLL_PERIOD_SEC 10
 #endif
 
+/**
+ * Certificate public key size(in bytes).
+ */
+#ifndef AOS_CONFIG_CRYPTO_CERT_PUB_KEY_SIZE
+#define AOS_CONFIG_CRYPTO_CERT_PUB_KEY_SIZE 2048
+#endif
+
+/**
+ * Certificate serial number size(in bytes).
+ */
+#ifndef AOS_CONFIG_CRYPTO_CERT_SERIAL_SIZE
+#define AOS_CONFIG_CRYPTO_CERT_SERIAL_SIZE 20
+#endif
+
+/**
+ * Certificate issuer size(in bytes).
+ */
+#ifndef AOS_CONFIG_CRYPTO_CERT_ISSUER_SIZE
+#define AOS_CONFIG_CRYPTO_CERT_ISSUER_SIZE 256
+#endif
+
+/**
+ * Max length of a DNS name.
+ */
+#ifndef AOS_CONFIG_CRYPTO_DNS_NAME_LEN
+#define AOS_CONFIG_CRYPTO_DNS_NAME_LEN 42
+#endif
+
+/**
+ * Max number of alternative DNS names for a module.
+ */
+#ifndef AOS_CONFIG_CRYPTO_ALT_DNS_NAMES_MAX_COUNT
+#define AOS_CONFIG_CRYPTO_ALT_DNS_NAMES_MAX_COUNT 4
+#endif
+
+/**
+ * Raw certificate request size.
+ */
+#ifndef AOS_CONFIG_CRYPTO_EXTRA_EXTENSIONS_COUNT
+#define AOS_CONFIG_CRYPTO_EXTRA_EXTENSIONS_COUNT 10
+#endif
+
+/**
+ * Maximum length of numeric string representing ASN.1 Object Identifier.
+ */
+#ifndef AOS_CONFIG_CRYPTO_ASN1_OBJECT_ID_LEN
+#define AOS_CONFIG_CRYPTO_ASN1_OBJECT_ID_LEN 24
+#endif
+
+/**
+ * Maximum size of a certificate ASN.1 Extension Value.
+ */
+#ifndef AOS_CONFIG_CRYPTO_ASN1_EXTENSION_VALUE_SIZE
+#define AOS_CONFIG_CRYPTO_ASN1_EXTENSION_VALUE_SIZE 16
+#endif
+
+/**
+ * Maximum certificate key id size(in bytes).
+ */
+#ifndef AOS_CONFIG_CRYPTO_CERT_KEY_ID_SIZE
+#define AOS_CONFIG_CRYPTO_CERT_KEY_ID_SIZE 24
+#endif
+
+/**
+ * Maximum size of a PEM certificate.
+ */
+#ifndef AOS_CONFIG_CRYPTO_PEM_CERT_SIZE
+#define AOS_CONFIG_CRYPTO_PEM_CERT_SIZE 4096
+#endif
+
 #endif
