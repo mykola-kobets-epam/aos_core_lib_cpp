@@ -16,13 +16,6 @@ namespace certhandler {
  * Public
  **********************************************************************************************************************/
 
-Error CertHandler::CreateKey()
-{
-    LOG_DBG() << "Create key";
-
-    return ErrorEnum::eNone;
-}
-
 } // namespace certhandler
 } // namespace iam
 } // namespace aos
