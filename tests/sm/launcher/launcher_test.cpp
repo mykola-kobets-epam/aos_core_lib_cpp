@@ -11,6 +11,7 @@
 
 #include <gtest/gtest.h>
 
+#include "aos/common/resourcemonitor.hpp"
 #include "aos/common/tools/error.hpp"
 #include "aos/common/tools/fs.hpp"
 #include "aos/common/tools/log.hpp"
@@ -52,6 +53,35 @@ static std::mutex sLogMutex;
  **********************************************************************************************************************/
 
 /**
+ * Mocks resource monitor.
+ */
+class MockResourceMonitor : public monitoring::ResourceMonitorItf {
+public:
+    Error GetNodeInfo(monitoring::NodeInfo& nodeInfo) const override
+    {
+        (void)nodeInfo;
+
+        return ErrorEnum::eNone;
+    }
+
+    Error StartInstanceMonitoring(
+        const String& instanceID, const monitoring::InstanceMonitorParams& monitoringConfig) override
+    {
+        (void)instanceID;
+        (void)monitoringConfig;
+
+        return ErrorEnum::eNone;
+    }
+
+    Error StopInstanceMonitoring(const String& instanceID) override
+    {
+        (void)instanceID;
+
+        return ErrorEnum::eNone;
+    }
+};
+
+/**
  * Mocks service manager.
  */
 class MockServiceManager : public ServiceManagerItf {
@@ -82,6 +112,17 @@ public:
         }
 
         return *it;
+    }
+
+    Error GetAllServices(Array<ServiceData>& services) override
+    {
+        std::lock_guard<std::mutex> lock(mMutex);
+
+        for (const auto& service : mServicesData) {
+            services.PushBack(service);
+        }
+
+        return ErrorEnum::eNone;
     }
 
     RetWithError<ImageParts> GetImageParts(const ServiceData& service) override
@@ -277,11 +318,12 @@ private:
 
 TEST(LauncherTest, RunInstances)
 {
-    MockServiceManager serviceManager;
-    MockRunner         runner;
-    MockOCIManager     ociManager;
-    MockStatusReceiver statusReceiver;
-    MockStorage        storage;
+    MockServiceManager  serviceManager;
+    MockRunner          runner;
+    MockOCIManager      ociManager;
+    MockStatusReceiver  statusReceiver;
+    MockStorage         storage;
+    MockResourceMonitor resourceMonitor;
 
     Launcher launcher;
 
@@ -294,7 +336,7 @@ TEST(LauncherTest, RunInstances)
 
     auto feature = statusReceiver.GetFeature();
 
-    EXPECT_TRUE(launcher.Init(serviceManager, runner, ociManager, statusReceiver, storage).IsNone());
+    EXPECT_TRUE(launcher.Init(serviceManager, runner, ociManager, statusReceiver, storage, resourceMonitor).IsNone());
 
     EXPECT_TRUE(launcher.RunLastInstances().IsNone());
 

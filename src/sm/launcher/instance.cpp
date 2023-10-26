@@ -26,15 +26,19 @@ StaticAllocator<Instance::cSpecAllocatorSize> Instance::sAllocator {};
  * Public
  **********************************************************************************************************************/
 
-Instance::Instance(const InstanceInfo& info, OCISpecItf& ociManager, runner::RunnerItf& runner)
+Instance::Instance(const InstanceInfo& info, OCISpecItf& ociManager, runner::RunnerItf& runner,
+    monitoring::ResourceMonitorItf& resourceMonitor)
     : mInstanceID("instance-")
     , mInfo(info)
     , mOCIManager(ociManager)
     , mRunner(runner)
+    , mResourceMonitor(resourceMonitor)
 {
     StaticString<cInstanceIDLen> tmp;
 
-    mInstanceID.Append(tmp.Convert(sInstanceID++));
+    tmp.Convert(static_cast<uint64_t>(sInstanceID++));
+
+    mInstanceID.Append(tmp);
 
     LOG_INF() << "Create instance: " << mInfo.mInstanceIdent << ", ID: " << *this;
 }
@@ -73,7 +77,15 @@ Error Instance::Start()
         return runStatus.mError;
     }
 
-    return ErrorEnum::eNone;
+    err = mResourceMonitor.StartInstanceMonitoring(
+        mInstanceID, monitoring::InstanceMonitorParams {mInfo.mInstanceIdent, {}});
+    if (!err.IsNone()) {
+        mRunError = err;
+
+        return err;
+    }
+
+    return aos::ErrorEnum::eNone;
 }
 
 Error Instance::Stop()
@@ -91,6 +103,11 @@ Error Instance::Stop()
     err = FS::RemoveAll(instanceDir);
     if (!err.IsNone() && stopErr.IsNone()) {
         stopErr = AOS_ERROR_WRAP(err);
+    }
+
+    err = mResourceMonitor.StopInstanceMonitoring(mInstanceID);
+    if (!err.IsNone() && stopErr.IsNone()) {
+        stopErr = err;
     }
 
     return stopErr;

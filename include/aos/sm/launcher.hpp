@@ -11,6 +11,7 @@
 #include <assert.h>
 
 #include "aos/common/ocispec.hpp"
+#include "aos/common/resourcemonitor.hpp"
 #include "aos/common/tools/array.hpp"
 #include "aos/common/tools/memory.hpp"
 #include "aos/common/tools/noncopyable.hpp"
@@ -142,7 +143,8 @@ public:
      * @return Error.
      */
     Error Init(servicemanager::ServiceManagerItf& serviceManager, runner::RunnerItf& runner, OCISpecItf& ociManager,
-        InstanceStatusReceiverItf& statusReceiver, StorageItf& storage);
+        InstanceStatusReceiverItf& statusReceiver, StorageItf& storage,
+        monitoring::ResourceMonitorItf& resourceMonitor);
 
     /**
      * Runs specified instances.
@@ -174,16 +176,17 @@ public:
 private:
     static constexpr auto cNumLaunchThreads = AOS_CONFIG_LAUNCHER_NUM_COOPERATE_LAUNCHES;
     static constexpr auto cThreadTaskSize = 256;
+    static constexpr auto cThreadStackSize = 16384;
 
-    void ProcessInstances(
-        const Array<InstanceInfo>& instances, const Array<ServiceInfo>& services, bool forceRestart = false);
-    void ProcessServices(const Array<ServiceInfo>& services);
-    void ProcessLayers(const Array<LayerInfo>& layers);
-    void SendRunStatus();
-    void StopInstances(const Array<InstanceInfo>& instances, const Array<ServiceInfo>& services, bool forceRestart);
-    void StartInstances(const Array<InstanceInfo>& instances);
-    void CacheServices(const Array<InstanceInfo>& instances);
-    void UpdateInstanceServices();
+    void  ProcessInstances(SharedPtr<const Array<InstanceInfo>> instances, bool forceRestart = false);
+    void  ProcessServices(SharedPtr<const Array<ServiceInfo>> services);
+    void  ProcessLayers(SharedPtr<const Array<LayerInfo>> layers);
+    void  SendRunStatus();
+    void  StopInstances(SharedPtr<const Array<InstanceInfo>> instances, bool forceRestart);
+    void  StartInstances(SharedPtr<const Array<InstanceInfo>> instances);
+    void  CacheServices(SharedPtr<const Array<InstanceInfo>> instances);
+    void  UpdateInstanceServices();
+    Error UpdateStorage(SharedPtr<const Array<InstanceInfo>> instances);
 
     RetWithError<const Service*> GetService(const String& serviceID) const
     {
@@ -205,14 +208,18 @@ private:
     InstanceStatusReceiverItf*         mStatusReceiver {};
     StorageItf*                        mStorage {};
     OCISpecItf*                        mOCIManager {};
+    monitoring::ResourceMonitorItf*    mResourceMonitor {};
 
-    StaticAllocator<sizeof(InstanceInfoStaticArray) + sizeof(ServiceInfoStaticArray) + sizeof(LayerInfoStaticArray)>
+    StaticAllocator<sizeof(InstanceInfoStaticArray) * 2 + sizeof(ServiceInfoStaticArray) + sizeof(LayerInfoStaticArray)
+        + sizeof(servicemanager::ServiceDataStaticArray) + sizeof(InstanceStatusStaticArray)>
         mAllocator;
 
-    bool                    mLaunchInProgress = false;
-    Mutex                   mMutex;
-    Thread<cThreadTaskSize> mThread;
-    ThreadPool<cNumLaunchThreads, Max(cMaxNumInstances, cMaxNumServices, cMaxNumLayers), cThreadTaskSize> mLaunchPool;
+    bool                                      mLaunchInProgress = false;
+    Mutex                                     mMutex;
+    Thread<cThreadTaskSize, cThreadStackSize> mThread;
+    ThreadPool<cNumLaunchThreads, Max(cMaxNumInstances, cMaxNumServices, cMaxNumLayers), cThreadTaskSize,
+        cThreadStackSize>
+        mLaunchPool;
 
     StaticArray<Service, cMaxNumServices>   mCurrentServices;
     StaticArray<Instance, cMaxNumInstances> mCurrentInstances;
