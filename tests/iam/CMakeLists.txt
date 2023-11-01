@@ -11,7 +11,9 @@ set(TARGET aosiamcpp_test)
 # Sources
 # ######################################################################################################################
 
-set(SOURCES ${CMAKE_SOURCE_DIR}/src/iam/certhandler/certhandler.cpp certhandler/certhandler_test.cpp)
+set(SOURCES ${CMAKE_SOURCE_DIR}/src/iam/certhandler/certhandler.cpp
+            ${CMAKE_SOURCE_DIR}/src/iam/certhandler/modules/certmodule.cpp certhandler/certhandler_test.cpp
+)
 
 # ######################################################################################################################
 # Target
