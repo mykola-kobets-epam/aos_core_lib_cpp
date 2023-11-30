@@ -23,6 +23,7 @@ set(SOURCES
     src/tools/timer_test.cpp
     src/tools/allocator_test.cpp
     src/tools/memory_test.cpp
+    src/tools/optional_test.cpp
     src/tools/queue_test.cpp
     src/tools/function_test.cpp
     ${CMAKE_SOURCE_DIR}/src/common/resourcemonitor/resourcemonitor.cpp
@@ -41,6 +42,6 @@ add_definitions(-DAOS_CONFIG_MONITORING_SEND_PERIOD_SEC=2 -DAOS_CONFIG_MONITORIN
 # ######################################################################################################################
 
 add_executable(${TARGET} ${SOURCES})
-target_link_libraries(${TARGET} GTest::gtest_main)
+target_link_libraries(${TARGET} GTest::gmock_main)
 
 gtest_discover_tests(${TARGET})
