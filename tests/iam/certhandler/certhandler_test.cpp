@@ -34,10 +34,11 @@ protected:
     static const String         cPassword;
     static const Array<uint8_t> cIssuer;
     static const Array<uint8_t> cSubject;
-    static crypto::PrivateKey   cPrivateKey;
 
     void SetUp() override
     {
+        cPrivateKey = MakeShared<crypto::PrivateKey>(&mAllocator);
+
         EXPECT_CALL(mX509Provider, DNToString(_, _))
             .WillRepeatedly(Invoke([](const Array<uint8_t>& dn, String& result) {
                 result = reinterpret_cast<const char*>(dn.begin());
@@ -64,12 +65,20 @@ protected:
     MockStorage                mStorage;
     crypto::x509::MockProvider mX509Provider;
 
+    SharedPtr<crypto::PrivateKey>                      cPrivateKey;
+    StaticAllocator<sizeof(crypto::x509::Certificate)> mAllocator;
+
     CertHandler mCertHandler;
 };
 
 const Array<uint8_t> StringToDN(const char* str)
 {
     return Array<uint8_t>(reinterpret_cast<const uint8_t*>(str), strlen(str) + 1);
+}
+
+const String DNToString(const Array<uint8_t>& array)
+{
+    return reinterpret_cast<const char*>(array.Get());
 }
 
 /***********************************************************************************************************************
@@ -87,7 +96,6 @@ const String CertHandlerTest::cPassword = "1234";
 const Array<uint8_t> CertHandlerTest::cIssuer
     = StringToDN("C = UA, OU = My Digest Company, CN = Developer Relations Cert");
 const Array<uint8_t> CertHandlerTest::cSubject = StringToDN("UID = XMM9NE5AEO, OU = Worker, C = UA");
-crypto::PrivateKey   CertHandlerTest::cPrivateKey;
 
 /***********************************************************************************************************************
  * Tests
@@ -189,7 +197,7 @@ TEST_F(CertHandlerTest, CreateKey)
     ASSERT_EQ(Error::Enum::eNone, pkcs11Module.Init(mX509Provider, mPKCS11, mStorage));
     ASSERT_EQ(Error::Enum::eNone, mCertHandler.RegisterModule(pkcs11Module));
 
-    RetWithError<crypto::PrivateKey*> privateKeyRes = {&cPrivateKey, Error::Enum::eNone};
+    RetWithError<SharedPtr<crypto::PrivateKey>> privateKeyRes = {cPrivateKey, Error::Enum::eNone};
 
     EXPECT_CALL(mPKCS11, CreateKey(cPassword, cDefaultConfig.mKeyGenAlgorithm)).WillOnce(Return(privateKeyRes));
     EXPECT_CALL(mX509Provider, CreateCSR(_, _, _)).WillOnce(Return(Error::Enum::eNone));
@@ -224,7 +232,7 @@ TEST_F(CertHandlerTest, CreateKeyKeyGenError)
     ASSERT_EQ(Error::Enum::eNone, pkcs11Module.Init(mX509Provider, mPKCS11, mStorage));
     ASSERT_EQ(Error::Enum::eNone, mCertHandler.RegisterModule(pkcs11Module));
 
-    RetWithError<crypto::PrivateKey*> privateKeyRes = {&cPrivateKey, Error::Enum::eFailed};
+    RetWithError<SharedPtr<crypto::PrivateKey>> privateKeyRes = {cPrivateKey, Error::Enum::eFailed};
 
     EXPECT_CALL(mPKCS11, CreateKey(cPassword, cDefaultConfig.mKeyGenAlgorithm)).WillOnce(Return(privateKeyRes));
     EXPECT_CALL(mX509Provider, CreateCSR(_, _, _)).Times(0);
@@ -255,7 +263,7 @@ TEST_F(CertHandlerTest, CreateCSR)
     ASSERT_EQ(Error::Enum::eNone, pkcs11Module.Init(mX509Provider, mPKCS11, mStorage));
     ASSERT_EQ(Error::Enum::eNone, mCertHandler.RegisterModule(pkcs11Module));
 
-    RetWithError<crypto::PrivateKey*> privateKeyRes = {&cPrivateKey, Error::Enum::eNone};
+    RetWithError<SharedPtr<crypto::PrivateKey>> privateKeyRes = {cPrivateKey, Error::Enum::eNone};
 
     EXPECT_CALL(mPKCS11, CreateKey(cPassword, cDefaultConfig.mKeyGenAlgorithm)).WillOnce(Return(privateKeyRes));
 
@@ -312,7 +320,7 @@ TEST_F(CertHandlerTest, ApplyCert)
     devCertInfo.mKeyURL = "file://local-storage/keys/dev.priv";
     devCertInfo.mNotAfter = time::Time::Now().Add(time::Years(100));
     devCertInfo.mIssuer = StringToDN("ca.epam.com");
-    devCertInfo.mSerial = StringToDN("1.1.1.2");
+    devCertInfo.mSerial = "1.1.1.2";
 
     ApplyCert(certChain, devCertInfo);
 }
@@ -348,13 +356,13 @@ TEST_F(CertHandlerTest, CreateSelfSignedCert)
     devCertInfo.mKeyURL = "file://local-storage/keys/dev.priv";
     devCertInfo.mNotAfter = cert.mNotAfter;
     devCertInfo.mIssuer = cert.mIssuer;
-    devCertInfo.mSerial = cert.mSerial;
+    devCertInfo.mSerial = DNToString(cert.mSerial);
 
     StaticArray<crypto::x509::Certificate, 2> certChain;
 
     certChain.PushBack(cert);
 
-    RetWithError<crypto::PrivateKey*> privateKeyRes = {&cPrivateKey, Error::Enum::eNone};
+    RetWithError<SharedPtr<crypto::PrivateKey>> privateKeyRes = {cPrivateKey, Error::Enum::eNone};
     EXPECT_CALL(mPKCS11, CreateKey(cPassword, cDefaultConfig.mKeyGenAlgorithm)).WillOnce(Return(privateKeyRes));
 
     auto selfSigned = Truly([](const crypto::x509::Certificate& cert) { return cert.mIssuer == cert.mSubject; });
@@ -396,11 +404,11 @@ TEST_F(CertHandlerTest, GetCertificateEmptySerial)
     CertInfo cert2;
     CertInfo cert3;
 
-    cert1.mSerial = StringToDN("1.1.1.1");
+    cert1.mSerial = "1.1.1.1";
     cert1.mNotAfter = time::Time::Now().Add(time::Years(1));
-    cert2.mSerial = StringToDN("1.1.1.2");
+    cert2.mSerial = "1.1.1.2";
     cert2.mNotAfter = time::Time::Now().Add(time::Years(2));
-    cert3.mSerial = StringToDN("1.1.1.3");
+    cert3.mSerial = "1.1.1.3";
     cert3.mNotAfter = time::Time::Now().Add(time::Years(3));
 
     StaticArray<CertInfo, cCertsPerModule> certsInfo;
@@ -444,7 +452,7 @@ TEST_F(CertHandlerTest, RemoveInvalidCert)
     ASSERT_EQ(Error::Enum::eNone, pkcs11Module.Init(mX509Provider, mPKCS11, mStorage));
     ASSERT_EQ(Error::Enum::eNone, mCertHandler.RegisterModule(pkcs11Module));
 
-    RetWithError<crypto::PrivateKey*> privateKeyRes = {&cPrivateKey, Error::Enum::eNone};
+    RetWithError<SharedPtr<crypto::PrivateKey>> privateKeyRes = {cPrivateKey, Error::Enum::eNone};
 
     EXPECT_CALL(mPKCS11, RemoveCert(invalidCerts[0], cPassword)).WillOnce(Return(Error::Enum::eNone));
     EXPECT_CALL(mPKCS11, RemoveCert(invalidCerts[1], cPassword)).WillOnce(Return(Error::Enum::eNone));

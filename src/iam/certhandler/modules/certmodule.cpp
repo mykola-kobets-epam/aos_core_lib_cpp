@@ -92,7 +92,7 @@ Error CertModule::Clear()
     return mStorage->RemoveAllCertsInfo(GetCertType());
 }
 
-RetWithError<crypto::PrivateKey*> CertModule::CreateKey(const String& password)
+RetWithError<SharedPtr<crypto::PrivateKey>> CertModule::CreateKey(const String& password)
 {
     auto err = RemoveInvalidCerts(password);
     if (!err.IsNone()) {
