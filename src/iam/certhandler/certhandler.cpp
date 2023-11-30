@@ -24,7 +24,7 @@ Error CertHandler::RegisterModule(CertModule& module)
 {
     LockGuard lock(mMutex);
 
-    LOG_INF() << "Register module: type=" << module.GetCertType();
+    LOG_INF() << "Register module: type = " << module.GetCertType();
 
     return AOS_ERROR_WRAP(mModules.PushBack(&module));
 }
@@ -49,7 +49,7 @@ Error CertHandler::SetOwner(const String& certType, const String& password)
 {
     LockGuard lock(mMutex);
 
-    LOG_DBG() << "Set owner. type=" << certType;
+    LOG_DBG() << "Set owner: type = " << certType;
 
     auto* module = FindModule(certType);
     if (module == nullptr) {
@@ -63,7 +63,7 @@ Error CertHandler::Clear(const String& certType)
 {
     LockGuard lock(mMutex);
 
-    LOG_DBG() << "Clear all certificates. type=" << certType;
+    LOG_DBG() << "Clear all certificates: type = " << certType;
 
     auto* module = FindModule(certType);
     if (module == nullptr) {
@@ -78,7 +78,7 @@ Error CertHandler::CreateKey(
 {
     LockGuard lock(mMutex);
 
-    LOG_DBG() << "Create key. type=" << certType << ", subject=" << subject;
+    LOG_DBG() << "Create key: type = " << certType << ", subject = " << subject;
 
     auto* module = FindModule(certType);
     if (module == nullptr) {
@@ -97,7 +97,7 @@ Error CertHandler::ApplyCertificate(const String& certType, const Array<uint8_t>
 {
     LockGuard lock(mMutex);
 
-    LOG_DBG() << "Apply cert. type=" << certType << ", url=" << info.mCertURL;
+    LOG_DBG() << "Apply cert: type = " << certType << ", url = " << info.mCertURL;
 
     auto* module = FindModule(certType);
     if (module == nullptr) {
@@ -112,7 +112,7 @@ Error CertHandler::GetCertificate(
 {
     LockGuard lock(mMutex);
 
-    LOG_DBG() << "Get certificate. type=" << certType << ", serial=" << serial;
+    LOG_DBG() << "Get certificate: type = " << certType << ", serial = " << serial;
 
     auto* module = FindModule(certType);
     if (module == nullptr) {
@@ -126,7 +126,7 @@ Error CertHandler::CreateSelfSignedCert(const String& certType, const String& pa
 {
     LockGuard lock(mMutex);
 
-    LOG_DBG() << "Create self signed cert. type=" << certType;
+    LOG_DBG() << "Create self signed cert: type = " << certType;
 
     auto* module = FindModule(certType);
     if (module == nullptr) {
