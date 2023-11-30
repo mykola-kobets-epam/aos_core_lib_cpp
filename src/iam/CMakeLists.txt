@@ -11,7 +11,7 @@ set(TARGET aosiamcpp)
 # Sources
 # ######################################################################################################################
 
-set(SOURCES certhandler/certhandler.cpp certhandler/modules/certmodule.cpp)
+set(SOURCES certhandler/certhandler.cpp certhandler/modules/certmodule.cpp certhandler/modules/pkcs11/pkcs11.cpp)
 
 # ######################################################################################################################
 # Target
