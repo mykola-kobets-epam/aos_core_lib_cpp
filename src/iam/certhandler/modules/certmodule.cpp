@@ -30,7 +30,7 @@ Error CertModule::Init(crypto::x509::ProviderItf& x509Provider, HSMItf& hsm, Sto
     mStorage = &storage;
 
     if (mModuleConfig.mSkipValidation) {
-        LOG_WRN() << "Skip validation. type=" << GetCertType();
+        LOG_WRN() << "Skip validation: type = " << GetCertType();
 
         return Error::Enum::eNone;
     }
@@ -127,8 +127,8 @@ Error CertModule::CreateCSR(const Array<uint8_t>& subject, const crypto::Private
             break;
 
         default:
-            LOG_WRN() << "Unexpected extended key usage: type=" << GetCertType()
-                      << ", value=" << extKeyUsage.ToString();
+            LOG_WRN() << "Unexpected extended key usage: type = " << GetCertType()
+                      << ", value = " << extKeyUsage.ToString();
             break;
         }
     }
@@ -220,7 +220,7 @@ Error CertModule::CreateSelfSignedCert(const String& password)
 Error CertModule::RemoveInvalidCerts(const String& password)
 {
     for (const auto& url : mInvalidCerts) {
-        LOG_WRN() << "Remove invalid cert. type=" << GetCertType() << ", url=" << url;
+        LOG_WRN() << "Remove invalid cert: type = " << GetCertType() << ", url = " << url;
 
         const auto err = mHSM->RemoveCert(url, password);
         if (!err.IsNone()) {
@@ -236,7 +236,7 @@ Error CertModule::RemoveInvalidCerts(const String& password)
 Error CertModule::RemoveInvalidKeys(const String& password)
 {
     for (const auto& url : mInvalidKeys) {
-        LOG_WRN() << "Remove invalid key: type=" << GetCertType() << ", url=" << url;
+        LOG_WRN() << "Remove invalid key: type = " << GetCertType() << ", url = " << url;
 
         const auto err = mHSM->RemoveKey(url, password);
         if (!err.IsNone()) {
@@ -307,7 +307,7 @@ Error CertModule::CheckCertChain(const Array<crypto::x509::Certificate>& chain)
         mX509Provider->DNToString(cert.mIssuer, issuer);
         mX509Provider->DNToString(cert.mSubject, subject);
 
-        LOG_DBG() << "Check certificate chain. issuer=" << issuer << ", subject=" << subject;
+        LOG_DBG() << "Check certificate chain: issuer = " << issuer << ", subject = " << subject;
     }
 
     size_t currentCert = 0;
@@ -364,7 +364,7 @@ Error CertModule::SyncValidCerts(const Array<CertInfo>& validCerts)
         if (storedCert != nullptr) {
             certsInStorage->Remove(storedCert);
         } else {
-            LOG_WRN() << "Add missing cert to DB: type=" << GetCertType() << ", certInfo=" << moduleCert;
+            LOG_WRN() << "Add missing cert to DB: type = " << GetCertType() << ", certInfo = " << moduleCert;
 
             err = mStorage->AddCertInfo(GetCertType(), moduleCert);
             if (!err.IsNone()) {
@@ -375,7 +375,7 @@ Error CertModule::SyncValidCerts(const Array<CertInfo>& validCerts)
 
     // Remove outdated certificates from storage.
     for (const auto& moduleCert : *certsInStorage) {
-        LOG_WRN() << "Remove invalid cert from DB. type=" << GetCertType() << ", certInfo=" << moduleCert;
+        LOG_WRN() << "Remove invalid cert from DB: type = " << GetCertType() << ", certInfo = " << moduleCert;
 
         err = mStorage->RemoveCertInfo(GetCertType(), moduleCert.mCertURL);
         if (!err.IsNone()) {
