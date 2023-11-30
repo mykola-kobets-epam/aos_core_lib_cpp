@@ -68,6 +68,11 @@ constexpr auto cCertKeyIdSize = AOS_CONFIG_CRYPTO_CERT_KEY_ID_SIZE;
 constexpr auto cPEMCertSize = AOS_CONFIG_CRYPTO_PEM_CERT_SIZE;
 
 /**
+ * Maximum size of a DER certificate.
+ */
+constexpr auto cDERCertSize = AOS_CONFIG_CRYPTO_DER_CERT_SIZE;
+
+/**
  *  Serial number size(in bytes).
  */
 constexpr auto cSerialNumSize = AOS_CONFIG_CRYPTO_SERIAL_NUM_SIZE;
@@ -216,6 +221,15 @@ public:
      * @result Error.
      */
     virtual Error PEMToX509Certs(const Array<uint8_t>& pemBlob, Array<Certificate>& resultCerts) = 0;
+
+    /**
+     * Reads certificate from a DER blob.
+     *
+     * @param derBlob raw certificate in a DER format.
+     * @param[out] resultCert result certificate.
+     * @result Error.
+     */
+    virtual Error DERToX509Cert(const Array<uint8_t>& derBlob, Certificate& resultCert) = 0;
 
     /**
      * Creates a new certificate request, based on a template.

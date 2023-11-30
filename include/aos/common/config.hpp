@@ -219,6 +219,13 @@
 #endif
 
 /**
+ * Maximum size of a DER certificate.
+ */
+#ifndef AOS_CONFIG_CRYPTO_DER_CERT_SIZE
+#define AOS_CONFIG_CRYPTO_DER_CERT_SIZE 2048
+#endif
+
+/**
  * Serial number size(in bytes).
  */
 #ifndef AOS_CONFIG_CRYPTO_SERIAL_NUM_SIZE
