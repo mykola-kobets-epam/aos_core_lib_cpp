@@ -202,21 +202,22 @@ public:
      *
      * @return RetWithError<int>.
      */
-    RetWithError<int> ToInt() { return atoi(CStr()); }
+    RetWithError<int> ToInt() const { return atoi(CStr()); }
 
     /**
      * Converts sting to uint64.
      *
      * @return RetWithError<uint64_t>.
      */
-    RetWithError<uint64_t> ToUint64() { return static_cast<uint64_t>(strtoull(CStr(), nullptr, 10)); }
+    RetWithError<uint64_t> ToUint64() const { return static_cast<uint64_t>(strtoull(CStr(), nullptr, 10)); }
 
     /**
      * Converts sting to int64.
      *
      * @return RetWithError<int64_t>.
      */
-    RetWithError<int64_t> ToInt64() { return static_cast<int64_t>(strtoll(CStr(), nullptr, 10)); }
+    RetWithError<int64_t> ToInt64() const { return static_cast<int64_t>(strtoll(CStr(), nullptr, 10)); }
+
 
     /**
      * Converts int to string.
