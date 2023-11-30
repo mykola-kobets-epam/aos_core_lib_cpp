@@ -273,13 +273,14 @@ using ErrorEnum = Error::Enum;
  */
 template <typename T>
 struct RetWithError {
+    // cppcheck-suppress noExplicitConstructor
     /**
      * Constructs return value with error instance.
      *
      * @param value return value.
      * @param error return error.
      */
-    RetWithError(T value, const Error& error)
+    RetWithError(const T& value, const Error& error = ErrorEnum::eNone)
         : mValue(value)
         , mError(error)
     {
@@ -287,13 +288,14 @@ struct RetWithError {
 
     // cppcheck-suppress noExplicitConstructor
     /**
-     * Constructs return value no error.
+     * Constructs return value with error instance.
      *
      * @param value return value.
+     * @param error return error.
      */
-    RetWithError(T value)
-        : mValue(value)
-        , mError(ErrorEnum::eNone)
+    RetWithError(T&& value, const Error& error = ErrorEnum::eNone)
+        : mValue(Move(value))
+        , mError(error)
     {
     }
 
@@ -301,6 +303,37 @@ struct RetWithError {
      * Holds returned value.
      */
     T mValue;
+
+    /**
+     * Holds returned error.
+     */
+    Error mError;
+};
+
+/**
+ * Specialization for references.
+ *
+ * @tparam T value type.
+ */
+template <typename T>
+struct RetWithError<T&> {
+    // cppcheck-suppress noExplicitConstructor
+    /**
+     * Constructs return value with error instance.
+     *
+     * @param value return value.
+     * @param error return error.
+     */
+    RetWithError(T& value, const Error& error = ErrorEnum::eNone)
+        : mValue(value)
+        , mError(error)
+    {
+    }
+
+    /**
+     * Holds returned value.
+     */
+    T& mValue;
 
     /**
      * Holds returned error.
