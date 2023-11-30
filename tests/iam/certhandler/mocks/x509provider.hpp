@@ -20,7 +20,8 @@ public:
     MOCK_METHOD(Error, CreateCertificate,
         (const Certificate& templ, const Certificate& parent, const PrivateKey& privKey, Array<uint8_t>& pemCert),
         (override));
-    MOCK_METHOD(Error, PEMToX509Certs, (const Array<uint8_t>& pemBlob, Array<Certificate>& resultCerts));
+    MOCK_METHOD(Error, PEMToX509Certs, (const Array<uint8_t>& pemBlob, Array<Certificate>& resultCerts), (override));
+    MOCK_METHOD(Error, DERToX509Cert, (const Array<uint8_t>& derBlob, Certificate& resultCerts), (override));
     MOCK_METHOD(Error, CreateCSR, (const CSR& templ, const PrivateKey& privKey, Array<uint8_t>& pemCSR), (override));
     MOCK_METHOD(Error, CreateDN, (const String& commonName, Array<uint8_t>& result), (override));
     MOCK_METHOD(Error, DNToString, (const Array<uint8_t>& dn, String& result), (override));
