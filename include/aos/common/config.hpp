@@ -272,4 +272,60 @@
 #define AOS_CONFIG_CRYPTO_SERIAL_NUM_STR_LEN 40
 #endif
 
+/**
+ * Maximum length of PKCS11 slot description.
+ */
+#ifndef AOS_CONFIG_PKCS11_SLOT_DESCRIPTION_LEN
+#define AOS_CONFIG_PKCS11_SLOT_DESCRIPTION_LEN 64
+#endif
+
+/**
+ * Maximum length of PKCS11 manufacture ID.
+ */
+#ifndef AOS_CONFIG_PKCS11_MANUFACTURE_ID_LEN
+#define AOS_CONFIG_PKCS11_MANUFACTURE_ID_LEN 32
+#endif
+
+/**
+ * Maximum length of PKCS11 label.
+ */
+#ifndef AOS_CONFIG_PKCS11_LABEL_LEN
+#define AOS_CONFIG_PKCS11_LABEL_LEN 32
+#endif
+
+/**
+ * PKCS11 library description length.
+ */
+#ifndef AOS_CONFIG_PKCS11_LIBRARY_DESC_LEN
+#define AOS_CONFIG_PKCS11_LIBRARY_DESC_LEN 64
+#endif
+
+/**
+ * HSM device model length.
+ */
+#ifndef AOS_CONFIG_PKCS11_MODEL_LEN
+#define AOS_CONFIG_PKCS11_MODEL_LEN 16
+#endif
+
+/**
+ * Maximum length of user PIN (password).
+ */
+#ifndef AOS_CONFIG_PKCS11_PIN_LEN
+#define AOS_CONFIG_PKCS11_PIN_LEN 42
+#endif
+
+/**
+ *  UUID length
+ */
+#ifndef AOS_CONFIG_UUID_LEN
+#define AOS_CONFIG_UUID_LEN 16
+#endif
+
+/**
+ *  Length of UUID string representation
+ */
+#ifndef AOS_CONFIG_UUID_STR_LEN
+#define AOS_CONFIG_UUID_STR_LEN AOS_CONFIG_UUID_LEN * 2 + 4 + 1 // 32 hex digits + 4 '-' symbols + '\0'
+#endif
+
 #endif
