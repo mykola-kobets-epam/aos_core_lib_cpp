@@ -341,6 +341,79 @@ struct RetWithError<T&> {
     Error mError;
 };
 
+/**
+ * Helper class for Tie method implementation.
+ *
+ * @tparam T value type.
+ */
+template <typename T>
+struct TieWrapper {
+    /**
+     * Constructs wrapper using references on a value and error.
+     *
+     * @param value tied value.
+     * @param error tied error.
+     */
+    TieWrapper(T& value, Error& error)
+        : mValue(value)
+        , mError(error)
+    {
+    }
+
+    /**
+     * Assignment operator.
+     *
+     * @param src return value.
+     * @return TieWrapper<T>&
+     */
+    template <typename U>
+    TieWrapper<T>& operator=(const RetWithError<U>& src)
+    {
+        mValue = src.mValue;
+        mError = src.mError;
+
+        return *this;
+    }
+
+    /**
+     * Assignment operator.
+     *
+     * @param src return value.
+     * @return TieWrapper<T>&
+     */
+    template <typename U>
+    TieWrapper<T>& operator=(RetWithError<U>&& src)
+    {
+        mValue = Move(src.mValue);
+        mError = src.mError;
+
+        return *this;
+    }
+
+    /**
+     * Holds returned value.
+     */
+    T& mValue;
+
+    /**
+     * Holds returned error.
+     */
+    Error& mError;
+};
+
+/**
+ * Creates a pair from provided references.
+ *
+ * @param value value reference.
+ * @param error error reference.
+ * @return TieWrapper<T>.
+ */
+template <typename T>
+TieWrapper<T> Tie(T& value, Error& error)
+{
+    return TieWrapper<T>(value, error);
+}
+
 } // namespace aos
 
 #endif
