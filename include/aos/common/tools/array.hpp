@@ -618,6 +618,11 @@ public:
     }
 
     /**
+     * Destroys static array.
+     */
+    ~StaticArray() { Array<T>::Clear(); }
+
+    /**
      * Assigns static array from another static array.
      *
      * @param array array to create from.
