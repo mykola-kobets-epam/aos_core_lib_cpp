@@ -218,6 +218,56 @@ public:
      */
     RetWithError<int64_t> ToInt64() const { return static_cast<int64_t>(strtoll(CStr(), nullptr, 10)); }
 
+    /**
+     * Converts hex string to byte array.
+     *
+     * @return Error.
+     */
+    Error ToByteArr(Array<uint8_t>& arr) const
+    {
+        if (arr.MaxSize() * 2 < Size()) {
+            return Error::Enum::eNoMemory;
+        }
+
+        static const auto parseHex = [](char ch) {
+            if (ch >= '0' && ch <= '9') {
+                return static_cast<uint8_t>(ch - '0');
+            }
+
+            if (ch >= 'a' && ch <= 'f') {
+                return static_cast<uint8_t>(ch - 'a' + 10);
+            }
+
+            if (ch >= 'A' && ch <= 'F') {
+                return static_cast<uint8_t>(ch - 'A' + 10);
+            }
+
+            return static_cast<uint8_t>(255);
+        };
+
+        arr.Clear();
+
+        for (size_t i = 0; i < Size(); i += 2) {
+            uint8_t high = parseHex(Get()[i]);
+            if (high > 0xFU) {
+                return Error::Enum::eInvalidArgument;
+            }
+
+            if (i + 1 >= Size()) {
+                arr.PushBack(high << 4);
+                break;
+            }
+
+            uint8_t low = parseHex(Get()[i + 1]);
+            if (low > 0xFU) {
+                return Error::Enum::eInvalidArgument;
+            }
+
+            arr.PushBack((high << 4) | low);
+        }
+
+        return Error::Enum::eNone;
+    }
 
     /**
      * Converts int to string.
@@ -242,6 +292,33 @@ public:
      * @return Error.
      */
     Error Convert(int64_t value) { return ConvertValue(value, "%" PRIi64); }
+
+    /**
+     * Converts a byte array to a hex string.
+     *
+     * @param arr array.
+     * @return Error.
+     */
+    Error Convert(const Array<uint8_t>& arr)
+    {
+        if (MaxSize() < arr.Size() * 2) {
+            return Error::Enum::eNoMemory;
+        }
+
+        Clear();
+
+        constexpr char cDigits[] = "0123456789ABCDEF";
+
+        for (const auto val : arr) {
+            const auto low = val & 0xF;
+            const auto high = (val >> 4);
+
+            PushBack(cDigits[high]);
+            PushBack(cDigits[low]);
+        }
+
+        return Error::Enum::eNone;
+    }
 
     /**
      * Converts error to string.
