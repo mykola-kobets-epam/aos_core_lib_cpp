@@ -160,6 +160,10 @@ struct Certificate {
      * Certificate validity period.
      */
     time::Time mNotBefore, mNotAfter;
+    /**
+     * Public key.
+     */
+    StaticArray<uint8_t, cCertPubKeySize> mPublicKey;
 };
 
 /**

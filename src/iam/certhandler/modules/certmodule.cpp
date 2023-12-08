@@ -184,26 +184,26 @@ Error CertModule::CreateSelfSignedCert(const String& password)
         return key.mError;
     }
 
-    const uint64_t            serial = time::Time::Now().UnixNano();
-    crypto::x509::Certificate templ;
+    const uint64_t serial = time::Time::Now().UnixNano();
+    auto           templ = MakeUnique<crypto::x509::Certificate>(&mAllocator);
 
-    templ.mSerial = Array<uint8_t>(reinterpret_cast<const uint8_t*>(&serial), sizeof(serial));
-    templ.mNotBefore = time::Time::Now();
-    templ.mNotAfter = time::Time::Now().Add(cValidSelfSignedCertPeriod);
+    templ->mSerial = Array<uint8_t>(reinterpret_cast<const uint8_t*>(&serial), sizeof(serial));
+    templ->mNotBefore = time::Time::Now();
+    templ->mNotAfter = time::Time::Now().Add(cValidSelfSignedCertPeriod);
 
-    auto err = mX509Provider->CreateDN("Aos Core", templ.mSubject);
+    auto err = mX509Provider->CreateDN("Aos Core", templ->mSubject);
     if (!err.IsNone()) {
         return err;
     }
 
-    err = mX509Provider->CreateDN("Aos Core", templ.mIssuer);
+    err = mX509Provider->CreateDN("Aos Core", templ->mIssuer);
     if (!err.IsNone()) {
         return err;
     }
 
     auto pemCert = MakeUnique<SelfSignedCertificate>(&mAllocator);
 
-    err = mX509Provider->CreateCertificate(templ, templ, *key.mValue, *pemCert);
+    err = mX509Provider->CreateCertificate(*templ, *templ, *key.mValue, *pemCert);
     if (!err.IsNone()) {
         return err;
     }
