@@ -171,7 +171,7 @@ TEST(CommonTest, StringToByteArray)
 
 TEST(CommonTest, StringToByteArrayOddSize)
 {
-    const String            hex = "01234";
+    const String hex = "01234";
 
     StaticArray<uint8_t, 8> result;
     uint8_t                 expected[] = {0x01, 0x23, 0x40};
@@ -200,4 +200,33 @@ TEST(CommonTest, StringConvertFromByteArray)
 
     ASSERT_TRUE(dst.Convert(source).IsNone());
     ASSERT_EQ(dst, expected);
+}
+
+TEST(CommonTest, StringFormat)
+{
+    StaticString<20> str;
+
+    ASSERT_TRUE(str.Format("%s: %d", "id", 10).IsNone());
+    ASSERT_EQ(str, "id: 10");
+}
+
+TEST(CommonTest, StringSearch)
+{
+    StaticString<40> str = "pkcs11:object=10;id=40";
+
+    StaticString<20> object;
+    StaticString<20> id;
+
+    const char* regex = ".*object=([0-9]+).*id=([0-9]+)";
+
+    ASSERT_TRUE(str.Search<1>(regex, object).IsNone());
+    EXPECT_EQ(object, "10");
+
+    ASSERT_TRUE(str.Search<2>(regex, id).IsNone());
+    EXPECT_EQ(id, "40");
+
+    ASSERT_EQ(str.Search<3>(regex, id), Error::Enum::eNotFound);
+
+    StaticString<1> smallId;
+    ASSERT_EQ(str.Search<2>(regex, smallId), Error::Enum::eNoMemory);
 }

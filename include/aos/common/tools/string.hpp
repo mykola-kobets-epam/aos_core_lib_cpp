@@ -12,6 +12,7 @@
 
 #include <ctype.h>
 #include <inttypes.h>
+#include <regex.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -397,10 +398,23 @@ public:
     template <typename T>
     Error ConvertValue(T value, const char* format)
     {
+        return Format(format, value);
+    }
+
+    /**
+     * Composes a string using format and additional argument list.
+     *
+     * @param format format string that follows specification of printf.
+     * @param ...args additional arguments
+     * @return Error.
+     */
+    template <class... Args>
+    Error Format(const char* format, Args... args)
+    {
         Clear();
 
         // cppcheck-suppress wrongPrintfScanfArgNum
-        auto ret = snprintf(Get(), MaxSize() + 1, format, value);
+        auto ret = snprintf(Get(), MaxSize() + 1, format, args...);
         if (ret < 0) {
             return ret;
         }
@@ -408,6 +422,46 @@ public:
         Resize(ret);
 
         return ErrorEnum::eNone;
+    }
+
+    /**
+     * Executes search by specified regex string and returns match by its number.
+     *
+     * @tparam cMatchInd specifies index of the match to be returned.
+     * @param regex POSIX extended regular expression.
+     * @param[out] match result match.
+     * @return Error.
+     */
+    template <int cMatchInd>
+    Error Search(const char* regex, String& match) const
+    {
+        regex_t    r;
+        regmatch_t matches[cMatchInd + 1];
+
+        int ret = regcomp(&r, regex, REG_EXTENDED);
+        if (ret != 0) {
+            return Error::Enum::eInvalidArgument;
+        }
+
+        ret = regexec(&r, CStr(), cMatchInd + 1, matches, 0);
+        if (ret != 0) {
+            return Error::Enum::eNotFound;
+        }
+
+        if (matches[cMatchInd].rm_so == -1) {
+            return Error::Enum::eNotFound;
+        }
+
+        match.Clear();
+
+        Error err = match.Insert(match.end(), CStr() + matches[cMatchInd].rm_so, CStr() + matches[cMatchInd].rm_eo);
+        if (!err.IsNone()) {
+            return err;
+        }
+
+        *match.end() = 0;
+
+        return Error::Enum::eNone;
     }
 };
 
