@@ -23,11 +23,6 @@ namespace crypto {
 constexpr auto cCertPubKeySize = AOS_CONFIG_CRYPTO_CERT_PUB_KEY_SIZE;
 
 /**
- * Certificate serial number max length.
- */
-constexpr auto cCertSerialNumberSize = AOS_CONFIG_CRYPTO_CERT_SERIAL_SIZE;
-
-/**
  * Certificate issuer name max length.
  */
 constexpr auto cCertIssuerSize = AOS_CONFIG_CRYPTO_CERT_ISSUER_SIZE;
@@ -71,6 +66,16 @@ constexpr auto cCertKeyIdSize = AOS_CONFIG_CRYPTO_CERT_KEY_ID_SIZE;
  * Maximum size of a PEM certificate.
  */
 constexpr auto cPEMCertSize = AOS_CONFIG_CRYPTO_PEM_CERT_SIZE;
+
+/**
+ *  Serial number size(in bytes).
+ */
+constexpr auto cSerialNumSize = AOS_CONFIG_CRYPTO_SERIAL_NUM_SIZE;
+
+/**
+ *  Length of serial number in string representation.
+ */
+constexpr auto cSerialNumStrLen = AOS_CONFIG_CRYPTO_SERIAL_NUM_STR_LEN;
 
 /**
  * General certificate private key type.
@@ -155,7 +160,7 @@ struct Certificate {
     /**
      * Certificate serial number.
      */
-    StaticArray<uint8_t, cCertSerialNumberSize> mSerial;
+    StaticArray<uint8_t, cSerialNumSize> mSerial;
     /**
      * Certificate validity period.
      */

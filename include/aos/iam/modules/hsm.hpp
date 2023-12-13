@@ -55,7 +55,7 @@ struct CertInfo {
     /**
      * Certificate serial number.
      */
-    StaticString<crypto::cCertSerialNumberSize> mSerial;
+    StaticString<crypto::cSerialNumSize> mSerial;
     /**
      * Certificate url.
      */
