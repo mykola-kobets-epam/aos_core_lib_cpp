@@ -163,13 +163,6 @@
 #endif
 
 /**
- * Certificate serial number size(in bytes).
- */
-#ifndef AOS_CONFIG_CRYPTO_CERT_SERIAL_SIZE
-#define AOS_CONFIG_CRYPTO_CERT_SERIAL_SIZE 20
-#endif
-
-/**
  * Certificate issuer size(in bytes).
  */
 #ifndef AOS_CONFIG_CRYPTO_CERT_ISSUER_SIZE
@@ -223,6 +216,20 @@
  */
 #ifndef AOS_CONFIG_CRYPTO_PEM_CERT_SIZE
 #define AOS_CONFIG_CRYPTO_PEM_CERT_SIZE 4096
+#endif
+
+/**
+ * Serial number size(in bytes).
+ */
+#ifndef AOS_CONFIG_CRYPTO_SERIAL_NUM_SIZE
+#define AOS_CONFIG_CRYPTO_SERIAL_NUM_SIZE 20
+#endif
+
+/**
+ * Length of serial number in string representation.
+ */
+#ifndef AOS_CONFIG_CRYPTO_SERIAL_NUM_STR_LEN
+#define AOS_CONFIG_CRYPTO_SERIAL_NUM_STR_LEN 40
 #endif
 
 #endif
