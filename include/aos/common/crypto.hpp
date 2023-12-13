@@ -12,15 +12,11 @@
 #include "aos/common/tools/string.hpp"
 
 #include "aos/common/time.hpp"
+#include "aos/common/tools/memory.hpp"
 #include "aos/common/types.hpp"
 
 namespace aos {
 namespace crypto {
-
-/**
- * Certificate public key len.
- */
-constexpr auto cCertPubKeySize = AOS_CONFIG_CRYPTO_CERT_PUB_KEY_SIZE;
 
 /**
  * Certificate issuer name max length.
@@ -83,17 +79,216 @@ constexpr auto cSerialNumSize = AOS_CONFIG_CRYPTO_SERIAL_NUM_SIZE;
 constexpr auto cSerialNumStrLen = AOS_CONFIG_CRYPTO_SERIAL_NUM_STR_LEN;
 
 /**
- * General certificate private key type.
+ * RSA modulus size.
+ */
+constexpr auto cRSAModulusSize = AOS_CONFIG_CRYPTO_RSA_MODULUS_SIZE;
+
+/**
+ * Size of RSA public exponent.
+ */
+constexpr auto cRSAPubExponentSize = AOS_CONFIG_CRYPTO_RSA_PUB_EXPONENT_SIZE;
+
+/**
+ * ECDSA params OID size.
+ */
+constexpr auto cECDSAParamsOIDSize = AOS_CONFIG_CRYPTO_ECDSA_PARAMS_OID_SIZE;
+
+/**
+ * DER-encoded X9.62 ECPoint.
+ */
+constexpr auto cECDSAPointDERSize = AOS_CONFIG_CRYPTO_ECDSA_POINT_DER_SIZE;
+
+/**
+ * Supported key types.
+ */
+enum class KeyType { eRSA, eECDSA };
+
+/**
+ * Public key interface.
+ */
+class PublicKey {
+public:
+    /**
+     * Returns type of a public key.
+     *
+     * @return KeyType,
+     */
+    virtual KeyType GetKeyType() const = 0;
+
+    /**
+     * Tests whether current key is equal to the provided one.
+     *
+     * @param pubKey public key.
+     * @return bool.
+     */
+    virtual bool IsEqual(const PublicKey& pubKey) const = 0;
+
+    /**
+     * Destroys object instance.
+     */
+    virtual ~PublicKey() = default;
+};
+
+/**
+ * Private key interface.
  */
 class PrivateKey {
 public:
     /**
      * Returns public part of a private key.
+     *
+     * @return const PublicKey&.
      */
-    const Array<uint8_t>& GetPublic() const { return mPublicKey; }
+    virtual const PublicKey& GetPublic() const = 0;
+
+    /**
+     * Destroys object instance.
+     */
+    virtual ~PrivateKey() = default;
+};
+
+/**
+ * RSA public key.
+ */
+class RSAPublicKey : public PublicKey {
+public:
+    /**
+     * Constructs object instance.
+     *
+     * @param n modulus.
+     * @param e public exponent.
+     */
+    RSAPublicKey(const Array<uint8_t>& n, const Array<uint8_t>& e)
+        : mN(n)
+        , mE(e)
+    {
+    }
+
+    /**
+     * Returns type of a public key.
+     *
+     * @return KeyType,
+     */
+    KeyType GetKeyType() const override { return KeyType::eRSA; }
+
+    /**
+     * Tests whether current key is equal to the provided one.
+     *
+     * @param pubKey public key.
+     * @return bool.
+     */
+    bool IsEqual(const PublicKey& pubKey) const override
+    {
+        if (pubKey.GetKeyType() != KeyType::eRSA) {
+            return false;
+        }
+
+        const auto& otherKey = static_cast<const RSAPublicKey&>(pubKey);
+
+        return otherKey.mN == mN && otherKey.mE == mE;
+    }
 
 private:
-    StaticArray<uint8_t, cCertPubKeySize> mPublicKey;
+    StaticArray<uint8_t, cRSAModulusSize>     mN;
+    StaticArray<uint8_t, cRSAPubExponentSize> mE;
+};
+
+/**
+ * RSA private key.
+ */
+class RSAPrivateKey : public PrivateKey {
+public:
+    /**
+     * Constructs object instance.
+     *
+     * @param pubKey public key component of a private key.
+     */
+    RSAPrivateKey(const RSAPublicKey& pubKey)
+        : mPubKey(pubKey)
+    {
+    }
+
+    /**
+     * Returns public part of a private key.
+     *
+     * @return const PublicKey&.
+     */
+    const PublicKey& GetPublic() const override { return mPubKey; }
+
+private:
+    RSAPublicKey mPubKey;
+};
+
+/**
+ * ECDSA public key.
+ */
+class ECDSAPublicKey : public PublicKey {
+public:
+    /**
+     * Constructs object instance.
+     *
+     * @param n modulus.
+     * @param e public exponent.
+     */
+    ECDSAPublicKey(const Array<uint8_t>& params, const Array<uint8_t>& point)
+        : mECParamsOID(params)
+        , mECPoint(point)
+    {
+    }
+
+    /**
+     * Returns type of a public key.
+     *
+     * @return KeyType,
+     */
+    KeyType GetKeyType() const override { return KeyType::eECDSA; }
+
+    /**
+     * Tests whether current key is equal to the provided one.
+     *
+     * @param pubKey public key.
+     * @return bool.
+     */
+    bool IsEqual(const PublicKey& pubKey) const override
+    {
+        if (pubKey.GetKeyType() != KeyType::eECDSA) {
+            return false;
+        }
+
+        const auto& otherKey = static_cast<const ECDSAPublicKey&>(pubKey);
+
+        return otherKey.mECParamsOID == mECParamsOID && otherKey.mECPoint == mECPoint;
+    }
+
+private:
+    StaticArray<uint8_t, cECDSAParamsOIDSize> mECParamsOID;
+    StaticArray<uint8_t, cECDSAPointDERSize>  mECPoint;
+};
+
+/**
+ * ECDSA private key.
+ */
+class ECDSAPrivateKey : public PrivateKey {
+public:
+    /**
+     * Constructs object instance.
+     *
+     * @param pubKey public key component of a private key.
+     */
+    ECDSAPrivateKey(const ECDSAPublicKey& pubKey)
+        : mPubKey(pubKey)
+    {
+    }
+
+    /**
+     * Returns public part of a private key.
+     *
+     * @return const PublicKey&.
+     */
+    const PublicKey& GetPublic() const override { return mPubKey; }
+
+private:
+    ECDSAPublicKey mPubKey;
 };
 
 namespace asn1 {
@@ -147,7 +342,7 @@ namespace x509 {
  */
 struct Certificate {
     /**
-     * Certificate subject.
+     * DER encoded certificate subject.
      */
     StaticArray<uint8_t, cCertSubjSize> mSubject;
     /**
@@ -159,11 +354,11 @@ struct Certificate {
      */
     StaticArray<uint8_t, cCertKeyIdSize> mAuthorityKeyId;
     /**
-     * Certificate issuer.
+     * DER encoded certificate subject issuer.
      */
     StaticArray<uint8_t, cCertIssuerSize> mIssuer;
     /**
-     * Certificate serial number.
+     * DER encoded certificate serial number.
      */
     StaticArray<uint8_t, cSerialNumSize> mSerial;
     /**
@@ -173,7 +368,7 @@ struct Certificate {
     /**
      * Public key.
      */
-    StaticArray<uint8_t, cCertPubKeySize> mPublicKey;
+    SharedPtr<PublicKey> mPublicKey;
 };
 
 /**

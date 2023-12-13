@@ -37,7 +37,7 @@ protected:
 
     void SetUp() override
     {
-        cPrivateKey = MakeShared<crypto::PrivateKey>(&mAllocator);
+        cPrivateKey = MakeShared<crypto::RSAPrivateKey>(&mAllocator, crypto::RSAPublicKey({}, {}));
 
         EXPECT_CALL(mX509Provider, DNToString(_, _))
             .WillRepeatedly(Invoke([](const Array<uint8_t>& dn, String& result) {
@@ -61,12 +61,13 @@ protected:
     }
 
     // certmodule class dependendcies
+    StaticAllocator<sizeof(crypto::RSAPrivateKey)> mAllocator;
+
     MockHSM                    mPKCS11, mSW, mTPM;
     MockStorage                mStorage;
     crypto::x509::MockProvider mX509Provider;
 
-    SharedPtr<crypto::PrivateKey>                      cPrivateKey;
-    StaticAllocator<sizeof(crypto::x509::Certificate)> mAllocator;
+    SharedPtr<crypto::PrivateKey> cPrivateKey;
 
     CertHandler mCertHandler;
 };

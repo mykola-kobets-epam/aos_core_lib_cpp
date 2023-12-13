@@ -163,10 +163,13 @@
 #endif
 
 /**
- * Certificate issuer size(in bytes).
+ * Certificate issuer max size is not specified in general.
+ * (RelativeDistinguishedName ::= SET SIZE (1..MAX) OF AttributeTypeAndValue)
+ *
+ * https://datatracker.ietf.org/doc/html/rfc5280#section-4.1.2.4
  */
 #ifndef AOS_CONFIG_CRYPTO_CERT_ISSUER_SIZE
-#define AOS_CONFIG_CRYPTO_CERT_ISSUER_SIZE 256
+#define AOS_CONFIG_CRYPTO_CERT_ISSUER_SIZE 128
 #endif
 
 /**
@@ -230,6 +233,36 @@
  */
 #ifndef AOS_CONFIG_CRYPTO_SERIAL_NUM_SIZE
 #define AOS_CONFIG_CRYPTO_SERIAL_NUM_SIZE 20
+#endif
+
+/**
+ * Usual RSA modulus size is 512, 1024, 2048 or 4096 bit length.
+ * https://www.jensign.com/dotnet/CSPPrimes/index.html
+ */
+#ifndef AOS_CONFIG_CRYPTO_RSA_MODULUS_SIZE
+#define AOS_CONFIG_CRYPTO_RSA_MODULUS_SIZE 256
+#endif
+
+/**
+ * In general field length of a public exponent (e) is typically 1, 3, or 64 - 512 bytes.
+ * https://www.ibm.com/docs/en/linux-on-z?topic=formats-rsa-public-key-token
+ */
+#ifndef AOS_CONFIG_CRYPTO_RSA_PUB_EXPONENT_SIZE
+#define AOS_CONFIG_CRYPTO_RSA_PUB_EXPONENT_SIZE 3
+#endif
+
+/**
+ * Size of ECDSA params OID.
+ */
+#ifndef AOS_CONFIG_CRYPTO_ECDSA_PARAMS_OID_SIZE
+#define AOS_CONFIG_CRYPTO_ECDSA_PARAMS_OID_SIZE 10
+#endif
+
+/**
+ * DER-encoded X9.62 ECPoint size.
+ */
+#ifndef AOS_CONFIG_CRYPTO_ECDSA_POINT_DER_SIZE
+#define AOS_CONFIG_CRYPTO_ECDSA_POINT_DER_SIZE 128
 #endif
 
 /**

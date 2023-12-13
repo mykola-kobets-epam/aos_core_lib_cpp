@@ -17,8 +17,8 @@ if(NOT GIT_FOUND)
     set(GIT_EXECUTABLE git)
 endif()
 
-add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/version.hpp
+execute_process(
+    OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/version.hpp
     COMMAND
         ${CMAKE_COMMAND} -D GIT_EXECUTABLE=${GIT_EXECUTABLE} -D
         INPUT_FILE=${CMAKE_SOURCE_DIR}/src/common/version.hpp.in -D OUTPUT_FILE=${CMAKE_CURRENT_BINARY_DIR}/version.hpp
