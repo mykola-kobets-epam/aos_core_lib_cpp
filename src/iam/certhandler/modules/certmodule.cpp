@@ -32,7 +32,7 @@ Error CertModule::Init(crypto::x509::ProviderItf& x509Provider, HSMItf& hsm, Sto
     if (mModuleConfig.mSkipValidation) {
         LOG_WRN() << "Skip validation: type = " << GetCertType();
 
-        return Error::Enum::eNone;
+        return ErrorEnum::eNone;
     }
 
     auto validCerts = MakeUnique<ModuleCertificates>(&mAllocator);
@@ -61,7 +61,7 @@ Error CertModule::GetCertificate(const Array<uint8_t>& issuer, const Array<uint8
         }
 
         if (certsInStorage->Size() == 0) {
-            return AOS_ERROR_WRAP(Error::Enum::eNotFound);
+            return AOS_ERROR_WRAP(ErrorEnum::eNotFound);
         }
 
         resCert = {};
@@ -71,7 +71,7 @@ Error CertModule::GetCertificate(const Array<uint8_t>& issuer, const Array<uint8
             }
         }
 
-        return Error::Enum::eNone;
+        return ErrorEnum::eNone;
     }
 
     return mStorage->GetCertInfo(issuer, serial, resCert);
@@ -230,7 +230,7 @@ Error CertModule::RemoveInvalidCerts(const String& password)
 
     mInvalidCerts.Clear();
 
-    return Error::Enum::eNone;
+    return ErrorEnum::eNone;
 }
 
 Error CertModule::RemoveInvalidKeys(const String& password)
@@ -246,7 +246,7 @@ Error CertModule::RemoveInvalidKeys(const String& password)
 
     mInvalidKeys.Clear();
 
-    return Error::Enum::eNone;
+    return ErrorEnum::eNone;
 }
 
 Error CertModule::TrimCerts(const String& password)
@@ -292,13 +292,13 @@ Error CertModule::TrimCerts(const String& password)
         certsInStorage->Remove(info);
     }
 
-    return Error::Enum::eNone;
+    return ErrorEnum::eNone;
 }
 
 Error CertModule::CheckCertChain(const Array<crypto::x509::Certificate>& chain)
 {
     if (chain.IsEmpty()) {
-        return AOS_ERROR_WRAP(Error::Enum::eNotFound);
+        return AOS_ERROR_WRAP(ErrorEnum::eNotFound);
     }
 
     for (const auto& cert : chain) {
@@ -331,13 +331,13 @@ Error CertModule::CheckCertChain(const Array<crypto::x509::Certificate>& chain)
         }
 
         if (!parentFound) {
-            return AOS_ERROR_WRAP(Error::Enum::eNotFound);
+            return AOS_ERROR_WRAP(ErrorEnum::eNotFound);
         }
 
         currentCert = parentCert;
     }
 
-    return Error::Enum::eNone;
+    return ErrorEnum::eNone;
 }
 
 Error CertModule::SyncValidCerts(const Array<CertInfo>& validCerts)
@@ -345,7 +345,7 @@ Error CertModule::SyncValidCerts(const Array<CertInfo>& validCerts)
     auto certsInStorage = MakeUnique<ModuleCertificates>(&mAllocator);
 
     auto err = mStorage->GetCertsInfo(GetCertType(), *certsInStorage);
-    if (!err.IsNone() && err != Error::Enum::eNotFound) {
+    if (!err.IsNone() && err != ErrorEnum::eNotFound) {
         return err;
     }
 
@@ -383,7 +383,7 @@ Error CertModule::SyncValidCerts(const Array<CertInfo>& validCerts)
         }
     }
 
-    return Error::Enum::eNone;
+    return ErrorEnum::eNone;
 }
 
 } // namespace certhandler

@@ -93,11 +93,11 @@ TEST(CommonTest, ErrorMessages)
 
 TEST(CommonTest, ErrorTie)
 {
-    Error err = Error::Enum::eNone;
+    Error err = ErrorEnum::eNone;
     bool  val = false;
 
-    Tie(val, err) = RetWithError<bool>(true, Error::Enum::eFailed);
+    Tie(val, err) = RetWithError<bool>(true, ErrorEnum::eFailed);
 
     EXPECT_EQ(val, true);
-    EXPECT_EQ(err, Error::Enum::eFailed);
+    EXPECT_EQ(err, ErrorEnum::eFailed);
 }

@@ -186,7 +186,7 @@ TEST(CommonTest, StringToByteArrayNoMemory)
 
     StaticArray<uint8_t, 2> result;
 
-    ASSERT_EQ(hex.ToByteArr(result), Error::Enum::eNoMemory);
+    ASSERT_EQ(hex.ToByteArr(result), ErrorEnum::eNoMemory);
 }
 
 TEST(CommonTest, StringConvertFromByteArray)
@@ -225,8 +225,8 @@ TEST(CommonTest, StringSearch)
     ASSERT_TRUE(str.Search<2>(regex, id).IsNone());
     EXPECT_EQ(id, "40");
 
-    ASSERT_EQ(str.Search<3>(regex, id), Error::Enum::eNotFound);
+    ASSERT_EQ(str.Search<3>(regex, id), ErrorEnum::eNotFound);
 
     StaticString<1> smallId;
-    ASSERT_EQ(str.Search<2>(regex, smallId), Error::Enum::eNoMemory);
+    ASSERT_EQ(str.Search<2>(regex, smallId), ErrorEnum::eNoMemory);
 }

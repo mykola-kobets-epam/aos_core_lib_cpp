@@ -42,7 +42,7 @@ Error CertHandler::GetCertTypes(Array<StaticString<cCertTypeLen>>& certTypes)
         }
     }
 
-    return Error::Enum::eNone;
+    return ErrorEnum::eNone;
 }
 
 Error CertHandler::SetOwner(const String& certType, const String& password)
@@ -53,7 +53,7 @@ Error CertHandler::SetOwner(const String& certType, const String& password)
 
     auto* module = FindModule(certType);
     if (module == nullptr) {
-        return AOS_ERROR_WRAP(Error::Enum::eNotFound);
+        return AOS_ERROR_WRAP(ErrorEnum::eNotFound);
     }
 
     return module->SetOwner(password);
@@ -67,7 +67,7 @@ Error CertHandler::Clear(const String& certType)
 
     auto* module = FindModule(certType);
     if (module == nullptr) {
-        return AOS_ERROR_WRAP(Error::Enum::eNotFound);
+        return AOS_ERROR_WRAP(ErrorEnum::eNotFound);
     }
 
     return module->Clear();
@@ -82,7 +82,7 @@ Error CertHandler::CreateKey(
 
     auto* module = FindModule(certType);
     if (module == nullptr) {
-        return AOS_ERROR_WRAP(Error::Enum::eNotFound);
+        return AOS_ERROR_WRAP(ErrorEnum::eNotFound);
     }
 
     auto key = module->CreateKey(password);
@@ -101,7 +101,7 @@ Error CertHandler::ApplyCertificate(const String& certType, const Array<uint8_t>
 
     auto* module = FindModule(certType);
     if (module == nullptr) {
-        return AOS_ERROR_WRAP(Error::Enum::eNotFound);
+        return AOS_ERROR_WRAP(ErrorEnum::eNotFound);
     }
 
     return module->ApplyCert(cert, info);
@@ -116,7 +116,7 @@ Error CertHandler::GetCertificate(
 
     auto* module = FindModule(certType);
     if (module == nullptr) {
-        return AOS_ERROR_WRAP(Error::Enum::eNotFound);
+        return AOS_ERROR_WRAP(ErrorEnum::eNotFound);
     }
 
     return module->GetCertificate(issuer, serial, resCert);
@@ -130,7 +130,7 @@ Error CertHandler::CreateSelfSignedCert(const String& certType, const String& pa
 
     auto* module = FindModule(certType);
     if (module == nullptr) {
-        return AOS_ERROR_WRAP(Error::Enum::eNotFound);
+        return AOS_ERROR_WRAP(ErrorEnum::eNotFound);
     }
 
     return module->CreateSelfSignedCert(password);

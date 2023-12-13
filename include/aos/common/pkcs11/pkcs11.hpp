@@ -99,7 +99,7 @@ inline Error GenPIN(String& pin)
 {
     (void)pin;
 
-    return Error::Enum::eNone;
+    return ErrorEnum::eNone;
 }
 
 /**
@@ -396,7 +396,7 @@ public:
     {
         (void)templ;
 
-        return {0, Error::Enum::eNone};
+        return {0, ErrorEnum::eNone};
     }
 
     /**
@@ -517,7 +517,7 @@ public:
         (void)slotID;
         (void)flags;
 
-        return {nullptr, Error::Enum::eNone};
+        return {nullptr, ErrorEnum::eNone};
     }
 
     /**

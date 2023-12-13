@@ -25,7 +25,7 @@ Error GetEnv(const String& envName, String& env)
     (void)envName;
     (void)env;
 
-    return Error::Enum::eNone;
+    return ErrorEnum::eNone;
 }
 
 } // namespace os
