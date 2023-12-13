@@ -361,7 +361,7 @@ public:
         (void)fileName;
         (void)text;
 
-        return Error::Enum::eNone;
+        return ErrorEnum::eNone;
     }
 
     /**
@@ -378,7 +378,7 @@ public:
         (void)text;
         (void)perm;
 
-        return Error::Enum::eNone;
+        return ErrorEnum::eNone;
     }
 };
 

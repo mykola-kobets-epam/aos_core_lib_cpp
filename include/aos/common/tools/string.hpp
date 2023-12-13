@@ -227,7 +227,7 @@ public:
     Error ToByteArr(Array<uint8_t>& arr) const
     {
         if (arr.MaxSize() * 2 < Size()) {
-            return Error::Enum::eNoMemory;
+            return ErrorEnum::eNoMemory;
         }
 
         static const auto parseHex = [](char ch) {
@@ -251,7 +251,7 @@ public:
         for (size_t i = 0; i < Size(); i += 2) {
             uint8_t high = parseHex(Get()[i]);
             if (high > 0xFU) {
-                return Error::Enum::eInvalidArgument;
+                return ErrorEnum::eInvalidArgument;
             }
 
             if (i + 1 >= Size()) {
@@ -261,13 +261,13 @@ public:
 
             uint8_t low = parseHex(Get()[i + 1]);
             if (low > 0xFU) {
-                return Error::Enum::eInvalidArgument;
+                return ErrorEnum::eInvalidArgument;
             }
 
             arr.PushBack((high << 4) | low);
         }
 
-        return Error::Enum::eNone;
+        return ErrorEnum::eNone;
     }
 
     /**
@@ -303,7 +303,7 @@ public:
     Error Convert(const Array<uint8_t>& arr)
     {
         if (MaxSize() < arr.Size() * 2) {
-            return Error::Enum::eNoMemory;
+            return ErrorEnum::eNoMemory;
         }
 
         Clear();
@@ -318,7 +318,7 @@ public:
             PushBack(cDigits[low]);
         }
 
-        return Error::Enum::eNone;
+        return ErrorEnum::eNone;
     }
 
     /**
@@ -440,16 +440,16 @@ public:
 
         int ret = regcomp(&r, regex, REG_EXTENDED);
         if (ret != 0) {
-            return Error::Enum::eInvalidArgument;
+            return ErrorEnum::eInvalidArgument;
         }
 
         ret = regexec(&r, CStr(), cMatchInd + 1, matches, 0);
         if (ret != 0) {
-            return Error::Enum::eNotFound;
+            return ErrorEnum::eNotFound;
         }
 
         if (matches[cMatchInd].rm_so == -1) {
-            return Error::Enum::eNotFound;
+            return ErrorEnum::eNotFound;
         }
 
         match.Clear();
@@ -461,7 +461,7 @@ public:
 
         *match.end() = 0;
 
-        return Error::Enum::eNone;
+        return ErrorEnum::eNone;
     }
 };
 
