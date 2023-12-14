@@ -333,6 +333,24 @@ inline void Encode(const Array<ObjectIdentifier>& src, Array<uint8_t>& asn1Value
     (void)asn1Value;
 }
 
+/**
+ * Encodes big integer in ASN1 format.
+ *
+ * @param number big integer.
+ * @param[out] asn1Value result ASN1 value.
+ * @result Error.
+ */
+inline Error EncodeBigInt(const Array<uint8_t>& number, Array<uint8_t>& asn1Value)
+{
+    // Notes:
+    // Current draft implementation does no encoding, just copies number into result buffer.
+    // This is required for cryptoki wrapper tests, which should be provided with already encoded number.
+
+    asn1Value.Clear();
+
+    return asn1Value.Insert(asn1Value.end(), number.begin(), number.end());
+}
+
 } // namespace asn1
 
 namespace x509 {
