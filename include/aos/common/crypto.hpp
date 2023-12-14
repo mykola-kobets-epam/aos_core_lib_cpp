@@ -369,6 +369,10 @@ struct Certificate {
      * Public key.
      */
     SharedPtr<PublicKeyItf> mPublicKey;
+    /**
+     * Complete ASN.1 DER content (certificate, signature algorithm and signature).
+     */
+    StaticArray<uint8_t, cDERCertSize> mRaw;
 };
 
 /**
