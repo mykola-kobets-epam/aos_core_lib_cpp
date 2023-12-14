@@ -24,8 +24,7 @@ jobs:
 
       - name: Prepare
         run: |
-          sudo apt install lcov -y
-
+          sudo apt install lcov libsofthsm2 -y
       - name: Build and test
         run: |
           mkdir build
