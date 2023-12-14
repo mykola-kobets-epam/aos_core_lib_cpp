@@ -156,13 +156,6 @@
 #endif
 
 /**
- * Certificate public key size(in bytes).
- */
-#ifndef AOS_CONFIG_CRYPTO_CERT_PUB_KEY_SIZE
-#define AOS_CONFIG_CRYPTO_CERT_PUB_KEY_SIZE 2048
-#endif
-
-/**
  * Certificate issuer max size is not specified in general.
  * (RelativeDistinguishedName ::= SET SIZE (1..MAX) OF AttributeTypeAndValue)
  *
@@ -312,6 +305,34 @@
  */
 #ifndef AOS_CONFIG_PKCS11_PIN_LEN
 #define AOS_CONFIG_PKCS11_PIN_LEN 42
+#endif
+
+/**
+ * Maximum number of open sessions per PKCS11 library.
+ */
+#ifndef AOS_CONFIG_PKCS11_SESSIONS_PER_LIB
+#define AOS_CONFIG_PKCS11_SESSIONS_PER_LIB 3
+#endif
+
+/**
+ * Maximum number of attributes for object.
+ */
+#ifndef AOS_CONFIG_PKCS11_OBJECT_ATTRIBUTES_COUNT
+#define AOS_CONFIG_PKCS11_OBJECT_ATTRIBUTES_COUNT 10
+#endif
+
+/**
+ * Maximum number of keys per token.
+ */
+#ifndef AOS_CONFIG_PKCS11_TOKEN_KEYS_COUNT
+#define AOS_CONFIG_PKCS11_TOKEN_KEYS_COUNT 20
+#endif
+
+/**
+ * Maximum number of PKCS11 libraries.
+ */
+#ifndef AOS_CONFIG_PKCS11_MAX_NUM_LIBRARIES
+#define AOS_CONFIG_PKCS11_MAX_NUM_LIBRARIES 1
 #endif
 
 /**

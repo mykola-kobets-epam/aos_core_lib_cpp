@@ -80,18 +80,14 @@ public:
         eSMServiceManager,
         eIAMCertHandler,
         eCommonMonitoring,
+        ePKCS11,
         eNumModules,
     };
 
     static const Array<const char* const> GetStrings()
     {
-        static const char* const sLogModuleTypeStrings[] = {
-            "default",
-            "launcher",
-            "servicemanager",
-            "certhandler",
-            "resourcemonitor",
-        };
+        static const char* const sLogModuleTypeStrings[]
+            = {"default", "launcher", "servicemanager", "certhandler", "resourcemonitor", "pkcs11"};
 
         return Array<const char* const>(sLogModuleTypeStrings, ArraySize(sLogModuleTypeStrings));
     };
