@@ -113,12 +113,7 @@ using SlotID = CK_SLOT_ID;
  * @param[out] pin result pin.
  * @return Error.
  */
-inline Error GenPIN(String& pin)
-{
-    (void)pin;
-
-    return ErrorEnum::eNone;
-}
+Error GenPIN(String& pin);
 
 /**
  * Any version information related to PKCS11 library.

@@ -229,6 +229,36 @@ Array<uint8_t> ConvertToAttributeValue(T& val)
 }
 
 /***********************************************************************************************************************
+ * GenPIN
+ **********************************************************************************************************************/
+
+Error GenPIN(String& pin)
+{
+    if (pin.MaxSize() == 0) {
+        return ErrorEnum::eNone;
+    }
+
+    pin.Clear();
+
+    srand(::time(nullptr)); // use current time as seed for random generator
+
+    StaticString<sizeof(unsigned) * 2> chunk;
+
+    while (pin.Size() < pin.MaxSize()) {
+        unsigned value     = rand();
+        auto     byteArray = Array<uint8_t>(reinterpret_cast<uint8_t*>(&value), sizeof(value));
+
+        chunk.Convert(byteArray);
+
+        auto chunkSize = Min(pin.MaxSize() - pin.Size(), chunk.Size());
+
+        pin.Insert(pin.end(), chunk.begin(), chunk.begin() + chunkSize);
+    }
+
+    return ErrorEnum::eNone;
+}
+
+/***********************************************************************************************************************
  * LibraryContext
  **********************************************************************************************************************/
 

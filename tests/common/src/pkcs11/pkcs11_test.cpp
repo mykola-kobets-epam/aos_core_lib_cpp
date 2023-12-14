@@ -400,6 +400,29 @@ TEST_F(PKCS11Test, ImportCertificate)
     ASSERT_FALSE(hasCertificate);
 }
 
+TEST_F(PKCS11Test, GenPIN)
+{
+    static constexpr auto cTestPINsNum = 1000;
+    static constexpr auto cPINSize     = 20;
+
+    std::vector<StaticString<cPINSize>> pins;
+
+    for (int i = 0; i < cTestPINsNum; i++) {
+        StaticString<cPINSize> pin;
+
+        ASSERT_TRUE(GenPIN(pin).IsNone());
+
+        pins.push_back(pin);
+    }
+
+    // check there is no equal PINs
+    std::sort(pins.begin(), pins.end());
+
+    StaticString<cPINSize> prevPIN;
+
+    for (const auto& pin : pins) {
+        ASSERT_NE(pin, prevPIN);
+    }
 }
 
 } // namespace pkcs11
