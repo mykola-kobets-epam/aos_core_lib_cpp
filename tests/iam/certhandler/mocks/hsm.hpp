@@ -22,7 +22,7 @@ class MockHSM : public HSMItf {
 public:
     MOCK_METHOD(Error, SetOwner, (const String& password), (override));
     MOCK_METHOD(Error, Clear, (), (override));
-    MOCK_METHOD(RetWithError<SharedPtr<crypto::PrivateKey>>, CreateKey,
+    MOCK_METHOD(RetWithError<SharedPtr<crypto::PrivateKeyItf>>, CreateKey,
         (const String& password, KeyGenAlgorithm algorithm), (override));
     MOCK_METHOD(Error, ApplyCert,
         (const Array<crypto::x509::Certificate>& certChain, CertInfo& certInfo, String& password), (override));

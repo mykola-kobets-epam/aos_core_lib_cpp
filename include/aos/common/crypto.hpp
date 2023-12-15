@@ -106,7 +106,7 @@ enum class KeyType { eRSA, eECDSA };
 /**
  * Public key interface.
  */
-class PublicKey {
+class PublicKeyItf {
 public:
     /**
      * Returns type of a public key.
@@ -121,36 +121,36 @@ public:
      * @param pubKey public key.
      * @return bool.
      */
-    virtual bool IsEqual(const PublicKey& pubKey) const = 0;
+    virtual bool IsEqual(const PublicKeyItf& pubKey) const = 0;
 
     /**
      * Destroys object instance.
      */
-    virtual ~PublicKey() = default;
+    virtual ~PublicKeyItf() = default;
 };
 
 /**
  * Private key interface.
  */
-class PrivateKey {
+class PrivateKeyItf {
 public:
     /**
      * Returns public part of a private key.
      *
-     * @return const PublicKey&.
+     * @return const PublicKeyItf&.
      */
-    virtual const PublicKey& GetPublic() const = 0;
+    virtual const PublicKeyItf& GetPublic() const = 0;
 
     /**
      * Destroys object instance.
      */
-    virtual ~PrivateKey() = default;
+    virtual ~PrivateKeyItf() = default;
 };
 
 /**
  * RSA public key.
  */
-class RSAPublicKey : public PublicKey {
+class RSAPublicKey : public PublicKeyItf {
 public:
     /**
      * Constructs object instance.
@@ -177,7 +177,7 @@ public:
      * @param pubKey public key.
      * @return bool.
      */
-    bool IsEqual(const PublicKey& pubKey) const override
+    bool IsEqual(const PublicKeyItf& pubKey) const override
     {
         if (pubKey.GetKeyType() != KeyType::eRSA) {
             return false;
@@ -196,7 +196,7 @@ private:
 /**
  * RSA private key.
  */
-class RSAPrivateKey : public PrivateKey {
+class RSAPrivateKey : public PrivateKeyItf {
 public:
     /**
      * Constructs object instance.
@@ -211,9 +211,9 @@ public:
     /**
      * Returns public part of a private key.
      *
-     * @return const PublicKey&.
+     * @return const PublicKeyItf&.
      */
-    const PublicKey& GetPublic() const override { return mPubKey; }
+    const PublicKeyItf& GetPublic() const override { return mPubKey; }
 
 private:
     RSAPublicKey mPubKey;
@@ -222,7 +222,7 @@ private:
 /**
  * ECDSA public key.
  */
-class ECDSAPublicKey : public PublicKey {
+class ECDSAPublicKey : public PublicKeyItf {
 public:
     /**
      * Constructs object instance.
@@ -249,7 +249,7 @@ public:
      * @param pubKey public key.
      * @return bool.
      */
-    bool IsEqual(const PublicKey& pubKey) const override
+    bool IsEqual(const PublicKeyItf& pubKey) const override
     {
         if (pubKey.GetKeyType() != KeyType::eECDSA) {
             return false;
@@ -268,7 +268,7 @@ private:
 /**
  * ECDSA private key.
  */
-class ECDSAPrivateKey : public PrivateKey {
+class ECDSAPrivateKey : public PrivateKeyItf {
 public:
     /**
      * Constructs object instance.
@@ -283,9 +283,9 @@ public:
     /**
      * Returns public part of a private key.
      *
-     * @return const PublicKey&.
+     * @return const PublicKeyItf&.
      */
-    const PublicKey& GetPublic() const override { return mPubKey; }
+    const PublicKeyItf& GetPublic() const override { return mPubKey; }
 
 private:
     ECDSAPublicKey mPubKey;
@@ -368,7 +368,7 @@ struct Certificate {
     /**
      * Public key.
      */
-    SharedPtr<PublicKey> mPublicKey;
+    SharedPtr<PublicKeyItf> mPublicKey;
 };
 
 /**
@@ -405,7 +405,7 @@ public:
      * @result Error.
      */
     virtual Error CreateCertificate(
-        const Certificate& templ, const Certificate& parent, const PrivateKey& privKey, Array<uint8_t>& pemCert)
+        const Certificate& templ, const Certificate& parent, const PrivateKeyItf& privKey, Array<uint8_t>& pemCert)
         = 0;
 
     /**
@@ -434,7 +434,7 @@ public:
      * @param[out] pemCSR result CSR in PEM format.
      * @result Error.
      */
-    virtual Error CreateCSR(const CSR& templ, const PrivateKey& privKey, Array<uint8_t>& pemCSR) = 0;
+    virtual Error CreateCSR(const CSR& templ, const PrivateKeyItf& privKey, Array<uint8_t>& pemCSR) = 0;
 
     /**
      * Constructs x509 distinguished name(DN) from the argument list.

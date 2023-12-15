@@ -201,7 +201,8 @@ Error PKCS11Module::Clear()
     return err;
 }
 
-RetWithError<SharedPtr<crypto::PrivateKey>> PKCS11Module::CreateKey(const String& password, KeyGenAlgorithm algorithm)
+RetWithError<SharedPtr<crypto::PrivateKeyItf>> PKCS11Module::CreateKey(
+    const String& password, KeyGenAlgorithm algorithm)
 {
     (void)password;
 
@@ -745,7 +746,7 @@ Error PKCS11Module::TokenMemInfo() const
     return ErrorEnum::eNone;
 }
 
-bool PKCS11Module::CheckCertificate(const crypto::x509::Certificate& cert, const crypto::PrivateKey& key) const
+bool PKCS11Module::CheckCertificate(const crypto::x509::Certificate& cert, const crypto::PrivateKeyItf& key) const
 {
     return cert.mPublicKey->IsEqual(key.GetPublic());
 }
