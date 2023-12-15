@@ -67,7 +67,7 @@ protected:
     MockStorage                mStorage;
     crypto::x509::MockProvider mX509Provider;
 
-    SharedPtr<crypto::PrivateKey> cPrivateKey;
+    SharedPtr<crypto::PrivateKeyItf> cPrivateKey;
 
     CertHandler mCertHandler;
 };
@@ -198,7 +198,7 @@ TEST_F(CertHandlerTest, CreateKey)
     ASSERT_EQ(ErrorEnum::eNone, pkcs11Module.Init(mX509Provider, mPKCS11, mStorage));
     ASSERT_EQ(ErrorEnum::eNone, mCertHandler.RegisterModule(pkcs11Module));
 
-    RetWithError<SharedPtr<crypto::PrivateKey>> privateKeyRes = {cPrivateKey, ErrorEnum::eNone};
+    RetWithError<SharedPtr<crypto::PrivateKeyItf>> privateKeyRes = {cPrivateKey, ErrorEnum::eNone};
 
     EXPECT_CALL(mPKCS11, CreateKey(cPassword, cDefaultConfig.mKeyGenAlgorithm)).WillOnce(Return(privateKeyRes));
     EXPECT_CALL(mX509Provider, CreateCSR(_, _, _)).WillOnce(Return(ErrorEnum::eNone));
@@ -233,7 +233,7 @@ TEST_F(CertHandlerTest, CreateKeyKeyGenError)
     ASSERT_EQ(ErrorEnum::eNone, pkcs11Module.Init(mX509Provider, mPKCS11, mStorage));
     ASSERT_EQ(ErrorEnum::eNone, mCertHandler.RegisterModule(pkcs11Module));
 
-    RetWithError<SharedPtr<crypto::PrivateKey>> privateKeyRes = {cPrivateKey, ErrorEnum::eFailed};
+    RetWithError<SharedPtr<crypto::PrivateKeyItf>> privateKeyRes = {cPrivateKey, ErrorEnum::eFailed};
 
     EXPECT_CALL(mPKCS11, CreateKey(cPassword, cDefaultConfig.mKeyGenAlgorithm)).WillOnce(Return(privateKeyRes));
     EXPECT_CALL(mX509Provider, CreateCSR(_, _, _)).Times(0);
@@ -264,7 +264,7 @@ TEST_F(CertHandlerTest, CreateCSR)
     ASSERT_EQ(ErrorEnum::eNone, pkcs11Module.Init(mX509Provider, mPKCS11, mStorage));
     ASSERT_EQ(ErrorEnum::eNone, mCertHandler.RegisterModule(pkcs11Module));
 
-    RetWithError<SharedPtr<crypto::PrivateKey>> privateKeyRes = {cPrivateKey, ErrorEnum::eNone};
+    RetWithError<SharedPtr<crypto::PrivateKeyItf>> privateKeyRes = {cPrivateKey, ErrorEnum::eNone};
 
     EXPECT_CALL(mPKCS11, CreateKey(cPassword, cDefaultConfig.mKeyGenAlgorithm)).WillOnce(Return(privateKeyRes));
 
@@ -363,7 +363,7 @@ TEST_F(CertHandlerTest, CreateSelfSignedCert)
 
     certChain.PushBack(cert);
 
-    RetWithError<SharedPtr<crypto::PrivateKey>> privateKeyRes = {cPrivateKey, ErrorEnum::eNone};
+    RetWithError<SharedPtr<crypto::PrivateKeyItf>> privateKeyRes = {cPrivateKey, ErrorEnum::eNone};
     EXPECT_CALL(mPKCS11, CreateKey(cPassword, cDefaultConfig.mKeyGenAlgorithm)).WillOnce(Return(privateKeyRes));
 
     auto selfSigned = Truly([](const crypto::x509::Certificate& cert) { return cert.mIssuer == cert.mSubject; });
@@ -453,7 +453,7 @@ TEST_F(CertHandlerTest, RemoveInvalidCert)
     ASSERT_EQ(ErrorEnum::eNone, pkcs11Module.Init(mX509Provider, mPKCS11, mStorage));
     ASSERT_EQ(ErrorEnum::eNone, mCertHandler.RegisterModule(pkcs11Module));
 
-    RetWithError<SharedPtr<crypto::PrivateKey>> privateKeyRes = {cPrivateKey, ErrorEnum::eNone};
+    RetWithError<SharedPtr<crypto::PrivateKeyItf>> privateKeyRes = {cPrivateKey, ErrorEnum::eNone};
 
     EXPECT_CALL(mPKCS11, RemoveCert(invalidCerts[0], cPassword)).WillOnce(Return(ErrorEnum::eNone));
     EXPECT_CALL(mPKCS11, RemoveCert(invalidCerts[1], cPassword)).WillOnce(Return(ErrorEnum::eNone));

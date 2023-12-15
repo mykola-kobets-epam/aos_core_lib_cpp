@@ -547,7 +547,8 @@ public:
      * @param privHandle private key handle.
      * @param pubHandle public key handle.
      */
-    PrivateKey(ObjectHandle privHandle = 0, ObjectHandle pubHandle = 0, SharedPtr<crypto::PrivateKey> privKey = nullptr)
+    PrivateKey(
+        ObjectHandle privHandle = 0, ObjectHandle pubHandle = 0, SharedPtr<crypto::PrivateKeyItf> privKey = nullptr)
         : mPrivHandle(privHandle)
         , mPubHandle(pubHandle)
         , mPrivKey(privKey)
@@ -567,11 +568,11 @@ public:
     /**
      * PKCS11 priv key handle.
      */
-    SharedPtr<crypto::PrivateKey> GetPrivKey() { return mPrivKey; }
+    SharedPtr<crypto::PrivateKeyItf> GetPrivKey() { return mPrivKey; }
 
 private:
-    ObjectHandle                  mPrivHandle, mPubHandle;
-    SharedPtr<crypto::PrivateKey> mPrivKey;
+    ObjectHandle                     mPrivHandle, mPubHandle;
+    SharedPtr<crypto::PrivateKeyItf> mPrivKey;
 };
 
 /**

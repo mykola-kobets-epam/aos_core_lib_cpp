@@ -110,9 +110,10 @@ public:
      *
      * @param password owner password.
      * @param algorithm key generation algorithm.
-     * @return RetWithError<SharedPtr<crypto::PrivateKey>>.
+     * @return RetWithError<SharedPtr<crypto::PrivateKeyItf>>.
      */
-    RetWithError<SharedPtr<crypto::PrivateKey>> CreateKey(const String& password, KeyGenAlgorithm algorithm) override;
+    RetWithError<SharedPtr<crypto::PrivateKeyItf>> CreateKey(
+        const String& password, KeyGenAlgorithm algorithm) override;
 
     /**
      * Applies certificate chain to a module.
@@ -197,7 +198,7 @@ private:
 
     Error TokenMemInfo() const;
 
-    bool CheckCertificate(const crypto::x509::Certificate& cert, const crypto::PrivateKey& key) const;
+    bool CheckCertificate(const crypto::x509::Certificate& cert, const crypto::PrivateKeyItf& key) const;
 
     Error CreateCertificateChain(pkcs11::SessionContext& session, const Array<uint8_t>& id, const String& label,
         const Array<crypto::x509::Certificate>& chain);

@@ -126,9 +126,9 @@ public:
      *
      * @param password owner password.
      * @param algorithm key generation algorithm.
-     * @return RetWithError<SharedPtr<crypto::PrivateKey>>.
+     * @return RetWithError<SharedPtr<crypto::PrivateKeyItf>>.
      */
-    virtual RetWithError<SharedPtr<crypto::PrivateKey>> CreateKey(const String& password, KeyGenAlgorithm algorithm)
+    virtual RetWithError<SharedPtr<crypto::PrivateKeyItf>> CreateKey(const String& password, KeyGenAlgorithm algorithm)
         = 0;
 
     /**

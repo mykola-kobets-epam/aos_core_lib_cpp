@@ -92,7 +92,7 @@ Error CertModule::Clear()
     return mStorage->RemoveAllCertsInfo(GetCertType());
 }
 
-RetWithError<SharedPtr<crypto::PrivateKey>> CertModule::CreateKey(const String& password)
+RetWithError<SharedPtr<crypto::PrivateKeyItf>> CertModule::CreateKey(const String& password)
 {
     auto err = RemoveInvalidCerts(password);
     if (!err.IsNone()) {
@@ -107,7 +107,7 @@ RetWithError<SharedPtr<crypto::PrivateKey>> CertModule::CreateKey(const String& 
     return mHSM->CreateKey(password, mModuleConfig.mKeyGenAlgorithm);
 }
 
-Error CertModule::CreateCSR(const Array<uint8_t>& subject, const crypto::PrivateKey& privKey, Array<uint8_t>& pemCSR)
+Error CertModule::CreateCSR(const Array<uint8_t>& subject, const crypto::PrivateKeyItf& privKey, Array<uint8_t>& pemCSR)
 {
     crypto::x509::CSR templ;
 

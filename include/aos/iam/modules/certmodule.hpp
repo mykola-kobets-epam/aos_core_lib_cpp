@@ -184,9 +184,9 @@ public:
      * Generates private key.
      *
      * @param password owner password.
-     * @return RetWithError<SharedPtr<crypto::PrivateKey>> .
+     * @return RetWithError<SharedPtr<crypto::PrivateKeyItf>> .
      */
-    RetWithError<SharedPtr<crypto::PrivateKey>> CreateKey(const String& password);
+    RetWithError<SharedPtr<crypto::PrivateKeyItf>> CreateKey(const String& password);
 
     /**
      * Creates certificate request.
@@ -196,7 +196,7 @@ public:
      * @param[out] pemCSR result csr in PEM.
      * @return Error.
      */
-    Error CreateCSR(const Array<uint8_t>& subject, const crypto::PrivateKey& privKey, Array<uint8_t>& pemCSR);
+    Error CreateCSR(const Array<uint8_t>& subject, const crypto::PrivateKeyItf& privKey, Array<uint8_t>& pemCSR);
 
     /**
      * Applies certificate to a module.
