@@ -199,49 +199,39 @@ public:
     /**
      * Converts hex string to byte array.
      *
+     * @param dst result byte array.
      * @return Error.
      */
-    Error ToByteArr(Array<uint8_t>& arr) const
+    Error HexToByteArray(Array<uint8_t>& dst) const
     {
-        if (arr.MaxSize() * 2 < Size()) {
+        if (dst.MaxSize() * 2 < Size()) {
             return ErrorEnum::eNoMemory;
         }
 
-        static const auto parseHex = [](char ch) {
-            if (ch >= '0' && ch <= '9') {
-                return static_cast<uint8_t>(ch - '0');
-            }
-
-            if (ch >= 'a' && ch <= 'f') {
-                return static_cast<uint8_t>(ch - 'a' + 10);
-            }
-
-            if (ch >= 'A' && ch <= 'F') {
-                return static_cast<uint8_t>(ch - 'A' + 10);
-            }
-
-            return static_cast<uint8_t>(255);
-        };
-
-        arr.Clear();
+        dst.Clear();
 
         for (size_t i = 0; i < Size(); i += 2) {
-            uint8_t high = parseHex(Get()[i]);
-            if (high > 0xFU) {
-                return ErrorEnum::eInvalidArgument;
+            Error   err = ErrorEnum::eNone;
+            uint8_t high;
+
+            Tie(high, err) = HexToByte((*this)[i]);
+            if (!err.IsNone()) {
+                return err;
             }
 
             if (i + 1 >= Size()) {
-                arr.PushBack(high << 4);
+                dst.PushBack(high << 4);
                 break;
             }
 
-            uint8_t low = parseHex(Get()[i + 1]);
-            if (low > 0xFU) {
-                return ErrorEnum::eInvalidArgument;
+            uint8_t low;
+
+            Tie(low, err) = HexToByte((*this)[i + 1]);
+            if (!err.IsNone()) {
+                return err;
             }
 
-            arr.PushBack((high << 4) | low);
+            dst.PushBack((high << 4) | low);
         }
 
         return ErrorEnum::eNone;
@@ -272,28 +262,27 @@ public:
     Error Convert(int64_t value) { return ConvertValue(value, "%" PRIi64); }
 
     /**
-     * Converts a byte array to a hex string.
+     * Converts byte array to a hex string.
      *
-     * @param arr array.
+     * @param src source byte array.
      * @return Error.
      */
-    Error Convert(const Array<uint8_t>& arr)
+    Error ByteArrayToHex(const Array<uint8_t>& src)
     {
-        if (MaxSize() < arr.Size() * 2) {
+        if (MaxSize() < src.Size() * 2) {
             return ErrorEnum::eNoMemory;
         }
 
         Clear();
 
-        constexpr char cDigits[] = "0123456789ABCDEF";
+        for (const auto val : src) {
+            const auto digits = ByteToHex(val);
 
-        for (const auto val : arr) {
-            const auto low  = val & 0xF;
-            const auto high = (val >> 4);
-
-            PushBack(cDigits[high]);
-            PushBack(cDigits[low]);
+            PushBack(digits.mFirst);
+            PushBack(digits.mSecond);
         }
+
+        *end() = 0;
 
         return ErrorEnum::eNone;
     }
@@ -439,6 +428,34 @@ public:
         *match.end() = 0;
 
         return ErrorEnum::eNone;
+    }
+
+private:
+    static Pair<char, char> ByteToHex(uint8_t val)
+    {
+        constexpr char cDigits[] = "0123456789ABCDEF";
+
+        const auto low  = val & 0xF;
+        const auto high = (val >> 4);
+
+        return {cDigits[high], cDigits[low]};
+    }
+
+    static RetWithError<uint8_t> HexToByte(char ch)
+    {
+        if (ch >= '0' && ch <= '9') {
+            return static_cast<uint8_t>(ch - '0');
+        }
+
+        if (ch >= 'a' && ch <= 'f') {
+            return static_cast<uint8_t>(ch - 'a' + 10);
+        }
+
+        if (ch >= 'A' && ch <= 'F') {
+            return static_cast<uint8_t>(ch - 'A' + 10);
+        }
+
+        return {static_cast<uint8_t>(255), ErrorEnum::eInvalidArgument};
     }
 };
 
