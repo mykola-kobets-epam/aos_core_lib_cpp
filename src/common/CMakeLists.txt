@@ -28,7 +28,7 @@ execute_process(
 # ######################################################################################################################
 # Target
 # ######################################################################################################################
-add_library(${TARGET} STATIC resourcemonitor/resourcemonitor.cpp)
+add_library(${TARGET} STATIC resourcemonitor/resourcemonitor.cpp uuid.cpp)
 
 target_sources(${TARGET} PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/version.hpp)
 
