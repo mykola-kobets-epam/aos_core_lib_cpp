@@ -62,11 +62,6 @@ Error PKCS11Module::Init(
 
     Error err = ErrorEnum::eNone;
 
-    Tie(cTeeClientUUIDNs, err) = mUUIDManager->StringToUUID("58AC9CA0-2086-4683-A1B8-EC4BC08E01B6");
-    if (!err.IsNone()) {
-        return AOS_ERROR_WRAP(err);
-    }
-
     err = os::GetEnv(cEnvLoginType, mTeeLoginType);
     if (!err.IsNone()) {
         return AOS_ERROR_WRAP(err);
@@ -117,7 +112,7 @@ Error PKCS11Module::SetOwner(const String& password)
     if (!mTeeLoginType.IsEmpty()) {
         StaticString<pkcs11::cPINLength> userPIN;
 
-        err = GetTeeUserPIN(mTeeLoginType, mConfig.mUID, mConfig.mGID, userPIN);
+        err = GetTeeUserPIN(mTeeLoginType, userPIN);
         if (!err.IsNone()) {
             return err;
         }
@@ -561,15 +556,15 @@ Error PKCS11Module::PrintInfo(pkcs11::SlotID slotId) const
     return ErrorEnum::eNone;
 }
 
-Error PKCS11Module::GetTeeUserPIN(const String& loginType, uint32_t uid, uint32_t gid, String& userPIN)
+Error PKCS11Module::GetTeeUserPIN(const String& loginType, String& userPIN)
 {
     if (loginType == cLoginTypePublic) {
         userPIN = loginType;
         return ErrorEnum::eNone;
     } else if (loginType == cLoginTypeUser) {
-        return GeneratePIN(cLoginTypeUser, cTeeClientUUIDNs, uid, userPIN);
+        return GeneratePIN(cLoginTypeUser, userPIN);
     } else if (loginType == cLoginTypeGroup) {
-        return GeneratePIN(cLoginTypeGroup, cTeeClientUUIDNs, gid, userPIN);
+        return GeneratePIN(cLoginTypeGroup, userPIN);
     }
 
     LOG_ERR() << "Wrong TEE login: type = " << loginType;
@@ -577,29 +572,23 @@ Error PKCS11Module::GetTeeUserPIN(const String& loginType, uint32_t uid, uint32_
     return AOS_ERROR_WRAP(ErrorEnum::eInvalidArgument);
 }
 
-Error PKCS11Module::GeneratePIN(const String& loginType, const uuid::UUID& space, uint32_t data, String& userPIN)
+Error PKCS11Module::GeneratePIN(const String& loginType, String& userPIN)
 {
-    StaticString<pkcs11::cPINLength> dataBuf;
-    uuid::UUID                       sha1;
-    StaticString<cUUIDStringLen>     sha1Str;
+    uuid::UUID                   pin;
+    StaticString<cUUIDStringLen> pinStr;
+    Error                        err = ErrorEnum::eNone;
 
-    auto err = dataBuf.Format("uid: %" PRIx64, data);
+    Tie(pin, err) = mUUIDManager->CreateUUID();
     if (!err.IsNone()) {
         AOS_ERROR_WRAP(err);
     }
 
-    Tie(sha1, err)
-        = mUUIDManager->CreateSHA1(space, Array<uint8_t>(reinterpret_cast<uint8_t*>(dataBuf.Get()), dataBuf.Size()));
+    Tie(pinStr, err) = mUUIDManager->UUIDToString(pin);
     if (!err.IsNone()) {
         AOS_ERROR_WRAP(err);
     }
 
-    Tie(sha1Str, err) = mUUIDManager->UUIDToString(sha1);
-    if (!err.IsNone()) {
-        AOS_ERROR_WRAP(err);
-    }
-
-    return userPIN.Format("%s:%s", loginType.CStr(), sha1Str.CStr());
+    return userPIN.Format("%s:%s", loginType.CStr(), pinStr.CStr());
 };
 
 Error PKCS11Module::GetUserPin(String& pin) const
