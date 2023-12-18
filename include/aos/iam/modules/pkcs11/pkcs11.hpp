@@ -50,16 +50,6 @@ struct PKCS11ModuleConfig {
     StaticString<cFilePathLen> mUserPINPath;
 
     /**
-     * USER identifier.
-     */
-    uint32_t mUID;
-
-    /**
-     * GROUP identifier.
-     */
-    uint32_t mGID;
-
-    /**
      * Module
      */
     bool mModulePathInURL;
@@ -168,11 +158,6 @@ private:
     static constexpr auto cLoginTypeUser   = "user";
     static constexpr auto cLoginTypeGroup  = "group";
 
-    // TEE Client UUID name space identifier (UUIDv4) from linux kernel
-    // https://github.com/OP-TEE/optee_os/pull/4222
-    // use as constant.
-    uuid::UUID cTeeClientUUIDNs;
-
     using DERCert = StaticArray<uint8_t, crypto::cDERCertSize>;
 
     struct PendingKey {
@@ -188,8 +173,8 @@ private:
 
     Error PrintInfo(pkcs11::SlotID slotId) const;
 
-    Error GetTeeUserPIN(const String& loginType, uint32_t uid, uint32_t gid, String& userPIN);
-    Error GeneratePIN(const String& loginType, const uuid::UUID& space, uint32_t data, String& userPIN);
+    Error GetTeeUserPIN(const String& loginType, String& userPIN);
+    Error GeneratePIN(const String& loginType, String& userPIN);
     Error GetUserPin(String& pin) const;
 
     RetWithError<pkcs11::SessionContext*> CreateSession(bool userLogin, const String& pin);

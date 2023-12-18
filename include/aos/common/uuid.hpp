@@ -8,6 +8,7 @@
 #ifndef AOS_UUID_HPP_
 #define AOS_UUID_HPP_
 
+#include "aos/common/config.hpp"
 #include "aos/common/tools/string.hpp"
 
 namespace aos {
@@ -39,15 +40,6 @@ public:
      * @return RetWithError<UUID>.
      */
     virtual RetWithError<UUID> CreateUUID() = 0;
-
-    /**
-     * Returns a new SHA1 UUID based on the supplied name space and data.
-     *
-     * @param space name space.
-     * @param data data.
-     * @return RetWithError<UUID>.
-     */
-    virtual RetWithError<UUID> CreateSHA1(const UUID& space, const Array<uint8_t>& data) = 0;
 
     /**
      * Converts UUID to string.
