@@ -55,12 +55,49 @@ public:
      * @param src input string.
      * @return RetWithError<UUID>.
      */
-    virtual RetWithError<UUID> StringToUUID(const String& src) = 0;
+    virtual RetWithError<UUID> StringToUUID(const StaticString<uuid::cUUIDStrLen>& src) = 0;
 
     /**
      * Destroys object instance.
      */
     virtual ~UUIDManagerItf() = default;
+};
+
+/**
+ * UUID manager implementation.
+ */
+class UUIDManager : public UUIDManagerItf {
+public:
+    /**
+     * Constructs object instance.
+     */
+    UUIDManager();
+
+    /**
+     * Creates unique UUID.
+     *
+     * @return RetWithError<UUID>.
+     */
+    RetWithError<UUID> CreateUUID() override;
+
+    /**
+     * Converts UUID to string.
+     *
+     * @param uuid uuid.
+     * @return RetWithError<StaticString<cUUIDStrLen>>.
+     */
+    RetWithError<StaticString<cUUIDStrLen>> UUIDToString(const UUID& uuid) override;
+
+    /**
+     * Converts string to UUID.
+     *
+     * @param src input string.
+     * @return RetWithError<UUID>.
+     */
+    RetWithError<UUID> StringToUUID(const StaticString<uuid::cUUIDStrLen>& src) override;
+
+private:
+    static const String cTemplate;
 };
 
 } // namespace uuid
