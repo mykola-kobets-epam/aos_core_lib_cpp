@@ -29,6 +29,7 @@ set(SOURCES
     ${CMAKE_SOURCE_DIR}/src/common/resourcemonitor/resourcemonitor.cpp
     src/resourcemonitor_test.cpp
     src/types_test.cpp
+    src/uuid_test.cpp
 )
 
 # ######################################################################################################################
@@ -42,6 +43,6 @@ add_definitions(-DAOS_CONFIG_MONITORING_SEND_PERIOD_SEC=2 -DAOS_CONFIG_MONITORIN
 # ######################################################################################################################
 
 add_executable(${TARGET} ${SOURCES})
-target_link_libraries(${TARGET} GTest::gmock_main)
+target_link_libraries(${TARGET} GTest::gmock_main aoscommoncpp)
 
 gtest_discover_tests(${TARGET})
