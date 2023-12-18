@@ -158,38 +158,38 @@ TEST(CommonTest, SplitString)
     EXPECT_EQ(splitArray, resultArray);
 }
 
-TEST(CommonTest, StringToByteArray)
+TEST(CommonTest, HexToByteArray)
 {
     const String hex = "abcDEF0123456789";
 
     StaticArray<uint8_t, 8> result;
     uint8_t                 expected[] = {0xAB, 0xCD, 0xEF, 0x01, 0x23, 0x45, 0x67, 0x89};
 
-    ASSERT_TRUE(hex.ToByteArr(result).IsNone());
+    ASSERT_TRUE(hex.HexToByteArray(result).IsNone());
     EXPECT_EQ(result, Array<uint8_t>(expected, sizeof(expected)));
 }
 
-TEST(CommonTest, StringToByteArrayOddSize)
+TEST(CommonTest, HexToByteArrayOddSize)
 {
     const String hex = "01234";
 
     StaticArray<uint8_t, 8> result;
     uint8_t                 expected[] = {0x01, 0x23, 0x40};
 
-    ASSERT_TRUE(hex.ToByteArr(result).IsNone());
+    ASSERT_TRUE(hex.HexToByteArray(result).IsNone());
     EXPECT_EQ(result, Array<uint8_t>(expected, sizeof(expected)));
 }
 
-TEST(CommonTest, StringToByteArrayNoMemory)
+TEST(CommonTest, HexToByteArrayNoMemory)
 {
     const String hex = "01234";
 
     StaticArray<uint8_t, 2> result;
 
-    ASSERT_EQ(hex.ToByteArr(result), ErrorEnum::eNoMemory);
+    ASSERT_EQ(hex.HexToByteArray(result), ErrorEnum::eNoMemory);
 }
 
-TEST(CommonTest, StringConvertFromByteArray)
+TEST(CommonTest, ByteArrayToHex)
 {
     const char expected[] = "ABCDEF0123456789";
 
@@ -198,7 +198,7 @@ TEST(CommonTest, StringConvertFromByteArray)
 
     StaticString<16> dst;
 
-    ASSERT_TRUE(dst.Convert(source).IsNone());
+    ASSERT_TRUE(dst.ByteArrayToHex(source).IsNone());
     ASSERT_EQ(dst, expected);
 }
 
