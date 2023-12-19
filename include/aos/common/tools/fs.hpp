@@ -9,6 +9,7 @@
 #define AOS_FS_HPP_
 
 #include <dirent.h>
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -358,8 +359,46 @@ public:
      */
     static Error ReadFileToString(const String& fileName, String& text)
     {
-        (void)fileName;
-        (void)text;
+        auto fd = open(fileName.CStr(), O_RDONLY);
+        if (fd != 0) {
+            return ErrorEnum::eFailed;
+        }
+
+        auto size = lseek(fd, 0, SEEK_END);
+        if (size < 0) {
+            close(fd);
+
+            return ErrorEnum::eFailed;
+        }
+
+        auto pos = lseek(fd, 0, SEEK_SET);
+        if (pos < 0) {
+            close(fd);
+
+            return ErrorEnum::eFailed;
+        }
+
+        auto err = text.Resize(size);
+        if (!err.IsNone()) {
+            close(fd);
+
+            return err;
+        }
+
+        while (pos < size) {
+            auto count = read(fd, text.Get() + pos, text.Size() - pos);
+            if (count < 0) {
+                close(fd);
+
+                return ErrorEnum::eFailed;
+            }
+
+            pos += count;
+        }
+
+        if (close(fd) != 0) {
+            return ErrorEnum::eFailed;
+        }
 
         return ErrorEnum::eNone;
     }
@@ -374,9 +413,26 @@ public:
      */
     static Error WriteStringToFile(const String& fileName, const String& text, uint32_t perm)
     {
-        (void)fileName;
-        (void)text;
-        (void)perm;
+        auto fd = open(fileName.CStr(), O_CREAT | O_WRONLY | O_TRUNC, perm);
+        if (fd != 0) {
+            return ErrorEnum::eFailed;
+        }
+
+        size_t pos = 0;
+        while (pos < text.Size()) {
+            auto chunkSize = write(fd, text.Get() + pos, text.Size() - pos);
+            if (chunkSize < 0) {
+                close(fd);
+
+                return ErrorEnum::eFailed;
+            }
+
+            pos += chunkSize;
+        }
+
+        if (close(fd) != 0) {
+            return ErrorEnum::eFailed;
+        }
 
         return ErrorEnum::eNone;
     }
