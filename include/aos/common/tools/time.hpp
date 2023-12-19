@@ -12,11 +12,13 @@
 #include "aos/common/tools/log.hpp"
 #include "aos/common/tools/string.hpp"
 
+#include <time.h>
+
 namespace aos {
 namespace time {
 
 /**
- * Base type for a time duration. Can also be negative to set a point back in time.
+ * Base type for a time duration in nanoseconds. Can also be negative to set a point back in time.
  */
 using Duration = int64_t;
 
@@ -26,10 +28,11 @@ using Duration = int64_t;
  * @param num number of years.
  * @result Duration.
  */
-constexpr Duration Years(int num)
+constexpr Duration Years(int64_t num)
 {
-    (void)num;
-    return 0;
+    constexpr Duration year = 31556925974700000;
+
+    return year * num;
 }
 
 /**
@@ -38,11 +41,19 @@ constexpr Duration Years(int num)
 class Time {
 public:
     /**
+     * Constructs object instance
+     */
+    Time()
+        : mTime()
+    {
+    }
+
+    /**
      * Checks whether Time object is default initialized.
      *
      * @result bool.
      */
-    bool IsZero() const { return true; }
+    bool IsZero() const { return *this == Time(); }
 
     /**
      * Returns a copy of the current object increased by a specified time duration.
@@ -52,8 +63,20 @@ public:
      */
     Time Add(Duration duration) const
     {
-        (void)duration;
-        return Time();
+        auto time = mTime;
+
+        int64_t nsec = time.tv_nsec + duration;
+
+        time.tv_sec += nsec / cNanoRatio;
+        time.tv_nsec = nsec % cNanoRatio;
+
+        // sign of the remainder implementation defined => correct if negative
+        if (time.tv_nsec < 0) {
+            time.tv_nsec += cNanoRatio;
+            time.tv_sec--;
+        }
+
+        return Time(time);
     }
 
     /**
@@ -61,7 +84,12 @@ public:
      *
      * @result result time in nanoseconds.
      */
-    uint64_t UnixNano() const { return 0ULL; }
+    uint64_t UnixNano() const
+    {
+        uint64_t nsec = mTime.tv_nsec + mTime.tv_sec * cNanoRatio;
+
+        return nsec;
+    }
 
     /**
      * Checks whether a current time is less than a specified one.
@@ -71,8 +99,8 @@ public:
      */
     bool operator<(const Time& obj) const
     {
-        (void)obj;
-        return true;
+        return mTime.tv_sec < obj.mTime.tv_sec
+            || (mTime.tv_sec == obj.mTime.tv_sec && mTime.tv_nsec < obj.mTime.tv_nsec);
     }
 
     /**
@@ -83,8 +111,7 @@ public:
      */
     bool operator==(const Time& obj) const
     {
-        (void)obj;
-        return true;
+        return mTime.tv_sec == obj.mTime.tv_sec && mTime.tv_nsec == obj.mTime.tv_nsec;
     }
 
     /**
@@ -93,18 +120,22 @@ public:
      * @param obj time object to compare with.
      * @result bool.
      */
-    bool operator!=(const Time& obj) const
-    {
-        (void)obj;
-        return !operator==(obj);
-    }
+    bool operator!=(const Time& obj) const { return !operator==(obj); }
 
     /**
      * Returns current local time.
      *
      * @result Time.
      */
-    static Time Now() { return Time(); }
+    static Time Now()
+    {
+        timespec time;
+
+        auto res = clock_gettime(CLOCK_REALTIME, &time);
+        assert(res == 0);
+
+        return Time(time);
+    }
 
     /**
      * Prints time into log.
@@ -115,9 +146,35 @@ public:
      */
     friend Log& operator<<(Log& log, const Time& obj)
     {
-        (void)obj;
+        static constexpr auto cTimeStrLen = 32;
+
+        tm                        buf;
+        StaticString<cTimeStrLen> utcTimeStr;
+
+        auto time = gmtime_r(&obj.mTime.tv_sec, &buf);
+        assert(time != nullptr);
+
+        utcTimeStr.Resize(utcTimeStr.MaxSize());
+
+        size_t size = strftime(utcTimeStr.Get(), utcTimeStr.Size(), "%FT%TZ", time);
+        assert(size != 0);
+
+        utcTimeStr.Resize(size - 1);
+
+        log << utcTimeStr;
+
         return log;
     }
+
+private:
+    static constexpr int64_t cNanoRatio = 1000 * 1000 * 1000;
+
+    Time(timespec time)
+        : mTime(time)
+    {
+    }
+
+    timespec mTime;
 };
 
 } // namespace time

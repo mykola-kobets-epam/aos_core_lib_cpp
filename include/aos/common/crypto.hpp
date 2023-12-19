@@ -11,8 +11,8 @@
 #include "aos/common/tools/array.hpp"
 #include "aos/common/tools/string.hpp"
 
-#include "aos/common/time.hpp"
 #include "aos/common/tools/memory.hpp"
+#include "aos/common/tools/time.hpp"
 #include "aos/common/types.hpp"
 
 namespace aos {
