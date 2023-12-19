@@ -8,6 +8,8 @@
 #ifndef AOS_OS_HPP_
 #define AOS_OS_HPP_
 
+#include <stdlib.h>
+
 #include "aos/common/tools/string.hpp"
 
 namespace aos {
@@ -20,12 +22,14 @@ namespace os {
  * @param env result value.
  * @return Error.
  */
-Error GetEnv(const String& envName, String& env)
+inline Error GetEnv(const String& envName, String& env)
 {
-    (void)envName;
-    (void)env;
+    const String envValue = getenv(envName.CStr());
+    if (envValue.CStr() == nullptr) {
+        return ErrorEnum::eNotFound;
+    }
 
-    return ErrorEnum::eNone;
+    return env.Insert(env.begin(), envValue.begin(), envValue.end());
 }
 
 } // namespace os
