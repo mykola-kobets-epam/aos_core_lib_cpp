@@ -26,6 +26,7 @@ set(SOURCES
     src/tools/optional_test.cpp
     src/tools/queue_test.cpp
     src/tools/function_test.cpp
+    src/tools/time_test.cpp
     ${CMAKE_SOURCE_DIR}/src/common/resourcemonitor/resourcemonitor.cpp
     src/resourcemonitor_test.cpp
     src/types_test.cpp

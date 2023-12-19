@@ -508,24 +508,26 @@ TEST_F(CertHandlerTest, SyncValidCerts)
 
 TEST_F(CertHandlerTest, TrimCerts)
 {
+    auto now = time::Time::Now();
+
     CertModule pkcs11Module = {cPKCS11Type, cDefaultConfig};
 
     CertInfo cert1;
     CertInfo cert2;
 
     cert1.mCertURL  = "file://local-storage/certs/cert1.pem";
-    cert1.mNotAfter = cert1.mNotAfter.Add(time::Years(3));
+    cert1.mNotAfter = now.Add(time::Years(3));
     cert2.mCertURL  = "file://local-storage/certs/cert2.pem";
     cert2.mKeyURL   = "file://local-storage/certs/key2.pem";
-    cert2.mNotAfter = cert1.mNotAfter.Add(time::Years(1));
+    cert2.mNotAfter = now.Add(time::Years(1));
 
     crypto::x509::Certificate root;
 
     root.mSubject = root.mIssuer = StringToDN("ca.epam.com");
     root.mAuthorityKeyId = root.mSubjectKeyId = StringToDN("1.1.1.1");
     root.mSerial                              = StringToDN("1.1.1.1");
-    root.mNotBefore                           = time::Time::Now();
-    root.mNotAfter                            = root.mNotBefore.Add(time::Years(3));
+    root.mNotBefore                           = now;
+    root.mNotAfter                            = now.Add(time::Years(3));
 
     StaticArray<CertInfo, cCertsPerModule> initCerts;
     StaticArray<CertInfo, cCertsPerModule> appliedCerts;

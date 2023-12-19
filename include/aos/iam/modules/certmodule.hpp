@@ -13,7 +13,7 @@
 #include "aos/common/tools/string.hpp"
 #include "aos/common/tools/utils.hpp"
 
-#include "aos/common/time.hpp"
+#include "aos/common/tools/time.hpp"
 
 #include "aos/iam/modules/hsm.hpp"
 
