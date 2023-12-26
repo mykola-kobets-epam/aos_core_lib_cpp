@@ -155,4 +155,177 @@
 #define AOS_CONFIG_MONITORING_POLL_PERIOD_SEC 10
 #endif
 
+/**
+ * Certificate public key size(in bytes).
+ */
+#ifndef AOS_CONFIG_CRYPTO_CERT_PUB_KEY_SIZE
+#define AOS_CONFIG_CRYPTO_CERT_PUB_KEY_SIZE 2048
+#endif
+
+/**
+ * Certificate issuer max size is not specified in general.
+ * (RelativeDistinguishedName ::= SET SIZE (1..MAX) OF AttributeTypeAndValue)
+ *
+ * https://datatracker.ietf.org/doc/html/rfc5280#section-4.1.2.4
+ */
+#ifndef AOS_CONFIG_CRYPTO_CERT_ISSUER_SIZE
+#define AOS_CONFIG_CRYPTO_CERT_ISSUER_SIZE 128
+#endif
+
+/**
+ * Max length of a DNS name.
+ */
+#ifndef AOS_CONFIG_CRYPTO_DNS_NAME_LEN
+#define AOS_CONFIG_CRYPTO_DNS_NAME_LEN 42
+#endif
+
+/**
+ * Max number of alternative DNS names for a module.
+ */
+#ifndef AOS_CONFIG_CRYPTO_ALT_DNS_NAMES_MAX_COUNT
+#define AOS_CONFIG_CRYPTO_ALT_DNS_NAMES_MAX_COUNT 4
+#endif
+
+/**
+ * Raw certificate request size.
+ */
+#ifndef AOS_CONFIG_CRYPTO_EXTRA_EXTENSIONS_COUNT
+#define AOS_CONFIG_CRYPTO_EXTRA_EXTENSIONS_COUNT 10
+#endif
+
+/**
+ * Maximum length of numeric string representing ASN.1 Object Identifier.
+ */
+#ifndef AOS_CONFIG_CRYPTO_ASN1_OBJECT_ID_LEN
+#define AOS_CONFIG_CRYPTO_ASN1_OBJECT_ID_LEN 24
+#endif
+
+/**
+ * Maximum size of a certificate ASN.1 Extension Value.
+ */
+#ifndef AOS_CONFIG_CRYPTO_ASN1_EXTENSION_VALUE_SIZE
+#define AOS_CONFIG_CRYPTO_ASN1_EXTENSION_VALUE_SIZE 16
+#endif
+
+/**
+ * Maximum certificate key id size(in bytes).
+ */
+#ifndef AOS_CONFIG_CRYPTO_CERT_KEY_ID_SIZE
+#define AOS_CONFIG_CRYPTO_CERT_KEY_ID_SIZE 24
+#endif
+
+/**
+ * Maximum size of a PEM certificate.
+ */
+#ifndef AOS_CONFIG_CRYPTO_PEM_CERT_SIZE
+#define AOS_CONFIG_CRYPTO_PEM_CERT_SIZE 4096
+#endif
+
+/**
+ * Maximum size of a DER certificate.
+ */
+#ifndef AOS_CONFIG_CRYPTO_DER_CERT_SIZE
+#define AOS_CONFIG_CRYPTO_DER_CERT_SIZE 2048
+#endif
+
+/**
+ * Serial number size(in bytes).
+ */
+#ifndef AOS_CONFIG_CRYPTO_SERIAL_NUM_SIZE
+#define AOS_CONFIG_CRYPTO_SERIAL_NUM_SIZE 20
+#endif
+
+/**
+ * Usual RSA modulus size is 512, 1024, 2048 or 4096 bit length.
+ * https://www.jensign.com/dotnet/CSPPrimes/index.html
+ */
+#ifndef AOS_CONFIG_CRYPTO_RSA_MODULUS_SIZE
+#define AOS_CONFIG_CRYPTO_RSA_MODULUS_SIZE 256
+#endif
+
+/**
+ * In general field length of a public exponent (e) is typically 1, 3, or 64 - 512 bytes.
+ * https://www.ibm.com/docs/en/linux-on-z?topic=formats-rsa-public-key-token
+ */
+#ifndef AOS_CONFIG_CRYPTO_RSA_PUB_EXPONENT_SIZE
+#define AOS_CONFIG_CRYPTO_RSA_PUB_EXPONENT_SIZE 3
+#endif
+
+/**
+ * Size of ECDSA params OID.
+ */
+#ifndef AOS_CONFIG_CRYPTO_ECDSA_PARAMS_OID_SIZE
+#define AOS_CONFIG_CRYPTO_ECDSA_PARAMS_OID_SIZE 10
+#endif
+
+/**
+ * DER-encoded X9.62 ECPoint size.
+ */
+#ifndef AOS_CONFIG_CRYPTO_ECDSA_POINT_DER_SIZE
+#define AOS_CONFIG_CRYPTO_ECDSA_POINT_DER_SIZE 128
+#endif
+
+/**
+ * Length of serial number in string representation.
+ */
+#ifndef AOS_CONFIG_CRYPTO_SERIAL_NUM_STR_LEN
+#define AOS_CONFIG_CRYPTO_SERIAL_NUM_STR_LEN 40
+#endif
+
+/**
+ * Maximum length of PKCS11 slot description.
+ */
+#ifndef AOS_CONFIG_PKCS11_SLOT_DESCRIPTION_LEN
+#define AOS_CONFIG_PKCS11_SLOT_DESCRIPTION_LEN 64
+#endif
+
+/**
+ * Maximum length of PKCS11 manufacture ID.
+ */
+#ifndef AOS_CONFIG_PKCS11_MANUFACTURE_ID_LEN
+#define AOS_CONFIG_PKCS11_MANUFACTURE_ID_LEN 32
+#endif
+
+/**
+ * Maximum length of PKCS11 label.
+ */
+#ifndef AOS_CONFIG_PKCS11_LABEL_LEN
+#define AOS_CONFIG_PKCS11_LABEL_LEN 32
+#endif
+
+/**
+ * PKCS11 library description length.
+ */
+#ifndef AOS_CONFIG_PKCS11_LIBRARY_DESC_LEN
+#define AOS_CONFIG_PKCS11_LIBRARY_DESC_LEN 64
+#endif
+
+/**
+ * HSM device model length.
+ */
+#ifndef AOS_CONFIG_PKCS11_MODEL_LEN
+#define AOS_CONFIG_PKCS11_MODEL_LEN 16
+#endif
+
+/**
+ * Maximum length of user PIN (password).
+ */
+#ifndef AOS_CONFIG_PKCS11_PIN_LEN
+#define AOS_CONFIG_PKCS11_PIN_LEN 42
+#endif
+
+/**
+ *  UUID length
+ */
+#ifndef AOS_CONFIG_UUID_LEN
+#define AOS_CONFIG_UUID_LEN 16
+#endif
+
+/**
+ *  Length of UUID string representation
+ */
+#ifndef AOS_CONFIG_UUID_STR_LEN
+#define AOS_CONFIG_UUID_STR_LEN AOS_CONFIG_UUID_LEN * 2 + 4 + 1 // 32 hex digits + 4 '-' symbols + '\0'
+#endif
+
 #endif

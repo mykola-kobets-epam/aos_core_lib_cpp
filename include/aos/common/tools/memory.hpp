@@ -30,38 +30,57 @@ public:
         : mAllocator(allocator)
         , mObject(object)
     {
-        assert(!object || allocator);
+        assert(!(object && !allocator));
     }
 
     /**
-     * Deletes holding object and reset smart pointer.
+     * Deletes holding object and release smart pointer.
+     *
+     * @param allocator new allocator.
+     * @param object new object.
      */
     void Reset(Allocator* allocator = nullptr, T* object = nullptr)
     {
         if (mAllocator && mObject) {
+            mObject->~T();
             operator delete(const_cast<RemoveConstType<T>*>(mObject), mAllocator);
         }
 
-        assert(!object || allocator);
+        assert(!(object && !allocator));
 
-        mObject = object;
-        mAllocator = allocator;
+        Release(allocator, object);
     }
 
     /**
      * Releases smart pointer.
      *
+     * @param allocator new allocator.
+     * @param object new object.
      * @return T* pointer to holding object.
      */
-    T* Release()
+    T* Release(Allocator* allocator = nullptr, T* object = nullptr)
     {
-        auto object = mObject;
+        auto curObject = mObject;
 
-        mObject = nullptr;
-        mAllocator = nullptr;
+        mObject = object;
+        mAllocator = allocator;
 
-        return object;
+        return curObject;
     }
+
+    /**
+     * Returns holding object.
+     *
+     * @return T* holding object.
+     */
+    T* Get() const { return mObject; }
+
+    /**
+     * Returns holding allocator.
+     *
+     * @return Allocator* holding allocator.
+     */
+    Allocator* GetAllocator() const { return mAllocator; }
 
     /**
      * Checks if pointer holds object.
@@ -80,13 +99,6 @@ public:
     friend bool operator==(const SmartPtr& ptr1, const SmartPtr& ptr2) { return ptr1.mObject == ptr2.mObject; }
 
     /**
-     * Returns holding object.
-     *
-     * @return T* holding object.
-     */
-    T* Get() const { return mObject; }
-
-    /**
      * Provides access to holding object fields.
      *
      * @return T* holding object pointer.
@@ -100,7 +112,7 @@ public:
      */
     T& operator*() const { return *(mObject); }
 
-protected:
+private:
     Allocator* mAllocator {};
     T*         mObject {};
 };
@@ -124,10 +136,9 @@ public:
      * @param ptr unique pointer to move from.
      */
     UniquePtr(UniquePtr&& ptr)
-        : SmartPtr<T>(ptr.mAllocator, ptr.mObject)
+        : SmartPtr<T>(ptr.GetAllocator(), ptr.Get())
     {
-        ptr.mObject = nullptr;
-        ptr.mAllocator = nullptr;
+        ptr.Release();
     }
 
     /**
@@ -137,10 +148,34 @@ public:
      */
     void operator=(UniquePtr&& ptr)
     {
-        SmartPtr<T>::Reset(ptr.mAllocator, ptr.mObject);
+        SmartPtr<T>::Reset(ptr.GetAllocator(), ptr.Get());
 
-        ptr.mObject = nullptr;
-        ptr.mAllocator = nullptr;
+        ptr.Release();
+    }
+
+    /**
+     * Unique pointer move constructor for derived class.
+     *
+     * @param ptr unique pointer to move from.
+     */
+    template <typename P>
+    UniquePtr(UniquePtr<P>&& ptr)
+        : SmartPtr<T>(ptr.GetAllocator(), ptr.Get())
+    {
+        ptr.Release();
+    }
+
+    /**
+     * Unique pointer move assignment for derived class.
+     *
+     * @param ptr unique pointer to assign from.
+     */
+    template <typename P>
+    void operator=(UniquePtr<P>&& ptr)
+    {
+        SmartPtr<T>::Reset(ptr.GetAllocator(), ptr.Get());
+
+        ptr.Release();
     }
 
     /**
@@ -165,7 +200,7 @@ public:
     {
         if (allocator && object) {
             mAllocation = allocator->FindAllocation(object).mValue;
-            SmartPtr<T>::mAllocator->TakeAllocation(mAllocation);
+            SmartPtr<T>::GetAllocator()->TakeAllocation(mAllocation);
         }
     }
 
@@ -175,11 +210,11 @@ public:
      * @param ptr pointer to create from.
      */
     SharedPtr(const SharedPtr& ptr)
-        : SmartPtr<T>(ptr)
+        : SmartPtr<T>(ptr.GetAllocator(), ptr.Get())
         , mAllocation(ptr.mAllocation)
     {
         if (mAllocation) {
-            SmartPtr<T>::mAllocator->TakeAllocation(mAllocation);
+            SmartPtr<T>::GetAllocator()->TakeAllocation(mAllocation);
         }
     }
 
@@ -190,19 +225,45 @@ public:
      */
     SharedPtr& operator=(const SharedPtr& ptr)
     {
-        Reset(ptr.mAllocator, ptr.mObject);
+        SmartPtr<T>::Release(ptr.GetAllocator(), ptr.Get());
+        mAllocation = ptr.mAllocation;
+
+        if (mAllocation) {
+            SmartPtr<T>::GetAllocator()->TakeAllocation(mAllocation);
+        }
 
         return *this;
     }
 
     /**
-     * Assigns shared pointer from another pointer.
+     * Creates shared pointer from another derived class shared pointer.
      *
-     * @param ptr pointer to assign from.
+     * @param ptr pointer to create from.
      */
-    SharedPtr& operator=(const T* object)
+    template <typename P>
+    SharedPtr(const SharedPtr<P>& ptr)
+        : SmartPtr<T>(ptr.GetAllocator(), ptr.Get())
+        , mAllocation(ptr.mAllocation)
     {
-        Reset(SmartPtr<T>::mAllocator, object);
+        if (mAllocation) {
+            SmartPtr<T>::GetAllocator()->TakeAllocation(mAllocation);
+        }
+    }
+
+    /**
+     * Assigns shared pointer from another derived class shared pointer.
+     *
+     * @param ptr shared pointer to assign from.
+     */
+    template <typename P>
+    SharedPtr& operator=(const SharedPtr<P>& ptr)
+    {
+        SmartPtr<T>::Release(ptr.GetAllocator(), ptr.Get());
+        mAllocation = ptr.mAllocation;
+
+        if (mAllocation) {
+            SmartPtr<T>::GetAllocator()->TakeAllocation(mAllocation);
+        }
 
         return *this;
     }
@@ -215,17 +276,16 @@ public:
      */
     void Reset(Allocator* allocator = nullptr, T* object = nullptr)
     {
-        if (mAllocation && SmartPtr<T>::mAllocator->GiveAllocation(mAllocation) == 0) {
+        if (mAllocation && SmartPtr<T>::GetAllocator()->GiveAllocation(mAllocation) == 0) {
             SmartPtr<T>::Reset(allocator, object);
         }
 
-        SmartPtr<T>::mAllocator = allocator;
-        SmartPtr<T>::mObject = object;
+        SmartPtr<T>::Release(allocator, object);
         mAllocation = nullptr;
 
         if (allocator && object) {
             mAllocation = allocator->FindAllocation(object).mValue;
-            SmartPtr<T>::mAllocator->TakeAllocation(mAllocation);
+            SmartPtr<T>::GetAllocator()->TakeAllocation(mAllocation);
         }
     }
 
@@ -235,6 +295,9 @@ public:
     ~SharedPtr() { Reset(); }
 
 private:
+    template <typename>
+    friend class SharedPtr;
+
     Allocator::Allocation* mAllocation = nullptr;
 };
 

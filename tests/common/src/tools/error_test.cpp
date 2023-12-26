@@ -90,3 +90,14 @@ TEST(CommonTest, ErrorMessages)
     EXPECT_EQ(Error(ErrorEnum::eAlreadyExist).Message(), "already exist");
     EXPECT_EQ(Error(ErrorEnum::eWrongState).Message(), "wrong state");
 }
+
+TEST(CommonTest, ErrorTie)
+{
+    Error err = ErrorEnum::eNone;
+    bool  val = false;
+
+    Tie(val, err) = RetWithError<bool>(true, ErrorEnum::eFailed);
+
+    EXPECT_EQ(val, true);
+    EXPECT_EQ(err, ErrorEnum::eFailed);
+}

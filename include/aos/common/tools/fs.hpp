@@ -348,6 +348,38 @@ public:
 #endif
         return ErrorEnum::eNone;
     }
+
+    /**
+     * Reads content of the file named by fileName into the given string.
+     *
+     * @param fileName file name.
+     * @param[out] text result string.
+     * @return Error.
+     */
+    static Error ReadFileToString(const String& fileName, String& text)
+    {
+        (void)fileName;
+        (void)text;
+
+        return ErrorEnum::eNone;
+    }
+
+    /**
+     * Overwrites file with a specified text.
+     *
+     * @param fileName file name.
+     * @param text input text.
+     * @param perm permissions.
+     * @return Error.
+     */
+    static Error WriteStringToFile(const String& fileName, const String& text, uint32_t perm)
+    {
+        (void)fileName;
+        (void)text;
+        (void)perm;
+
+        return ErrorEnum::eNone;
+    }
 };
 
 } // namespace aos

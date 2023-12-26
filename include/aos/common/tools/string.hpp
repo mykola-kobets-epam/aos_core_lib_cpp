@@ -12,6 +12,7 @@
 
 #include <ctype.h>
 #include <inttypes.h>
+#include <regex.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -202,21 +203,72 @@ public:
      *
      * @return RetWithError<int>.
      */
-    RetWithError<int> ToInt() { return atoi(CStr()); }
+    RetWithError<int> ToInt() const { return atoi(CStr()); }
 
     /**
      * Converts sting to uint64.
      *
      * @return RetWithError<uint64_t>.
      */
-    RetWithError<uint64_t> ToUint64() { return static_cast<uint64_t>(strtoull(CStr(), nullptr, 10)); }
+    RetWithError<uint64_t> ToUint64() const { return static_cast<uint64_t>(strtoull(CStr(), nullptr, 10)); }
 
     /**
      * Converts sting to int64.
      *
      * @return RetWithError<int64_t>.
      */
-    RetWithError<int64_t> ToInt64() { return static_cast<int64_t>(strtoll(CStr(), nullptr, 10)); }
+    RetWithError<int64_t> ToInt64() const { return static_cast<int64_t>(strtoll(CStr(), nullptr, 10)); }
+
+    /**
+     * Converts hex string to byte array.
+     *
+     * @return Error.
+     */
+    Error ToByteArr(Array<uint8_t>& arr) const
+    {
+        if (arr.MaxSize() * 2 < Size()) {
+            return ErrorEnum::eNoMemory;
+        }
+
+        static const auto parseHex = [](char ch) {
+            if (ch >= '0' && ch <= '9') {
+                return static_cast<uint8_t>(ch - '0');
+            }
+
+            if (ch >= 'a' && ch <= 'f') {
+                return static_cast<uint8_t>(ch - 'a' + 10);
+            }
+
+            if (ch >= 'A' && ch <= 'F') {
+                return static_cast<uint8_t>(ch - 'A' + 10);
+            }
+
+            return static_cast<uint8_t>(255);
+        };
+
+        arr.Clear();
+
+        for (size_t i = 0; i < Size(); i += 2) {
+            uint8_t high = parseHex(Get()[i]);
+            if (high > 0xFU) {
+                return ErrorEnum::eInvalidArgument;
+            }
+
+            if (i + 1 >= Size()) {
+                arr.PushBack(high << 4);
+                break;
+            }
+
+            uint8_t low = parseHex(Get()[i + 1]);
+            if (low > 0xFU) {
+                return ErrorEnum::eInvalidArgument;
+            }
+
+            arr.PushBack((high << 4) | low);
+        }
+
+        return ErrorEnum::eNone;
+    }
 
     /**
      * Converts int to string.
@@ -241,6 +293,33 @@ public:
      * @return Error.
      */
     Error Convert(int64_t value) { return ConvertValue(value, "%" PRIi64); }
+
+    /**
+     * Converts a byte array to a hex string.
+     *
+     * @param arr array.
+     * @return Error.
+     */
+    Error Convert(const Array<uint8_t>& arr)
+    {
+        if (MaxSize() < arr.Size() * 2) {
+            return ErrorEnum::eNoMemory;
+        }
+
+        Clear();
+
+        constexpr char cDigits[] = "0123456789ABCDEF";
+
+        for (const auto val : arr) {
+            const auto low = val & 0xF;
+            const auto high = (val >> 4);
+
+            PushBack(cDigits[high]);
+            PushBack(cDigits[low]);
+        }
+
+        return ErrorEnum::eNone;
+    }
 
     /**
      * Converts error to string.
@@ -319,15 +398,68 @@ public:
     template <typename T>
     Error ConvertValue(T value, const char* format)
     {
+        return Format(format, value);
+    }
+
+    /**
+     * Composes a string using format and additional argument list.
+     *
+     * @param format format string that follows specification of printf.
+     * @param ...args additional arguments
+     * @return Error.
+     */
+    template <class... Args>
+    Error Format(const char* format, Args... args)
+    {
         Clear();
 
         // cppcheck-suppress wrongPrintfScanfArgNum
-        auto ret = snprintf(Get(), MaxSize() + 1, format, value);
+        auto ret = snprintf(Get(), MaxSize() + 1, format, args...);
         if (ret < 0) {
             return ret;
         }
 
         Resize(ret);
+
+        return ErrorEnum::eNone;
+    }
+
+    /**
+     * Executes search by specified regex string and returns match by its number.
+     *
+     * @tparam cMatchInd specifies index of the match to be returned.
+     * @param regex POSIX extended regular expression.
+     * @param[out] match result match.
+     * @return Error.
+     */
+    template <int cMatchInd>
+    Error Search(const char* regex, String& match) const
+    {
+        regex_t    r;
+        regmatch_t matches[cMatchInd + 1];
+
+        int ret = regcomp(&r, regex, REG_EXTENDED);
+        if (ret != 0) {
+            return ErrorEnum::eInvalidArgument;
+        }
+
+        ret = regexec(&r, CStr(), cMatchInd + 1, matches, 0);
+        if (ret != 0) {
+            return ErrorEnum::eNotFound;
+        }
+
+        if (matches[cMatchInd].rm_so == -1) {
+            return ErrorEnum::eNotFound;
+        }
+
+        match.Clear();
+
+        Error err = match.Insert(match.end(), CStr() + matches[cMatchInd].rm_so, CStr() + matches[cMatchInd].rm_eo);
+        if (!err.IsNone()) {
+            return err;
+        }
+
+        *match.end() = 0;
 
         return ErrorEnum::eNone;
     }

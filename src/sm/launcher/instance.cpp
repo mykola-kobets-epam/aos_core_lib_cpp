@@ -146,15 +146,17 @@ Error Instance::CreateRuntimeSpec(const String& path)
     auto vm = MakeUnique<oci::VM>(&sAllocator);
     runtimeSpec->mVM = vm.Get();
 
-    if (imageSpec.mValue.mConfig.mCmd.Size() == 0) {
+    if (imageSpec.mValue.mConfig.mEntryPoint.Size() == 0) {
         return AOS_ERROR_WRAP(ErrorEnum::eInvalidArgument);
     }
 
     // Set default HW config values. Normally they should be taken from service config.
     runtimeSpec->mVM->mHWConfig.mVCPUs = 1;
-    runtimeSpec->mVM->mHWConfig.mMemKB = 4096;
+    // For xen this value should be aligned to 1024Kb
+    runtimeSpec->mVM->mHWConfig.mMemKB = 8192;
 
-    runtimeSpec->mVM->mKernel.mPath = FS::JoinPath(serviceFS.mValue, imageSpec.mValue.mConfig.mCmd[0]);
+    runtimeSpec->mVM->mKernel.mPath = FS::JoinPath(serviceFS.mValue, imageSpec.mValue.mConfig.mEntryPoint[0]);
+    runtimeSpec->mVM->mKernel.mParameters = imageSpec.mValue.mConfig.mCmd;
 
     LOG_DBG() << "Unikernel path: " << runtimeSpec->mVM->mKernel.mPath;
 
