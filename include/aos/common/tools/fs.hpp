@@ -351,6 +351,59 @@ public:
     }
 
     /**
+     * Reads content of the file named by fileName into the buffer.
+     *
+     * @param fileName file name.
+     * @param[out] buff destination buffer.
+     * @return Error.
+     */
+    static Error ReadFile(const String& fileName, Array<uint8_t>& buff)
+    {
+        auto fd = open(fileName.CStr(), O_RDONLY);
+        if (fd < 0) {
+            return Error(errno);
+        }
+
+        auto OnError = [fd]() {
+            auto err = errno;
+
+            close(fd);
+
+            return Error(err);
+        };
+
+        auto size = lseek(fd, 0, SEEK_END);
+        if (size < 0) {
+            return OnError();
+        }
+
+        auto pos = lseek(fd, 0, SEEK_SET);
+        if (pos < 0) {
+            return OnError();
+        }
+
+        auto err = buff.Resize(size);
+        if (!err.IsNone()) {
+            return err;
+        }
+
+        while (pos < size) {
+            auto count = read(fd, buff.Get() + pos, buff.Size() - pos);
+            if (count < 0) {
+                return OnError();
+            }
+
+            pos += count;
+        }
+
+        if (close(fd) != 0) {
+            return Error(errno);
+        }
+
+        return ErrorEnum::eNone;
+    }
+
+    /**
      * Reads content of the file named by fileName into the given string.
      *
      * @param fileName file name.
@@ -359,45 +412,49 @@ public:
      */
     static Error ReadFileToString(const String& fileName, String& text)
     {
-        auto fd = open(fileName.CStr(), O_RDONLY);
-        if (fd != 0) {
-            return ErrorEnum::eFailed;
-        }
+        text.Resize(text.MaxSize());
 
-        auto size = lseek(fd, 0, SEEK_END);
-        if (size < 0) {
-            close(fd);
+        auto buff = Array<uint8_t>(reinterpret_cast<uint8_t*>(text.Get()), text.Size());
 
-            return ErrorEnum::eFailed;
-        }
-
-        auto pos = lseek(fd, 0, SEEK_SET);
-        if (pos < 0) {
-            close(fd);
-
-            return ErrorEnum::eFailed;
-        }
-
-        auto err = text.Resize(size);
+        auto err = ReadFile(fileName, buff);
         if (!err.IsNone()) {
-            close(fd);
-
             return err;
         }
 
-        while (pos < size) {
-            auto count = read(fd, text.Get() + pos, text.Size() - pos);
-            if (count < 0) {
+        return text.Resize(buff.Size());
+    }
+
+    /**
+     * Overwrites file with a specified data.
+     *
+     * @param fileName file name.
+     * @param data input data.
+     * @param perm permissions.
+     * @return Error.
+     */
+    static Error WriteFile(const String& fileName, const Array<uint8_t>& data, uint32_t perm)
+    {
+        auto fd = open(fileName.CStr(), O_CREAT | O_WRONLY | O_TRUNC, perm);
+        if (fd < 0) {
+            return Error(errno);
+        }
+
+        size_t pos = 0;
+        while (pos < data.Size()) {
+            auto chunkSize = write(fd, data.Get() + pos, data.Size() - pos);
+            if (chunkSize < 0) {
+                auto err = errno;
+
                 close(fd);
 
-                return ErrorEnum::eFailed;
+                return Error(err);
             }
 
-            pos += count;
+            pos += chunkSize;
         }
 
         if (close(fd) != 0) {
-            return ErrorEnum::eFailed;
+            return Error(errno);
         }
 
         return ErrorEnum::eNone;
@@ -413,28 +470,9 @@ public:
      */
     static Error WriteStringToFile(const String& fileName, const String& text, uint32_t perm)
     {
-        auto fd = open(fileName.CStr(), O_CREAT | O_WRONLY | O_TRUNC, perm);
-        if (fd != 0) {
-            return ErrorEnum::eFailed;
-        }
+        const auto buff = Array<uint8_t>(reinterpret_cast<const uint8_t*>(text.Get()), text.Size());
 
-        size_t pos = 0;
-        while (pos < text.Size()) {
-            auto chunkSize = write(fd, text.Get() + pos, text.Size() - pos);
-            if (chunkSize < 0) {
-                close(fd);
-
-                return ErrorEnum::eFailed;
-            }
-
-            pos += chunkSize;
-        }
-
-        if (close(fd) != 0) {
-            return ErrorEnum::eFailed;
-        }
-
-        return ErrorEnum::eNone;
+        return WriteFile(fileName, buff, perm);
     }
 };
 
