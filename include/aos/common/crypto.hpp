@@ -445,6 +445,14 @@ public:
     virtual Error PEMToX509Certs(const Array<uint8_t>& pemBlob, Array<Certificate>& resultCerts) = 0;
 
     /**
+     * Reads private key from a PEM blob.
+     *
+     * @param pemBlob raw certificates in a PEM format.
+     * @result RetWithError<SharedPtr<PrivateKeyItf>>.
+     */
+    virtual RetWithError<SharedPtr<PrivateKeyItf>> PEMToX509PrivKey(const Array<uint8_t>& pemBlob) = 0;
+
+    /**
      * Reads certificate from a DER blob.
      *
      * @param derBlob raw certificate in a DER format.
