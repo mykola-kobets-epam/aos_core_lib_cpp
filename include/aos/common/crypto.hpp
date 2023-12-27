@@ -99,6 +99,11 @@ constexpr auto cECDSAParamsOIDSize = AOS_CONFIG_CRYPTO_ECDSA_PARAMS_OID_SIZE;
 constexpr auto cECDSAPointDERSize = AOS_CONFIG_CRYPTO_ECDSA_POINT_DER_SIZE;
 
 /**
+ * Max expected number of certificates in a chain stored in PEM file.
+ */
+constexpr auto cCertChainSize = AOS_CONFIG_CRYPTO_CERTS_CHAIN_SIZE;
+
+/**
  * Supported key types.
  */
 enum class KeyType { eRSA, eECDSA };
@@ -481,6 +486,11 @@ public:
      */
     virtual ~ProviderItf() = default;
 };
+
+/**
+ * A chain of certificates.
+ */
+using CertificateChain = StaticArray<Certificate, cCertChainSize>;
 
 } // namespace x509
 } // namespace crypto

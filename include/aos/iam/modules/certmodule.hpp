@@ -216,7 +216,6 @@ public:
     Error CreateSelfSignedCert(const String& password);
 
 private:
-    static constexpr auto cCertChainSize             = AOS_CONFIG_CERTHANDLER_CERTS_CHAIN_SIZE;
     static constexpr auto cPasswordLen               = AOS_CONFIG_CERTHANDLER_PASSWORD_LEN;
     static constexpr auto cDNStringLen               = AOS_CONFIG_CERTHANDLER_DN_STRING_LEN;
     static constexpr auto cValidSelfSignedCertPeriod = Years(100);
@@ -226,7 +225,7 @@ private:
     static constexpr auto cOidExtKeyUsageServerAuth     = "1.3.6.1.5.5.7.3.2";
 
     using ModuleCertificates    = StaticArray<CertInfo, cCertsPerModule>;
-    using CertificateChain      = StaticArray<crypto::x509::Certificate, cCertChainSize>;
+    using CertificateChain      = StaticArray<crypto::x509::Certificate, crypto::cCertChainSize>;
     using SelfSignedCertificate = StaticArray<uint8_t, crypto::cPEMCertSize>;
 
     Error RemoveInvalidCerts(const String& password);
@@ -245,7 +244,7 @@ private:
     StaticArray<StaticString<cURLLen>, cCertsPerModule> mInvalidCerts, mInvalidKeys;
 
     StaticAllocator<Max(2U * sizeof(ModuleCertificates),
-        sizeof(SelfSignedCertificate) + sizeof(CertificateChain) + sizeof(ModuleCertificates)
+        sizeof(SelfSignedCertificate) + sizeof(crypto::x509::CertificateChain) + sizeof(ModuleCertificates)
             + sizeof(crypto::x509::Certificate))>
         mAllocator;
 };
