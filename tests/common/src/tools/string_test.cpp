@@ -230,3 +230,20 @@ TEST(CommonTest, StringSearch)
     StaticString<1> smallId;
     ASSERT_EQ(str.Search<2>(regex, smallId), ErrorEnum::eNoMemory);
 }
+
+TEST(CommonTest, StringRemove)
+{
+    const auto expected = "Thank you, sir";
+
+    StaticString<100> str1 = "Thank you for removing me, sir";
+    ASSERT_TRUE(str1.Remove(str1.begin() + 9, str1.begin() + 25).IsNone());
+    ASSERT_EQ(str1, expected);
+
+    StaticString<100> str2 = "Please remove me. Thank you, sir";
+    ASSERT_TRUE(str2.Remove(str2.begin(), str2.begin() + 18).IsNone());
+    ASSERT_EQ(str2, expected);
+
+    StaticString<100> str3 = "Thank you, sir(for removing me)";
+    ASSERT_TRUE(str3.Remove(str3.begin() + 14, str3.end()).IsNone());
+    ASSERT_EQ(str3, expected);
+}
