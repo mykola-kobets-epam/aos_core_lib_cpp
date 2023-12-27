@@ -7,6 +7,7 @@
 
 #include "aos/iam/modules/pkcs11/pkcs11.hpp"
 
+#include "aos/common/cryptoutils.hpp"
 #include "aos/common/tools/fs.hpp"
 #include "aos/common/tools/os.hpp"
 #include "aos/common/uuid.hpp"
@@ -819,24 +820,11 @@ Error PKCS11Module::CreateURL(const String& label, const Array<uint8_t>& id, Str
 
 Error PKCS11Module::ParseURL(const String& url, String& label, Array<uint8_t>& id)
 {
-    auto err = url.Search<1>("object=([^;&]*)", label);
-    if (!err.IsNone()) {
-        return AOS_ERROR_WRAP(err);
-    }
+    StaticString<cFilePathLen>       library;
+    StaticString<pkcs11::cLabelLen>  token;
+    StaticString<pkcs11::cPINLength> userPIN;
 
-    StaticString<uuid::cUUIDStrLen> uuid;
-
-    err = url.Search<1>("id=([^;&]*)", uuid);
-    if (!err.IsNone()) {
-        return AOS_ERROR_WRAP(err);
-    }
-
-    Tie(id, err) = mUUIDManager->StringToUUID(uuid);
-    if (!err.IsNone()) {
-        return AOS_ERROR_WRAP(err);
-    }
-
-    return ErrorEnum::eNone;
+    return cryptoutils::ParsePKCS11URL(url, *mUUIDManager, library, token, userPIN, label, id);
 }
 
 Error PKCS11Module::GetValidInfo(pkcs11::SessionContext& session, Array<SearchObject>& certs,
