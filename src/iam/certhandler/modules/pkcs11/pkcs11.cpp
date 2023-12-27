@@ -453,7 +453,7 @@ RetWithError<pkcs11::SlotID> PKCS11Module::GetSlotID()
         return {mConfig.mSlotID.GetValue(), ErrorEnum::eNone};
     }
 
-    StaticArray<pkcs11::SlotID, cSlotListSize> slotList;
+    StaticArray<pkcs11::SlotID, pkcs11::cSlotListSize> slotList;
 
     auto err = mPKCS11->GetSlotList(false, slotList);
     if (!err.IsNone()) {

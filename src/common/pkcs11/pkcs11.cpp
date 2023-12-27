@@ -470,6 +470,10 @@ Error SessionContext::Login(UserType userType, const String& pin)
     }
 
     CK_RV rv = mFunctionList->C_Login(mHandle, userType, ConvertToPKCS11UTF8CHARPTR(pin.CStr()), pin.Size());
+    if (rv == CKR_USER_ALREADY_LOGGED_IN) {
+        return ErrorEnum::eAlreadyLoggedIn;
+    }
+
     if (rv != CKR_OK) {
         return ErrorEnum::eFailed;
     }
