@@ -1053,6 +1053,34 @@ RetWithError<bool> Utils::HasCertificate(const Array<uint8_t>& issuer, const Arr
     return {!certHandles.IsEmpty(), ErrorEnum::eNone};
 }
 
+RetWithError<SharedPtr<crypto::x509::CertificateChain>> Utils::FindCertificateChain(
+    crypto::x509::ProviderItf& cryptoProvider, const Array<uint8_t>& id, const String& label)
+{
+    StaticArray<ObjectHandle, cKeysPerToken> certHandles;
+
+    auto err = FindCertificates(id, label, certHandles);
+    if (!err.IsNone()) {
+        return {nullptr, err};
+    }
+
+    SharedPtr<crypto::x509::Certificate> certificate;
+    auto                                 chain = MakeShared<crypto::x509::CertificateChain>(&mAllocator);
+
+    Tie(certificate, err) = GetCertificate(cryptoProvider, certHandles[0]);
+    if (!err.IsNone()) {
+        return {nullptr, err};
+    }
+
+    err = FindCertificateChain(cryptoProvider, *certificate, *chain);
+    if (!err.IsNone()) {
+        return {nullptr, err};
+    }
+
+    err = chain->Insert(chain->begin(), certificate.Get(), certificate.Get() + 1);
+
+    return {chain, err};
+}
+
 Error Utils::DeleteCertificate(const Array<uint8_t>& id, const String& label)
 {
     CK_OBJECT_CLASS                              certClass = CKO_CERTIFICATE;
@@ -1084,6 +1112,114 @@ Error Utils::DeleteCertificate(const Array<uint8_t>& id, const String& label)
 Error Utils::ConvertPKCS11String(const Array<uint8_t>& src, String& dst)
 {
     return ConvertFromPKCS11String(src, dst);
+}
+
+Error Utils::FindCertificates(const Array<uint8_t>& id, const String& label, Array<ObjectHandle>& handles)
+{
+    CK_OBJECT_CLASS certClass = CKO_CERTIFICATE;
+
+    StaticArray<ObjectAttribute, cObjectAttributesCount> certTempl;
+
+    certTempl.PushBack({CKA_CLASS, ConvertToAttributeValue(certClass)});
+    certTempl.PushBack({CKA_ID, id});
+    certTempl.PushBack({CKA_LABEL, ConvertToAttributeValue(label)});
+
+    return mSession.FindObjects(certTempl, handles);
+}
+
+Error Utils::FindCertificateChain(crypto::x509::ProviderItf& cryptoProvider,
+    const crypto::x509::Certificate& certificate, crypto::x509::CertificateChain& chain)
+{
+    if (certificate.mIssuer.IsEmpty() || certificate.mIssuer == certificate.mSubject) {
+        return ErrorEnum::eNone;
+    }
+
+    CK_OBJECT_CLASS                                      certClass = CKO_CERTIFICATE;
+    StaticArray<ObjectAttribute, cObjectAttributesCount> certTempl;
+
+    certTempl.PushBack({CKA_CLASS, ConvertToAttributeValue(certClass)});
+    certTempl.PushBack({CKA_SUBJECT, certificate.mIssuer});
+
+    StaticArray<ObjectHandle, cKeysPerToken> handles;
+    SharedPtr<crypto::x509::Certificate>     foundCert;
+
+    auto err = mSession.FindObjects(certTempl, handles);
+    if (err.IsNone()) {
+        Tie(foundCert, err) = GetCertificate(cryptoProvider, handles[0]);
+    } else if (err == ErrorEnum::eNotFound) {
+        Tie(foundCert, err) = FindCertificateByKeyID(cryptoProvider, certificate.mAuthorityKeyId);
+    } else {
+        return err;
+    }
+
+    if (!err.IsNone()) {
+        return err;
+    }
+
+    for (auto cur : chain) {
+        if (cur.mSubject == certificate.mSubject) {
+            return ErrorEnum::eNone;
+        }
+    }
+
+    err = chain.PushBack(*foundCert);
+    if (!err.IsNone()) {
+        return err;
+    }
+
+    return FindCertificateChain(cryptoProvider, *foundCert, chain);
+}
+
+RetWithError<SharedPtr<crypto::x509::Certificate>> Utils::FindCertificateByKeyID(
+    crypto::x509::ProviderItf& cryptoProvider, const Array<uint8_t>& keyID)
+{
+    CK_OBJECT_CLASS                                      certClass = CKO_CERTIFICATE;
+    StaticArray<ObjectAttribute, cObjectAttributesCount> certTempl;
+
+    certTempl.PushBack({CKA_CLASS, ConvertToAttributeValue(certClass)});
+
+    StaticArray<ObjectHandle, cKeysPerToken> handles;
+
+    auto err = mSession.FindObjects(certTempl, handles);
+    if (err.IsNone()) {
+        return {nullptr, err};
+    }
+
+    for (auto handle : handles) {
+        SharedPtr<crypto::x509::Certificate> certificate;
+
+        Tie(certificate, err) = GetCertificate(cryptoProvider, handle);
+        if (!err.IsNone()) {
+            return {nullptr, err};
+        }
+
+        if (certificate->mSubjectKeyId == keyID) {
+            return {certificate, ErrorEnum::eNone};
+        }
+    }
+
+    return {nullptr, ErrorEnum::eNotFound};
+}
+
+RetWithError<SharedPtr<crypto::x509::Certificate>> Utils::GetCertificate(
+    crypto::x509::ProviderItf& cryptoProvider, ObjectHandle handle)
+{
+    auto certificate = MakeShared<crypto::x509::Certificate>(&mAllocator);
+
+    StaticArray<Array<uint8_t>, cObjectAttributesCount> attrValues;
+    StaticArray<AttributeType, cObjectAttributesCount>  attrTypes;
+
+    attrTypes.PushBack(CKA_VALUE);
+    attrValues.PushBack(certificate->mRaw);
+
+    auto err = mSession.GetAttributeValues(handle, attrTypes, attrValues);
+    if (!err.IsNone()) {
+        return {nullptr, err};
+    }
+
+    err = cryptoProvider.DERToX509Cert(certificate->mRaw, *certificate);
+
+    return {certificate, err};
 }
 
 } // namespace pkcs11
