@@ -134,6 +134,37 @@ public:
     }
 
     /**
+     * Removes range of characters from a string.
+     *
+     * @param from pointer to the first character to be removed from a string.
+     * @param to past the end pointer of the input range to be removed.
+     * @return Error.
+     */
+    Error Remove(char* from, char* to)
+    {
+        if (from < begin() || from > end()) {
+            return ErrorEnum::eInvalidArgument;
+        }
+
+        if (to < begin() || to > end()) {
+            return ErrorEnum::eInvalidArgument;
+        }
+
+        if (from > to) {
+            return ErrorEnum::eInvalidArgument;
+        }
+
+        while (to != end()) {
+            *from = *to;
+
+            from++;
+            to++;
+        }
+
+        return Resize(from - begin());
+    }
+
+    /**
      * Appends string operator.
      *
      * @param str string to append with.
