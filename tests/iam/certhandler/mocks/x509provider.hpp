@@ -21,6 +21,7 @@ public:
         (const Certificate& templ, const Certificate& parent, const PrivateKeyItf& privKey, Array<uint8_t>& pemCert),
         (override));
     MOCK_METHOD(Error, PEMToX509Certs, (const Array<uint8_t>& pemBlob, Array<Certificate>& resultCerts), (override));
+    MOCK_METHOD(RetWithError<SharedPtr<PrivateKeyItf>>, PEMToX509PrivKey, (const Array<uint8_t>& pemBlob), (override));
     MOCK_METHOD(Error, DERToX509Cert, (const Array<uint8_t>& derBlob, Certificate& resultCerts), (override));
     MOCK_METHOD(Error, CreateCSR, (const CSR& templ, const PrivateKeyItf& privKey, Array<uint8_t>& pemCSR), (override));
     MOCK_METHOD(Error, CreateDN, (const String& commonName, Array<uint8_t>& result), (override));
