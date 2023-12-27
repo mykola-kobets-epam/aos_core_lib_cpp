@@ -13,6 +13,7 @@
 #include "aos/common/tools/log.hpp"
 #include "aos/common/tools/memory.hpp"
 #include "aos/common/tools/utils.hpp"
+#include "aos/common/uuid.hpp"
 
 namespace aos {
 namespace pkcs11 {
@@ -629,6 +630,17 @@ public:
     RetWithError<bool> HasCertificate(const Array<uint8_t>& issuer, const Array<uint8_t>& serialNumber);
 
     /**
+     * Finds certificate chain with a given attributes.
+     *
+     * @param cryptoProvider certificate provider interface.
+     * @param id certificate identifier.
+     * @param label certificate label.
+     * @return RetWithError<SharedPtr<CertificateChain>>.
+     */
+    RetWithError<SharedPtr<crypto::x509::CertificateChain>> FindCertificateChain(
+        crypto::x509::ProviderItf& cryptoProvider, const Array<uint8_t>& id, const String& label);
+
+    /**
      * Deletes a previously imported certificate.
      *
      * @param id certificate id.
@@ -648,6 +660,15 @@ public:
 
 private:
     RetWithError<PrivateKey> exportPrivateKey(ObjectHandle privKey, ObjectHandle pubKey, CK_KEY_TYPE keyType);
+
+    Error FindCertificates(const Array<uint8_t>& id, const String& label, Array<ObjectHandle>& handles);
+    Error FindCertificateChain(crypto::x509::ProviderItf& cryptoProvider, const crypto::x509::Certificate& certificate,
+        crypto::x509::CertificateChain& chain);
+    RetWithError<SharedPtr<crypto::x509::Certificate>> FindCertificateByKeyID(
+        crypto::x509::ProviderItf& cryptoProvider, const Array<uint8_t>& keyID);
+
+    RetWithError<SharedPtr<crypto::x509::Certificate>> GetCertificate(
+        crypto::x509::ProviderItf& cryptoProvider, ObjectHandle handle);
 
     SessionContext& mSession;
     Allocator&      mAllocator;
