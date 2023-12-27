@@ -15,11 +15,4 @@
 #define AOS_CONFIG_CERTHANDLER_TEE_LOGIN_TYPE_NAME_LEN 8
 #endif
 
-/**
- * Maximum size of slot list
- */
-#ifndef AOS_CONFIG_CERTHANDLER_SLOT_LIST_SIZE
-#define AOS_CONFIG_CERTHANDLER_SLOT_LIST_SIZE 5
-#endif
-
 #endif

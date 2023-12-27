@@ -48,6 +48,7 @@ public:
         eAlreadyExist,
         eWrongState,
         eInvalidChecksum,
+        eAlreadyLoggedIn,
         eNumErrors
     };
 
@@ -250,6 +251,7 @@ private:
             "already exist",
             "wrong state",
             "invalid checksum",
+            "already logged in",
         };
 
         return Pair<const char* const*, size_t>(sErrorTypeStrings, ArraySize(sErrorTypeStrings));

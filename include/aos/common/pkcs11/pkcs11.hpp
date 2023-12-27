@@ -69,6 +69,11 @@ constexpr auto cObjectAttributesCount = AOS_CONFIG_PKCS11_OBJECT_ATTRIBUTES_COUN
 constexpr auto cKeysPerToken = AOS_CONFIG_PKCS11_TOKEN_KEYS_COUNT;
 
 /**
+ * Maximum number of slots per PKCS11 library.
+ */
+constexpr auto cSlotListSize = AOS_CONFIG_PKCS11_SLOT_LIST_SIZE;
+
+/**
  * The types of Cryptoki users.
  */
 using UserType = CK_USER_TYPE;

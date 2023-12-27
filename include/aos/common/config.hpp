@@ -332,6 +332,13 @@
 #endif
 
 /**
+ * Maximum size of slot list.
+ */
+#ifndef AOS_CONFIG_PKCS11_SLOT_LIST_SIZE
+#define AOS_CONFIG_PKCS11_SLOT_LIST_SIZE 5
+#endif
+
+/**
  *  UUID length
  */
 #ifndef AOS_CONFIG_UUID_LEN
@@ -350,6 +357,14 @@
  */
 #ifndef AOS_CONFIG_CRYPTO_CERTS_CHAIN_SIZE
 #define AOS_CONFIG_CRYPTO_CERTS_CHAIN_SIZE 3
+#endif
+
+/**
+ * Capacity (in bytes) of cryptoutils::CertLoader.
+ */
+#ifndef AOS_CONFIG_CRYPTOUTILS_CERTLOADER_CAPACITY
+#define AOS_CONFIG_CRYPTOUTILS_CERTLOADER_CAPACITY                                                                     \
+    AOS_CONFIG_CRYPTO_CERTS_CHAIN_SIZE* AOS_CONFIG_CRYPTO_DER_CERT_SIZE * 5
 #endif
 
 #endif
