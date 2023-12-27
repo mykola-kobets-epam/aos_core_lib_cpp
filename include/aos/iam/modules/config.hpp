@@ -37,13 +37,6 @@
 #endif
 
 /**
- * Max expected number of certificates in a chain stored in PEM file.
- */
-#ifndef AOS_CONFIG_CERTHANDLER_CERTS_CHAIN_SIZE
-#define AOS_CONFIG_CERTHANDLER_CERTS_CHAIN_SIZE 3
-#endif
-
-/**
  * Maximum length of distinguished name string representation.
  */
 #ifndef AOS_CONFIG_CERTHANDLER_DN_STRING_LEN

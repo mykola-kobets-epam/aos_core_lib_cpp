@@ -345,4 +345,11 @@
 #define AOS_CONFIG_UUID_STR_LEN AOS_CONFIG_UUID_LEN * 2 + 4 + 1 // 32 hex digits + 4 '-' symbols + '\0'
 #endif
 
+/**
+ * Max expected number of certificates in a chain stored in PEM file.
+ */
+#ifndef AOS_CONFIG_CRYPTO_CERTS_CHAIN_SIZE
+#define AOS_CONFIG_CRYPTO_CERTS_CHAIN_SIZE 3
+#endif
+
 #endif

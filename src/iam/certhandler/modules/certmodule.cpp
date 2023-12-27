@@ -150,7 +150,7 @@ Error CertModule::CreateCSR(const Array<uint8_t>& subject, const crypto::Private
 
 Error CertModule::ApplyCert(const Array<uint8_t>& pemCert, CertInfo& info)
 {
-    auto certificates = MakeUnique<CertificateChain>(&mAllocator);
+    auto certificates = MakeUnique<crypto::x509::CertificateChain>(&mAllocator);
 
     auto err = mX509Provider->PEMToX509Certs(pemCert, *certificates);
     if (!err.IsNone()) {
