@@ -9,6 +9,7 @@
 #include <gmock/gmock.h>
 
 #include "aos/common/pkcs11/pkcs11.hpp"
+#include "aos/common/pkcs11/privatekey.hpp"
 #include "aos/common/tools/allocator.hpp"
 #include "aos/common/uuid.hpp"
 #include "x509provider.hpp"
@@ -57,7 +58,7 @@ protected:
 
     crypto::x509::MockProvider mX509Provider;
 
-    StaticAllocator<Max(2 * sizeof(crypto::RSAPrivateKey), sizeof(crypto::ECDSAPublicKey))> mAllocator;
+    StaticAllocator<Max(2 * sizeof(pkcs11::PKCS11RSAPrivateKey), sizeof(pkcs11::PKCS11ECDSAPrivateKey))> mAllocator;
 };
 
 void PKCS11Test::InitTestToken()

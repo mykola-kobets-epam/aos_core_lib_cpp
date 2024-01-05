@@ -8,13 +8,12 @@
 #ifndef AOS_IAM_MODULES_PKCS11_HPP_
 #define AOS_IAM_MODULES_PKCS11_HPP_
 
-#include "aos/iam/modules/hsm.hpp"
-
-#include "aos/iam/modules/pkcs11/config.hpp"
-
 #include "aos/common/pkcs11/pkcs11.hpp"
+#include "aos/common/pkcs11/privatekey.hpp"
 #include "aos/common/tools/optional.hpp"
 #include "aos/common/uuid.hpp"
+#include "aos/iam/modules/hsm.hpp"
+#include "aos/iam/modules/pkcs11/config.hpp"
 
 namespace aos {
 namespace iam {
@@ -207,7 +206,7 @@ private:
     StaticString<pkcs11::cPINLength> mUserPIN;
 
     StaticAllocator<sizeof(crypto::x509::Certificate) + sizeof(DERCert)> mTmpObjAllocator;
-    StaticAllocator<Max(sizeof(crypto::RSAPrivateKey), sizeof(crypto::ECDSAPrivateKey)) * cCertsPerModule>
+    StaticAllocator<Max(sizeof(pkcs11::PKCS11RSAPrivateKey), sizeof(pkcs11::PKCS11ECDSAPrivateKey)) * cCertsPerModule>
         mLocalCacheAllocator;
 
     StaticArray<PendingKey, cCertsPerModule> mPendingKeys;
