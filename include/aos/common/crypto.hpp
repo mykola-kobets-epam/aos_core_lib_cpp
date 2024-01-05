@@ -104,6 +104,16 @@ constexpr auto cECDSAPointDERSize = AOS_CONFIG_CRYPTO_ECDSA_POINT_DER_SIZE;
 constexpr auto cCertChainSize = AOS_CONFIG_CRYPTO_CERTS_CHAIN_SIZE;
 
 /**
+ * Maximum size of SHA2 digest.
+ */
+constexpr auto cSHA2DigestSize = AOS_CONFIG_CRYPTO_SHA2_DIGEST_SIZE;
+
+/**
+ * Maximum signature size.
+ */
+constexpr auto cSignatureSize = AOS_CONFIG_CRYPTO_SIGNATURE_SIZE;
+
+/**
  * Supported key types.
  */
 enum class KeyType { eRSA, eECDSA };
@@ -135,6 +145,33 @@ public:
 };
 
 /**
+ * Supported hash functions.
+ */
+class HashType {
+public:
+    enum class Enum { eSHA1, eSHA224, eSHA256, eSHA384, eSHA512 };
+
+    static const Array<const char* const> GetStrings()
+    {
+        static const char* const sContentTypeStrings[] = {"SHA1", "SHA224", "SHA256", "SHA384", "SHA512"};
+        return Array<const char* const>(sContentTypeStrings, ArraySize(sContentTypeStrings));
+    };
+};
+
+using HashEnum = HashType::Enum;
+using Hash     = EnumStringer<HashType>;
+
+/**
+ * Options being used while signing.
+ */
+struct SignOptions {
+    /**
+     * Hash function to be used when signing.
+     */
+    Hash mHash;
+};
+
+/**
  * Private key interface.
  */
 class PrivateKeyItf {
@@ -145,6 +182,25 @@ public:
      * @return const PublicKeyItf&.
      */
     virtual const PublicKeyItf& GetPublic() const = 0;
+
+    /**
+     * Calculates a signature of a given digest.
+     *
+     * @param digest input hash digest.
+     * @param options signing options.
+     * @param[out] signature result signature.
+     * @return Error.
+     */
+    virtual Error Sign(const Array<uint8_t>& digest, const SignOptions& options, Array<uint8_t>& signature) = 0;
+
+    /**
+     * Decrypts a cipher message.
+     *
+     * @param cipher encrypted message.
+     * @param[out] result decoded message.
+     * @return Error.
+     */
+    virtual Error Decrypt(const Array<uint8_t>& cipher, Array<uint8_t>& result) = 0;
 
     /**
      * Destroys object instance.
@@ -220,6 +276,38 @@ public:
      */
     const PublicKeyItf& GetPublic() const override { return mPubKey; }
 
+    /**
+     * Calculates a signature of a given digest.
+     *
+     * @param digest input hash digest.
+     * @param options signing options.
+     * @param[out] signature result signature.
+     * @return Error.
+     */
+    Error Sign(const Array<uint8_t>& digest, const SignOptions& options, Array<uint8_t>& signature) override
+    {
+        (void)digest;
+        (void)options;
+        (void)signature;
+
+        return ErrorEnum::eFailed;
+    }
+
+    /**
+     * Decrypts a cipher message.
+     *
+     * @param cipher encrypted message.
+     * @param[out] result decoded message.
+     * @return Error.
+     */
+    Error Decrypt(const Array<uint8_t>& cipher, Array<uint8_t>& result) override
+    {
+        (void)cipher;
+        (void)result;
+
+        return ErrorEnum::eFailed;
+    }
+
 private:
     RSAPublicKey mPubKey;
 };
@@ -292,6 +380,38 @@ public:
      */
     const PublicKeyItf& GetPublic() const override { return mPubKey; }
 
+    /**
+     * Calculates a signature of a given digest.
+     *
+     * @param digest input hash digest.
+     * @param options signing options.
+     * @param[out] signature result signature.
+     * @return Error.
+     */
+    Error Sign(const Array<uint8_t>& digest, const SignOptions& options, Array<uint8_t>& signature) override
+    {
+        (void)digest;
+        (void)options;
+        (void)signature;
+
+        return ErrorEnum::eFailed;
+    }
+
+    /**
+     * Decrypts a cipher message.
+     *
+     * @param cipher encrypted message.
+     * @param[out] result decoded message.
+     * @return Error.
+     */
+    Error Decrypt(const Array<uint8_t>& cipher, Array<uint8_t>& result) override
+    {
+        (void)cipher;
+        (void)result;
+
+        return ErrorEnum::eFailed;
+    }
+
 private:
     ECDSAPublicKey mPubKey;
 };
@@ -354,6 +474,21 @@ inline Error EncodeBigInt(const Array<uint8_t>& number, Array<uint8_t>& asn1Valu
     asn1Value.Clear();
 
     return asn1Value.Insert(asn1Value.end(), number.begin(), number.end());
+}
+
+/**
+ * Creates ASN1 sequence from already encoded DER items.
+ *
+ * @param items DER encoded items.
+ * @param[out] asn1Value result ASN1 value.
+ * @result Error.
+ */
+inline Error EncodeDERSequence(const Array<Array<uint8_t>>& items, Array<uint8_t>& asn1Value)
+{
+    (void)items;
+    (void)asn1Value;
+
+    return ErrorEnum::eNone;
 }
 
 } // namespace asn1

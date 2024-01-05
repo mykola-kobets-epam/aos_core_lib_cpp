@@ -10,6 +10,7 @@
 #include <time.h>
 
 #include "aos/common/pkcs11/pkcs11.hpp"
+#include "aos/common/pkcs11/privatekey.hpp"
 
 #include "log.hpp"
 
@@ -470,10 +471,6 @@ Error SessionContext::Login(UserType userType, const String& pin)
     }
 
     CK_RV rv = mFunctionList->C_Login(mHandle, userType, ConvertToPKCS11UTF8CHARPTR(pin.CStr()), pin.Size());
-    if (rv == CKR_USER_ALREADY_LOGGED_IN) {
-        return ErrorEnum::eAlreadyLoggedIn;
-    }
-
     if (rv != CKR_OK) {
         return ErrorEnum::eFailed;
     }
@@ -599,6 +596,52 @@ Error SessionContext::DestroyObject(ObjectHandle object)
     return ErrorEnum::eNone;
 }
 
+Error SessionContext::Sign(
+    CK_MECHANISM_PTR mechanism, ObjectHandle privKey, const Array<uint8_t>& data, Array<uint8_t>& signature)
+{
+    auto err = SignInit(mechanism, privKey);
+    if (!err.IsNone()) {
+        return err;
+    }
+
+    CK_ULONG signSize = 0;
+
+    err = Sign(data, nullptr, &signSize);
+    if (!err.IsNone()) {
+        return err;
+    }
+
+    err = signature.Resize(signSize);
+    if (!err.IsNone()) {
+        return err;
+    }
+
+    return Sign(data, signature.Get(), &signSize);
+}
+
+Error SessionContext::Decrypt(
+    CK_MECHANISM_PTR mechanism, ObjectHandle privKey, const Array<uint8_t>& data, Array<uint8_t>& result)
+{
+    auto err = DecryptInit(mechanism, privKey);
+    if (!err.IsNone()) {
+        return err;
+    }
+
+    CK_ULONG resultSize = 0;
+
+    err = Decrypt(data, nullptr, &resultSize);
+    if (!err.IsNone()) {
+        return err;
+    }
+
+    err = result.Resize(resultSize);
+    if (!err.IsNone()) {
+        return err;
+    }
+
+    return Decrypt(data, result.Get(), &resultSize);
+}
+
 SessionHandle SessionContext::GetHandle() const
 {
     return mHandle;
@@ -621,6 +664,70 @@ SessionContext::~SessionContext()
     if (rv != CKR_OK) {
         LOG_ERR() << "C_CloseSession failed. error = " << rv;
     }
+}
+
+Error SessionContext::SignInit(CK_MECHANISM_PTR mechanism, ObjectHandle privKey)
+{
+    if (!mFunctionList || !mFunctionList->C_SignInit) {
+        LOG_ERR() << "C_SignInit failed. Library is not initialized.";
+
+        return ErrorEnum::eFailed;
+    }
+
+    CK_RV rv = mFunctionList->C_SignInit(mHandle, mechanism, privKey);
+    if (rv != CKR_OK) {
+        return ErrorEnum::eFailed;
+    }
+
+    return ErrorEnum::eNone;
+}
+
+Error SessionContext::Sign(const Array<uint8_t>& data, CK_BYTE_PTR signature, CK_ULONG_PTR signSize)
+{
+    if (!mFunctionList || !mFunctionList->C_Sign) {
+        LOG_ERR() << "C_Sign failed. Library is not initialized.";
+
+        return ErrorEnum::eFailed;
+    }
+
+    CK_RV rv = mFunctionList->C_Sign(mHandle, const_cast<uint8_t*>(data.Get()), data.Size(), signature, signSize);
+    if (rv != CKR_OK) {
+        return ErrorEnum::eFailed;
+    }
+
+    return ErrorEnum::eNone;
+}
+
+Error SessionContext::DecryptInit(CK_MECHANISM_PTR mechanism, ObjectHandle privKey)
+{
+    if (!mFunctionList || !mFunctionList->C_DecryptInit) {
+        LOG_ERR() << "C_DecryptInit failed. Library is not initialized.";
+
+        return ErrorEnum::eFailed;
+    }
+
+    CK_RV rv = mFunctionList->C_DecryptInit(mHandle, mechanism, privKey);
+    if (rv != CKR_OK) {
+        return ErrorEnum::eFailed;
+    }
+
+    return ErrorEnum::eNone;
+}
+
+Error SessionContext::Decrypt(const Array<uint8_t>& data, CK_BYTE_PTR result, CK_ULONG_PTR resultSize)
+{
+    if (!mFunctionList || !mFunctionList->C_Decrypt) {
+        LOG_ERR() << "C_Decrypt failed. Library is not initialized.";
+
+        return ErrorEnum::eFailed;
+    }
+
+    CK_RV rv = mFunctionList->C_Decrypt(mHandle, const_cast<uint8_t*>(data.Get()), data.Size(), result, resultSize);
+    if (rv != CKR_OK) {
+        return ErrorEnum::eFailed;
+    }
+
+    return ErrorEnum::eNone;
 }
 
 Error SessionContext::FindObjectsInit(const Array<ObjectAttribute>& templ)
@@ -1083,8 +1190,8 @@ RetWithError<PrivateKey> Utils::ExportPrivateKey(
             return {{}, err};
         }
 
-        auto cryptoKey
-            = MakeShared<crypto::RSAPrivateKey>(&mAllocator, crypto::RSAPublicKey(attrValues[0], attrValues[1]));
+        auto cryptoKey = MakeShared<PKCS11RSAPrivateKey>(
+            &mAllocator, mSession, privKeyHandle, crypto::RSAPublicKey(attrValues[0], attrValues[1]));
         PrivateKey pkcsKey = {privKeyHandle, pubKeyHandle, cryptoKey};
 
         return {pkcsKey, ErrorEnum::eNone};
@@ -1108,8 +1215,8 @@ RetWithError<PrivateKey> Utils::ExportPrivateKey(
             return {{}, err};
         }
 
-        auto cryptoKey
-            = MakeShared<crypto::ECDSAPrivateKey>(&mAllocator, crypto::ECDSAPublicKey(attrValues[0], attrValues[1]));
+        auto cryptoKey = MakeShared<PKCS11ECDSAPrivateKey>(
+            &mAllocator, mSession, privKeyHandle, crypto::ECDSAPublicKey(attrValues[0], attrValues[1]));
         PrivateKey pkcsKey = {privKeyHandle, pubKeyHandle, cryptoKey};
 
         return {pkcsKey, ErrorEnum::eNone};

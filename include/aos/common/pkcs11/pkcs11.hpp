@@ -401,6 +401,28 @@ public:
     Error DestroyObject(ObjectHandle object);
 
     /**
+     * Signs data.
+     *
+     * @param mechanism mechanism used to sign.
+     * @param privKey the handle of the private key.
+     * @param data data to be signed(may require hashing before being signed).
+     * @param signature result signature.
+     * @return Error.
+     */
+    Error Sign(CK_MECHANISM_PTR mechanism, ObjectHandle privKey, const Array<uint8_t>& data, Array<uint8_t>& signature);
+
+    /**
+     * Decrypts input data.
+     *
+     * @param mechanism mechanism used to sign.
+     * @param privKey the handle of the private key.
+     * @param data encrypted data.
+     * @param result decrypted data.
+     * @return Error.
+     */
+    Error Decrypt(CK_MECHANISM_PTR mechanism, ObjectHandle privKey, const Array<uint8_t>& data, Array<uint8_t>& result);
+
+    /**
      * Returns session handle.
      *
      * @return session handle.
@@ -420,6 +442,12 @@ public:
     ~SessionContext();
 
 private:
+    Error SignInit(CK_MECHANISM_PTR mechanism, ObjectHandle privKey);
+    Error Sign(const Array<uint8_t>& data, CK_BYTE_PTR signature, CK_ULONG_PTR signSize);
+
+    Error DecryptInit(CK_MECHANISM_PTR mechanism, ObjectHandle privKey);
+    Error Decrypt(const Array<uint8_t>& data, CK_BYTE_PTR result, CK_ULONG_PTR resultSize);
+
     Error FindObjectsInit(const Array<ObjectAttribute>& templ);
     Error FindObjects(Array<ObjectHandle>& objects);
     Error FindObjectsFinal();
@@ -554,7 +582,7 @@ public:
     ObjectHandle GetPubHandle() const { return mPubHandle; }
 
     /**
-     * PKCS11 priv key handle.
+     * Returns pointer to the crypto private key interface.
      */
     SharedPtr<crypto::PrivateKeyItf> GetPrivKey() { return mPrivKey; }
 

@@ -262,6 +262,20 @@
 #endif
 
 /**
+ * Maximum size of SHA2 digest.
+ */
+#ifndef AOS_CONFIG_CRYPTO_SHA2_DIGEST_SIZE
+#define AOS_CONFIG_CRYPTO_SHA2_DIGEST_SIZE 512
+#endif
+
+/**
+ * Maximum size of signature.
+ */
+#ifndef AOS_CONFIG_CRYPTO_SIGNATURE_SIZE
+#define AOS_CONFIG_CRYPTO_SIGNATURE_SIZE 512
+#endif
+
+/**
  * Maximum length of PKCS11 slot description.
  */
 #ifndef AOS_CONFIG_PKCS11_SLOT_DESCRIPTION_LEN
