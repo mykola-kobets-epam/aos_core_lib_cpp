@@ -184,12 +184,12 @@ Error CertModule::CreateSelfSignedCert(const String& password)
         return key.mError;
     }
 
-    const uint64_t serial = time::Time::Now().UnixNano();
+    const uint64_t serial = Time::Now().UnixNano();
     auto           templ  = MakeUnique<crypto::x509::Certificate>(&mAllocator);
 
     templ->mSerial    = Array<uint8_t>(reinterpret_cast<const uint8_t*>(&serial), sizeof(serial));
-    templ->mNotBefore = time::Time::Now();
-    templ->mNotAfter  = time::Time::Now().Add(cValidSelfSignedCertPeriod);
+    templ->mNotBefore = Time::Now();
+    templ->mNotAfter  = Time::Now().Add(cValidSelfSignedCertPeriod);
 
     auto err = mX509Provider->CreateDN("Aos Core", templ->mSubject);
     if (!err.IsNone()) {
@@ -264,8 +264,8 @@ Error CertModule::TrimCerts(const String& password)
     }
 
     while (certsInStorage->Size() > mModuleConfig.mMaxCertificates) {
-        time::Time minTime;
-        CertInfo*  info = nullptr;
+        Time      minTime;
+        CertInfo* info = nullptr;
 
         for (auto& cert : *certsInStorage) {
             if (minTime.IsZero() || cert.mNotAfter < minTime) {

@@ -364,7 +364,7 @@ struct Certificate {
     /**
      * Certificate validity period.
      */
-    time::Time mNotBefore, mNotAfter;
+    Time mNotBefore, mNotAfter;
     /**
      * Public key.
      */

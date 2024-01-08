@@ -297,8 +297,8 @@ TEST_F(CertHandlerTest, ApplyCert)
     root.mSubject = root.mIssuer = StringToDN("ca.epam.com");
     root.mAuthorityKeyId = root.mSubjectKeyId = StringToDN("1.1.1.1");
     root.mSerial                              = StringToDN("1.1.1.1");
-    root.mNotBefore                           = time::Time::Now();
-    root.mNotAfter                            = root.mNotBefore.Add(time::Years(100));
+    root.mNotBefore                           = Time::Now();
+    root.mNotAfter                            = root.mNotBefore.Add(Years(100));
 
     crypto::x509::Certificate dev;
 
@@ -307,8 +307,8 @@ TEST_F(CertHandlerTest, ApplyCert)
     dev.mAuthorityKeyId = StringToDN("1.1.1.1");
     dev.mSubjectKeyId   = StringToDN("1.1.1.2");
     dev.mSerial         = StringToDN("1.1.1.2");
-    dev.mNotBefore      = time::Time::Now();
-    dev.mNotAfter       = dev.mNotBefore.Add(time::Years(100));
+    dev.mNotBefore      = Time::Now();
+    dev.mNotAfter       = dev.mNotBefore.Add(Years(100));
 
     StaticArray<crypto::x509::Certificate, 2> certChain;
 
@@ -319,7 +319,7 @@ TEST_F(CertHandlerTest, ApplyCert)
 
     devCertInfo.mCertURL  = "file://local-storage/certs/dev.pem";
     devCertInfo.mKeyURL   = "file://local-storage/keys/dev.priv";
-    devCertInfo.mNotAfter = time::Time::Now().Add(time::Years(100));
+    devCertInfo.mNotAfter = Time::Now().Add(Years(100));
     devCertInfo.mIssuer   = StringToDN("ca.epam.com");
     devCertInfo.mSerial   = "1.1.1.2";
 
@@ -348,8 +348,8 @@ TEST_F(CertHandlerTest, CreateSelfSignedCert)
     cert.mSubject = cert.mIssuer = StringToDN("Aos Core");
     cert.mAuthorityKeyId = cert.mSubjectKeyId = StringToDN("1.1.1.1");
     cert.mSerial                              = StringToDN("1.1.1.1");
-    cert.mNotBefore                           = time::Time::Now();
-    cert.mNotAfter                            = cert.mNotBefore.Add(time::Years(100));
+    cert.mNotBefore                           = Time::Now();
+    cert.mNotAfter                            = cert.mNotBefore.Add(Years(100));
 
     CertInfo devCertInfo;
 
@@ -406,11 +406,11 @@ TEST_F(CertHandlerTest, GetCertificateEmptySerial)
     CertInfo cert3;
 
     cert1.mSerial   = "1.1.1.1";
-    cert1.mNotAfter = time::Time::Now().Add(time::Years(1));
+    cert1.mNotAfter = Time::Now().Add(Years(1));
     cert2.mSerial   = "1.1.1.2";
-    cert2.mNotAfter = time::Time::Now().Add(time::Years(2));
+    cert2.mNotAfter = Time::Now().Add(Years(2));
     cert3.mSerial   = "1.1.1.3";
-    cert3.mNotAfter = time::Time::Now().Add(time::Years(3));
+    cert3.mNotAfter = Time::Now().Add(Years(3));
 
     StaticArray<CertInfo, cCertsPerModule> certsInfo;
 
@@ -508,7 +508,7 @@ TEST_F(CertHandlerTest, SyncValidCerts)
 
 TEST_F(CertHandlerTest, TrimCerts)
 {
-    auto now = time::Time::Now();
+    auto now = Time::Now();
 
     CertModule pkcs11Module = {cPKCS11Type, cDefaultConfig};
 
@@ -516,10 +516,10 @@ TEST_F(CertHandlerTest, TrimCerts)
     CertInfo cert2;
 
     cert1.mCertURL  = "file://local-storage/certs/cert1.pem";
-    cert1.mNotAfter = now.Add(time::Years(3));
+    cert1.mNotAfter = now.Add(Years(3));
     cert2.mCertURL  = "file://local-storage/certs/cert2.pem";
     cert2.mKeyURL   = "file://local-storage/certs/key2.pem";
-    cert2.mNotAfter = now.Add(time::Years(1));
+    cert2.mNotAfter = now.Add(Years(1));
 
     crypto::x509::Certificate root;
 
@@ -527,7 +527,7 @@ TEST_F(CertHandlerTest, TrimCerts)
     root.mAuthorityKeyId = root.mSubjectKeyId = StringToDN("1.1.1.1");
     root.mSerial                              = StringToDN("1.1.1.1");
     root.mNotBefore                           = now;
-    root.mNotAfter                            = now.Add(time::Years(3));
+    root.mNotAfter                            = now.Add(Years(3));
 
     StaticArray<CertInfo, cCertsPerModule> initCerts;
     StaticArray<CertInfo, cCertsPerModule> appliedCerts;

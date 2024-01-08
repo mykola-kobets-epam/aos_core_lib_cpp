@@ -15,7 +15,6 @@
 #include <time.h>
 
 namespace aos {
-namespace time {
 
 /**
  * Base type for a time duration in nanoseconds. Can also be negative to set a point back in time.
@@ -177,7 +176,6 @@ private:
     timespec mTime;
 };
 
-} // namespace time
 } // namespace aos
 
 #endif
