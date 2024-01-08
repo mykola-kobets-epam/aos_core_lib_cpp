@@ -12,7 +12,6 @@
 
 using namespace testing;
 using namespace aos;
-using namespace aos::time;
 
 class TimeTest : public Test {
 private:

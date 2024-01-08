@@ -67,7 +67,7 @@ struct CertInfo {
     /**
      * Certificate expiration time.
      */
-    time::Time mNotAfter;
+    Time mNotAfter;
     /**
      * Checks whether certificate info is equal the the current one.
      *
