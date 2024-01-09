@@ -107,12 +107,17 @@ RetWithError<SharedPtr<crypto::PrivateKeyItf>> CertModule::CreateKey(const Strin
     return mHSM->CreateKey(password, mModuleConfig.mKeyGenAlgorithm);
 }
 
-Error CertModule::CreateCSR(const Array<uint8_t>& subject, const crypto::PrivateKeyItf& privKey, Array<uint8_t>& pemCSR)
+Error CertModule::CreateCSR(
+    const String& subjectCommonName, const crypto::PrivateKeyItf& privKey, Array<uint8_t>& pemCSR)
 {
     crypto::x509::CSR templ;
 
-    templ.mSubject  = subject;
     templ.mDNSNames = mModuleConfig.mAlternativeNames;
+
+    auto err = mX509Provider->CreateDN(subjectCommonName, templ.mSubject);
+    if (!err.IsNone()) {
+        return err;
+    }
 
     StaticArray<crypto::asn1::ObjectIdentifier, crypto::cCertExtraExtCount> oids;
 
