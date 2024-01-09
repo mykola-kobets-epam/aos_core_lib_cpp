@@ -74,11 +74,11 @@ Error CertHandler::Clear(const String& certType)
 }
 
 Error CertHandler::CreateKey(
-    const String& certType, const Array<uint8_t>& subject, const String& password, Array<uint8_t>& pemCSR)
+    const String& certType, const String& subjectCommonName, const String& password, Array<uint8_t>& pemCSR)
 {
     LockGuard lock(mMutex);
 
-    LOG_DBG() << "Create key: type = " << certType << ", subject = " << subject;
+    LOG_DBG() << "Create key: type = " << certType << ", subject = " << subjectCommonName;
 
     auto* module = FindModule(certType);
     if (module == nullptr) {
@@ -90,7 +90,7 @@ Error CertHandler::CreateKey(
         return key.mError;
     }
 
-    return module->CreateCSR(subject, *key.mValue, pemCSR);
+    return module->CreateCSR(subjectCommonName, *key.mValue, pemCSR);
 }
 
 Error CertHandler::ApplyCertificate(const String& certType, const Array<uint8_t>& cert, CertInfo& info)

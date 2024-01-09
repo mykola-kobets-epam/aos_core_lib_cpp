@@ -191,12 +191,12 @@ public:
     /**
      * Creates certificate request.
      *
-     * @param subject certificate subject.
+     * @param subjectCommonName common name of the subject.
      * @param privKey private key.
      * @param[out] pemCSR result csr in PEM.
      * @return Error.
      */
-    Error CreateCSR(const Array<uint8_t>& subject, const crypto::PrivateKeyItf& privKey, Array<uint8_t>& pemCSR);
+    Error CreateCSR(const String& subjectCommonName, const crypto::PrivateKeyItf& privKey, Array<uint8_t>& pemCSR);
 
     /**
      * Applies certificate to a module.

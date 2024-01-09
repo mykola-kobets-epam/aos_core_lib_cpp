@@ -68,13 +68,13 @@ public:
      * Creates key pair.
      *
      * @param certType certificate type.
-     * @param subject subject of CSR.
+     * @param subjectCommonName common name of the subject.
      * @param password owner password.
      * @param[out] pemCSR certificate signing request in PEM.
      * @returns Error.
      */
     Error CreateKey(
-        const String& certType, const Array<uint8_t>& subject, const String& password, Array<uint8_t>& pemCSR);
+        const String& certType, const String& subjectCommonName, const String& password, Array<uint8_t>& pemCSR);
 
     /**
      * Applies certificate.

@@ -33,7 +33,7 @@ protected:
 
     static const String         cPassword;
     static const Array<uint8_t> cIssuer;
-    static const Array<uint8_t> cSubject;
+    static const String         cSubject;
 
     void SetUp() override
     {
@@ -101,7 +101,7 @@ const String CertHandlerTest::cPassword = "1234";
 
 const Array<uint8_t> CertHandlerTest::cIssuer
     = StringToDN("C = UA, OU = My Digest Company, CN = Developer Relations Cert");
-const Array<uint8_t> CertHandlerTest::cSubject = StringToDN("UID = XMM9NE5AEO, OU = Worker, C = UA");
+const String CertHandlerTest::cSubject = "Aos core";
 
 /***********************************************************************************************************************
  * Tests
@@ -251,6 +251,12 @@ TEST_F(CertHandlerTest, CreateKeyKeyGenError)
 TEST_F(CertHandlerTest, CreateCSR)
 {
     EXPECT_CALL(mStorage, GetCertsInfo(_, _)).WillOnce(Return(ErrorEnum::eNone));
+
+    EXPECT_CALL(mX509Provider, CreateDN(_, _))
+        .WillRepeatedly(Invoke([](const String& commonName, Array<uint8_t>& result) {
+            result = ::StringToDN(commonName.CStr());
+            return ErrorEnum::eNone;
+        }));
 
     ExtendedKeyUsage keyUsages[]               = {ExtendedKeyUsageEnum::eClientAuth, ExtendedKeyUsageEnum::eServerAuth};
     StaticString<crypto::cDNSNameLen> altDNS[] = {"epam1.com", "epam2.com"};
