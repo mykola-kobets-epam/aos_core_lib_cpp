@@ -694,64 +694,6 @@ Error SessionContext::FindObjectsFinal()
     return ErrorEnum::eNone;
 }
 
-RetWithError<PrivateKey> Utils::exportPrivateKey(
-    ObjectHandle privKeyHandle, ObjectHandle pubKeyHandle, CK_KEY_TYPE keyType)
-{
-    switch (keyType) {
-    case CKK_RSA: {
-        StaticArray<Array<uint8_t>, cObjectAttributesCount> attrValues;
-        StaticArray<AttributeType, cObjectAttributesCount>  attrTypes;
-
-        attrTypes.PushBack(CKA_MODULUS);
-        attrTypes.PushBack(CKA_PUBLIC_EXPONENT);
-
-        StaticArray<uint8_t, crypto::cRSAModulusSize>     n;
-        StaticArray<uint8_t, crypto::cRSAPubExponentSize> e;
-
-        attrValues.PushBack(n);
-        attrValues.PushBack(e);
-
-        auto err = mSession.GetAttributeValues(pubKeyHandle, attrTypes, attrValues);
-        if (!err.IsNone()) {
-            return {{}, err};
-        }
-
-        auto cryptoKey
-            = MakeShared<crypto::RSAPrivateKey>(&mAllocator, crypto::RSAPublicKey(attrValues[0], attrValues[1]));
-        PrivateKey pkcsKey = {privKeyHandle, pubKeyHandle, cryptoKey};
-
-        return {pkcsKey, ErrorEnum::eNone};
-    }
-
-    case CKK_ECDSA: {
-        StaticArray<Array<uint8_t>, cObjectAttributesCount> attrValues;
-        StaticArray<AttributeType, cObjectAttributesCount>  attrTypes;
-
-        attrTypes.PushBack(CKA_ECDSA_PARAMS);
-        attrTypes.PushBack(CKA_EC_POINT);
-
-        StaticArray<uint8_t, crypto::cECDSAParamsOIDSize> params;
-        StaticArray<uint8_t, crypto::cECDSAPointDERSize>  point;
-
-        attrValues.PushBack(params);
-        attrValues.PushBack(point);
-
-        auto err = mSession.GetAttributeValues(pubKeyHandle, attrTypes, attrValues);
-        if (!err.IsNone()) {
-            return {{}, err};
-        }
-
-        auto cryptoKey
-            = MakeShared<crypto::ECDSAPrivateKey>(&mAllocator, crypto::ECDSAPublicKey(attrValues[0], attrValues[1]));
-        PrivateKey pkcsKey = {privKeyHandle, pubKeyHandle, cryptoKey};
-
-        return {pkcsKey, ErrorEnum::eNone};
-    }
-    }
-
-    return {{}, ErrorEnum::eInvalidArgument};
-}
-
 /***********************************************************************************************************************
  * PKCS11Manager
  **********************************************************************************************************************/
@@ -851,7 +793,7 @@ RetWithError<PrivateKey> Utils::GenerateRSAKeyPairWithLabel(
         return {{}, ErrorEnum::eFailed};
     }
 
-    return exportPrivateKey(privKeyHandle, pubKeyHandle, keyTypeRSA);
+    return ExportPrivateKey(privKeyHandle, pubKeyHandle, keyTypeRSA);
 }
 
 RetWithError<PrivateKey> Utils::GenerateECDSAKeyPairWithLabel(
@@ -905,7 +847,7 @@ RetWithError<PrivateKey> Utils::GenerateECDSAKeyPairWithLabel(
         return {{}, ErrorEnum::eFailed};
     }
 
-    return exportPrivateKey(privKeyHandle, pubKeyHandle, keyTypeECDSA);
+    return ExportPrivateKey(privKeyHandle, pubKeyHandle, keyTypeECDSA);
 }
 
 RetWithError<PrivateKey> Utils::FindPrivateKey(const Array<uint8_t>& id, const String& label)
@@ -961,7 +903,7 @@ RetWithError<PrivateKey> Utils::FindPrivateKey(const Array<uint8_t>& id, const S
             continue;
         }
 
-        return exportPrivateKey(privKey, pubKeys[0], keyType);
+        return ExportPrivateKey(privKey, pubKeys[0], keyType);
     }
 
     return {{}, ErrorEnum::eNotFound};
@@ -1113,6 +1055,64 @@ Error Utils::DeleteCertificate(const Array<uint8_t>& id, const String& label)
 Error Utils::ConvertPKCS11String(const Array<uint8_t>& src, String& dst)
 {
     return ConvertFromPKCS11String(src, dst);
+}
+
+RetWithError<PrivateKey> Utils::ExportPrivateKey(
+    ObjectHandle privKeyHandle, ObjectHandle pubKeyHandle, CK_KEY_TYPE keyType)
+{
+    switch (keyType) {
+    case CKK_RSA: {
+        StaticArray<Array<uint8_t>, cObjectAttributesCount> attrValues;
+        StaticArray<AttributeType, cObjectAttributesCount>  attrTypes;
+
+        attrTypes.PushBack(CKA_MODULUS);
+        attrTypes.PushBack(CKA_PUBLIC_EXPONENT);
+
+        StaticArray<uint8_t, crypto::cRSAModulusSize>     n;
+        StaticArray<uint8_t, crypto::cRSAPubExponentSize> e;
+
+        attrValues.PushBack(n);
+        attrValues.PushBack(e);
+
+        auto err = mSession.GetAttributeValues(pubKeyHandle, attrTypes, attrValues);
+        if (!err.IsNone()) {
+            return {{}, err};
+        }
+
+        auto cryptoKey
+            = MakeShared<crypto::RSAPrivateKey>(&mAllocator, crypto::RSAPublicKey(attrValues[0], attrValues[1]));
+        PrivateKey pkcsKey = {privKeyHandle, pubKeyHandle, cryptoKey};
+
+        return {pkcsKey, ErrorEnum::eNone};
+    }
+
+    case CKK_ECDSA: {
+        StaticArray<Array<uint8_t>, cObjectAttributesCount> attrValues;
+        StaticArray<AttributeType, cObjectAttributesCount>  attrTypes;
+
+        attrTypes.PushBack(CKA_ECDSA_PARAMS);
+        attrTypes.PushBack(CKA_EC_POINT);
+
+        StaticArray<uint8_t, crypto::cECDSAParamsOIDSize> params;
+        StaticArray<uint8_t, crypto::cECDSAPointDERSize>  point;
+
+        attrValues.PushBack(params);
+        attrValues.PushBack(point);
+
+        auto err = mSession.GetAttributeValues(pubKeyHandle, attrTypes, attrValues);
+        if (!err.IsNone()) {
+            return {{}, err};
+        }
+
+        auto cryptoKey
+            = MakeShared<crypto::ECDSAPrivateKey>(&mAllocator, crypto::ECDSAPublicKey(attrValues[0], attrValues[1]));
+        PrivateKey pkcsKey = {privKeyHandle, pubKeyHandle, cryptoKey};
+
+        return {pkcsKey, ErrorEnum::eNone};
+    }
+    }
+
+    return {{}, ErrorEnum::eInvalidArgument};
 }
 
 Error Utils::FindCertificates(const Array<uint8_t>& id, const String& label, Array<ObjectHandle>& handles)
