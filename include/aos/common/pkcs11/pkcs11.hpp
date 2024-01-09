@@ -659,7 +659,7 @@ public:
     static Error ConvertPKCS11String(const Array<uint8_t>& src, String& dst);
 
 private:
-    RetWithError<PrivateKey> exportPrivateKey(ObjectHandle privKey, ObjectHandle pubKey, CK_KEY_TYPE keyType);
+    RetWithError<PrivateKey> ExportPrivateKey(ObjectHandle privKey, ObjectHandle pubKey, CK_KEY_TYPE keyType);
 
     Error FindCertificates(const Array<uint8_t>& id, const String& label, Array<ObjectHandle>& handles);
     Error FindCertificateChain(const crypto::x509::Certificate& certificate, crypto::x509::CertificateChain& chain);
