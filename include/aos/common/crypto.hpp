@@ -255,64 +255,6 @@ private:
 };
 
 /**
- * RSA private key.
- */
-class RSAPrivateKey : public PrivateKeyItf {
-public:
-    /**
-     * Constructs object instance.
-     *
-     * @param pubKey public key component of a private key.
-     */
-    RSAPrivateKey(const RSAPublicKey& pubKey)
-        : mPubKey(pubKey)
-    {
-    }
-
-    /**
-     * Returns public part of a private key.
-     *
-     * @return const PublicKeyItf&.
-     */
-    const PublicKeyItf& GetPublic() const override { return mPubKey; }
-
-    /**
-     * Calculates a signature of a given digest.
-     *
-     * @param digest input hash digest.
-     * @param options signing options.
-     * @param[out] signature result signature.
-     * @return Error.
-     */
-    Error Sign(const Array<uint8_t>& digest, const SignOptions& options, Array<uint8_t>& signature) override
-    {
-        (void)digest;
-        (void)options;
-        (void)signature;
-
-        return ErrorEnum::eFailed;
-    }
-
-    /**
-     * Decrypts a cipher message.
-     *
-     * @param cipher encrypted message.
-     * @param[out] result decoded message.
-     * @return Error.
-     */
-    Error Decrypt(const Array<uint8_t>& cipher, Array<uint8_t>& result) override
-    {
-        (void)cipher;
-        (void)result;
-
-        return ErrorEnum::eFailed;
-    }
-
-private:
-    RSAPublicKey mPubKey;
-};
-
-/**
  * ECDSA public key.
  */
 class ECDSAPublicKey : public PublicKeyItf {
@@ -356,64 +298,6 @@ public:
 private:
     StaticArray<uint8_t, cECDSAParamsOIDSize> mECParamsOID;
     StaticArray<uint8_t, cECDSAPointDERSize>  mECPoint;
-};
-
-/**
- * ECDSA private key.
- */
-class ECDSAPrivateKey : public PrivateKeyItf {
-public:
-    /**
-     * Constructs object instance.
-     *
-     * @param pubKey public key component of a private key.
-     */
-    ECDSAPrivateKey(const ECDSAPublicKey& pubKey)
-        : mPubKey(pubKey)
-    {
-    }
-
-    /**
-     * Returns public part of a private key.
-     *
-     * @return const PublicKeyItf&.
-     */
-    const PublicKeyItf& GetPublic() const override { return mPubKey; }
-
-    /**
-     * Calculates a signature of a given digest.
-     *
-     * @param digest input hash digest.
-     * @param options signing options.
-     * @param[out] signature result signature.
-     * @return Error.
-     */
-    Error Sign(const Array<uint8_t>& digest, const SignOptions& options, Array<uint8_t>& signature) override
-    {
-        (void)digest;
-        (void)options;
-        (void)signature;
-
-        return ErrorEnum::eFailed;
-    }
-
-    /**
-     * Decrypts a cipher message.
-     *
-     * @param cipher encrypted message.
-     * @param[out] result decoded message.
-     * @return Error.
-     */
-    Error Decrypt(const Array<uint8_t>& cipher, Array<uint8_t>& result) override
-    {
-        (void)cipher;
-        (void)result;
-
-        return ErrorEnum::eFailed;
-    }
-
-private:
-    ECDSAPublicKey mPubKey;
 };
 
 namespace asn1 {
