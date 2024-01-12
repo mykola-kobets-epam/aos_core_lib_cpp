@@ -567,9 +567,10 @@ public:
      * Creates an object instance.
      *
      * @param session session context.
+     * @param provider provider of crypto interface.
      * @param allocator allocator for token/session objects.
      */
-    Utils(SessionContext& session, Allocator& allocator);
+    Utils(SessionContext& session, crypto::x509::ProviderItf& provider, Allocator& allocator);
 
     /**
      * Creates an RSA key pair on the token.
@@ -632,13 +633,12 @@ public:
     /**
      * Finds certificate chain with a given attributes.
      *
-     * @param cryptoProvider certificate provider interface.
      * @param id certificate identifier.
      * @param label certificate label.
      * @return RetWithError<SharedPtr<CertificateChain>>.
      */
     RetWithError<SharedPtr<crypto::x509::CertificateChain>> FindCertificateChain(
-        crypto::x509::ProviderItf& cryptoProvider, const Array<uint8_t>& id, const String& label);
+        const Array<uint8_t>& id, const String& label);
 
     /**
      * Deletes a previously imported certificate.
@@ -662,16 +662,14 @@ private:
     RetWithError<PrivateKey> exportPrivateKey(ObjectHandle privKey, ObjectHandle pubKey, CK_KEY_TYPE keyType);
 
     Error FindCertificates(const Array<uint8_t>& id, const String& label, Array<ObjectHandle>& handles);
-    Error FindCertificateChain(crypto::x509::ProviderItf& cryptoProvider, const crypto::x509::Certificate& certificate,
-        crypto::x509::CertificateChain& chain);
-    RetWithError<SharedPtr<crypto::x509::Certificate>> FindCertificateByKeyID(
-        crypto::x509::ProviderItf& cryptoProvider, const Array<uint8_t>& keyID);
+    Error FindCertificateChain(const crypto::x509::Certificate& certificate, crypto::x509::CertificateChain& chain);
+    RetWithError<SharedPtr<crypto::x509::Certificate>> FindCertificateByKeyID(const Array<uint8_t>& keyID);
 
-    RetWithError<SharedPtr<crypto::x509::Certificate>> GetCertificate(
-        crypto::x509::ProviderItf& cryptoProvider, ObjectHandle handle);
+    RetWithError<SharedPtr<crypto::x509::Certificate>> GetCertificate(ObjectHandle handle);
 
-    SessionContext& mSession;
-    Allocator&      mAllocator;
+    SessionContext&            mSession;
+    crypto::x509::ProviderItf& mCryptoProvider;
+    Allocator&                 mAllocator;
 };
 
 /**

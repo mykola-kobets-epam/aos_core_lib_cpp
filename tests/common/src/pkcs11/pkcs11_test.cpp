@@ -11,6 +11,7 @@
 #include "aos/common/pkcs11/pkcs11.hpp"
 #include "aos/common/tools/allocator.hpp"
 #include "aos/common/uuid.hpp"
+#include "x509provider.hpp"
 
 #include "../log.hpp"
 
@@ -53,6 +54,8 @@ protected:
     SlotID                    mSlotID = 0;
     PKCS11Manager             mManager;
     SharedPtr<LibraryContext> mLibrary;
+
+    crypto::x509::MockProvider mX509Provider;
 
     StaticAllocator<Max(2 * sizeof(crypto::RSAPrivateKey), sizeof(crypto::ECDSAPublicKey))> mAllocator;
 };
@@ -239,7 +242,7 @@ TEST_F(PKCS11Test, GenerateRSAKeyPairWithLabel)
 
     PrivateKey key;
 
-    Tie(key, err) = Utils(*session1, mAllocator).GenerateRSAKeyPairWithLabel(id, mLabel, 2048);
+    Tie(key, err) = Utils(*session1, mX509Provider, mAllocator).GenerateRSAKeyPairWithLabel(id, mLabel, 2048);
     ASSERT_TRUE(err.IsNone());
 
     // check key exists in a new session
@@ -257,7 +260,7 @@ TEST_F(PKCS11Test, GenerateRSAKeyPairWithLabel)
     ASSERT_THAT(std::vector<ObjectHandle>(objects.begin(), objects.end()), Contains(key.GetPubHandle()));
 
     // remove key
-    err = Utils(*session1, mAllocator).DeletePrivateKey(key);
+    err = Utils(*session1, mX509Provider, mAllocator).DeletePrivateKey(key);
     ASSERT_TRUE(err.IsNone());
 
     // check key doesn't exist anymore
@@ -282,7 +285,8 @@ TEST_F(PKCS11Test, GenerateECDSAKeyPairWithLabel)
 
     PrivateKey key;
 
-    Tie(key, err) = Utils(*session1, mAllocator).GenerateECDSAKeyPairWithLabel(id, mLabel, EllipticCurve::eP384);
+    Tie(key, err)
+        = Utils(*session1, mX509Provider, mAllocator).GenerateECDSAKeyPairWithLabel(id, mLabel, EllipticCurve::eP384);
     ASSERT_TRUE(err.IsNone());
 
     // check key exists in a new session
@@ -300,7 +304,7 @@ TEST_F(PKCS11Test, GenerateECDSAKeyPairWithLabel)
     ASSERT_THAT(std::vector<ObjectHandle>(objects.begin(), objects.end()), Contains(key.GetPubHandle()));
 
     // remove key
-    err = Utils(*session1, mAllocator).DeletePrivateKey(key);
+    err = Utils(*session1, mX509Provider, mAllocator).DeletePrivateKey(key);
     ASSERT_TRUE(err.IsNone());
 
     // check key doesn't exist anymore
@@ -325,12 +329,12 @@ TEST_F(PKCS11Test, FindPrivateKey)
 
     PrivateKey key;
 
-    Tie(key, err) = Utils(*session, mAllocator).GenerateRSAKeyPairWithLabel(id, mLabel, 2048);
+    Tie(key, err) = Utils(*session, mX509Provider, mAllocator).GenerateRSAKeyPairWithLabel(id, mLabel, 2048);
     ASSERT_TRUE(err.IsNone());
 
     // find PrivateKey
     PrivateKey foundKey;
-    Tie(foundKey, err) = Utils(*session, mAllocator).FindPrivateKey(id, mLabel);
+    Tie(foundKey, err) = Utils(*session, mX509Provider, mAllocator).FindPrivateKey(id, mLabel);
     ASSERT_TRUE(err.IsNone());
 
     ASSERT_EQ(key.GetPrivHandle(), foundKey.GetPrivHandle());
@@ -338,11 +342,11 @@ TEST_F(PKCS11Test, FindPrivateKey)
     ASSERT_TRUE(key.GetPrivKey()->GetPublic().IsEqual(foundKey.GetPrivKey()->GetPublic()));
 
     // remove key
-    err = Utils(*session, mAllocator).DeletePrivateKey(key);
+    err = Utils(*session, mX509Provider, mAllocator).DeletePrivateKey(key);
     ASSERT_TRUE(err.IsNone());
 
     // check key doesn't exist anymore
-    Tie(foundKey, err) = Utils(*session, mAllocator).FindPrivateKey(id, mLabel);
+    Tie(foundKey, err) = Utils(*session, mX509Provider, mAllocator).FindPrivateKey(id, mLabel);
     ASSERT_EQ(err, ErrorEnum::eNotFound);
 }
 
@@ -381,21 +385,21 @@ TEST_F(PKCS11Test, ImportCertificate)
     cert.mSerial.Insert(cert.mSerial.begin(), cSerialNumber, cSerialNumber + sizeof(cSerialNumber));
     ASSERT_TRUE(ReadFile(PKCS11_TESTCERT, cert.mRaw).IsNone());
 
-    ASSERT_TRUE(Utils(*session, mAllocator).ImportCertificate(id, mLabel, cert).IsNone());
+    ASSERT_TRUE(Utils(*session, mX509Provider, mAllocator).ImportCertificate(id, mLabel, cert).IsNone());
 
     // check certificate exist
     bool hasCertificate = false;
 
-    Tie(hasCertificate, err) = Utils(*session, mAllocator).HasCertificate(cert.mIssuer, cert.mSerial);
+    Tie(hasCertificate, err) = Utils(*session, mX509Provider, mAllocator).HasCertificate(cert.mIssuer, cert.mSerial);
     ASSERT_TRUE(err.IsNone());
     ASSERT_TRUE(hasCertificate);
 
     // delete certificate
-    err = Utils(*session, mAllocator).DeleteCertificate(id, mLabel);
+    err = Utils(*session, mX509Provider, mAllocator).DeleteCertificate(id, mLabel);
     ASSERT_TRUE(err.IsNone());
 
     // check certificate doesn't exist
-    Tie(hasCertificate, err) = Utils(*session, mAllocator).HasCertificate(cert.mIssuer, cert.mSerial);
+    Tie(hasCertificate, err) = Utils(*session, mX509Provider, mAllocator).HasCertificate(cert.mIssuer, cert.mSerial);
     ASSERT_TRUE(err.IsNone());
     ASSERT_FALSE(hasCertificate);
 }
