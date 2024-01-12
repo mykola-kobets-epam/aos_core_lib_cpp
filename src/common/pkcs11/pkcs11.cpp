@@ -793,8 +793,9 @@ SharedPtr<LibraryContext> PKCS11Manager::OpenLibrary(const String& library)
  * Utils
  **********************************************************************************************************************/
 
-Utils::Utils(SessionContext& session, Allocator& allocator)
+Utils::Utils(SessionContext& session, crypto::x509::ProviderItf& provider, Allocator& allocator)
     : mSession(session)
+    , mCryptoProvider(provider)
     , mAllocator(allocator)
 {
 }
@@ -1054,7 +1055,7 @@ RetWithError<bool> Utils::HasCertificate(const Array<uint8_t>& issuer, const Arr
 }
 
 RetWithError<SharedPtr<crypto::x509::CertificateChain>> Utils::FindCertificateChain(
-    crypto::x509::ProviderItf& cryptoProvider, const Array<uint8_t>& id, const String& label)
+    const Array<uint8_t>& id, const String& label)
 {
     StaticArray<ObjectHandle, cKeysPerToken> certHandles;
 
@@ -1066,12 +1067,12 @@ RetWithError<SharedPtr<crypto::x509::CertificateChain>> Utils::FindCertificateCh
     SharedPtr<crypto::x509::Certificate> certificate;
     auto                                 chain = MakeShared<crypto::x509::CertificateChain>(&mAllocator);
 
-    Tie(certificate, err) = GetCertificate(cryptoProvider, certHandles[0]);
+    Tie(certificate, err) = GetCertificate(certHandles[0]);
     if (!err.IsNone()) {
         return {nullptr, err};
     }
 
-    err = FindCertificateChain(cryptoProvider, *certificate, *chain);
+    err = FindCertificateChain(*certificate, *chain);
     if (!err.IsNone()) {
         return {nullptr, err};
     }
@@ -1127,8 +1128,7 @@ Error Utils::FindCertificates(const Array<uint8_t>& id, const String& label, Arr
     return mSession.FindObjects(certTempl, handles);
 }
 
-Error Utils::FindCertificateChain(crypto::x509::ProviderItf& cryptoProvider,
-    const crypto::x509::Certificate& certificate, crypto::x509::CertificateChain& chain)
+Error Utils::FindCertificateChain(const crypto::x509::Certificate& certificate, crypto::x509::CertificateChain& chain)
 {
     if (certificate.mIssuer.IsEmpty() || certificate.mIssuer == certificate.mSubject) {
         return ErrorEnum::eNone;
@@ -1145,9 +1145,9 @@ Error Utils::FindCertificateChain(crypto::x509::ProviderItf& cryptoProvider,
 
     auto err = mSession.FindObjects(certTempl, handles);
     if (err.IsNone()) {
-        Tie(foundCert, err) = GetCertificate(cryptoProvider, handles[0]);
+        Tie(foundCert, err) = GetCertificate(handles[0]);
     } else if (err == ErrorEnum::eNotFound) {
-        Tie(foundCert, err) = FindCertificateByKeyID(cryptoProvider, certificate.mAuthorityKeyId);
+        Tie(foundCert, err) = FindCertificateByKeyID(certificate.mAuthorityKeyId);
     } else {
         return err;
     }
@@ -1167,11 +1167,10 @@ Error Utils::FindCertificateChain(crypto::x509::ProviderItf& cryptoProvider,
         return err;
     }
 
-    return FindCertificateChain(cryptoProvider, *foundCert, chain);
+    return FindCertificateChain(*foundCert, chain);
 }
 
-RetWithError<SharedPtr<crypto::x509::Certificate>> Utils::FindCertificateByKeyID(
-    crypto::x509::ProviderItf& cryptoProvider, const Array<uint8_t>& keyID)
+RetWithError<SharedPtr<crypto::x509::Certificate>> Utils::FindCertificateByKeyID(const Array<uint8_t>& keyID)
 {
     CK_OBJECT_CLASS                                      certClass = CKO_CERTIFICATE;
     StaticArray<ObjectAttribute, cObjectAttributesCount> certTempl;
@@ -1188,7 +1187,7 @@ RetWithError<SharedPtr<crypto::x509::Certificate>> Utils::FindCertificateByKeyID
     for (auto handle : handles) {
         SharedPtr<crypto::x509::Certificate> certificate;
 
-        Tie(certificate, err) = GetCertificate(cryptoProvider, handle);
+        Tie(certificate, err) = GetCertificate(handle);
         if (!err.IsNone()) {
             return {nullptr, err};
         }
@@ -1201,8 +1200,7 @@ RetWithError<SharedPtr<crypto::x509::Certificate>> Utils::FindCertificateByKeyID
     return {nullptr, ErrorEnum::eNotFound};
 }
 
-RetWithError<SharedPtr<crypto::x509::Certificate>> Utils::GetCertificate(
-    crypto::x509::ProviderItf& cryptoProvider, ObjectHandle handle)
+RetWithError<SharedPtr<crypto::x509::Certificate>> Utils::GetCertificate(ObjectHandle handle)
 {
     auto certificate = MakeShared<crypto::x509::Certificate>(&mAllocator);
 
@@ -1217,7 +1215,7 @@ RetWithError<SharedPtr<crypto::x509::Certificate>> Utils::GetCertificate(
         return {nullptr, err};
     }
 
-    err = cryptoProvider.DERToX509Cert(certificate->mRaw, *certificate);
+    err = mCryptoProvider.DERToX509Cert(certificate->mRaw, *certificate);
 
     return {certificate, err};
 }

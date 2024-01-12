@@ -218,7 +218,7 @@ RetWithError<SharedPtr<crypto::PrivateKeyItf>> PKCS11Module::CreateKey(
 
     switch (algorithm.GetValue()) {
     case KeyGenAlgorithmEnum::eRSA:
-        Tie(pendingKey.mKey, err) = pkcs11::Utils(*session, mLocalCacheAllocator)
+        Tie(pendingKey.mKey, err) = pkcs11::Utils(*session, *mX509Provider, mLocalCacheAllocator)
                                         .GenerateRSAKeyPairWithLabel(pendingKey.mUUID, mCertType, cRSAKeyLength);
         if (!err.IsNone()) {
             return {nullptr, AOS_ERROR_WRAP(err)};
@@ -226,7 +226,7 @@ RetWithError<SharedPtr<crypto::PrivateKeyItf>> PKCS11Module::CreateKey(
         break;
 
     case KeyGenAlgorithmEnum::eECC:
-        Tie(pendingKey.mKey, err) = pkcs11::Utils(*session, mLocalCacheAllocator)
+        Tie(pendingKey.mKey, err) = pkcs11::Utils(*session, *mX509Provider, mLocalCacheAllocator)
                                         .GenerateECDSAKeyPairWithLabel(pendingKey.mUUID, mCertType, cECSDACurveID);
         if (!err.IsNone()) {
             return {nullptr, AOS_ERROR_WRAP(err)};
@@ -241,7 +241,7 @@ RetWithError<SharedPtr<crypto::PrivateKeyItf>> PKCS11Module::CreateKey(
 
     err = TokenMemInfo();
     if (!err.IsNone()) {
-        pkcs11::Utils(*session, mLocalCacheAllocator).DeletePrivateKey(pendingKey.mKey);
+        pkcs11::Utils(*session, *mX509Provider, mLocalCacheAllocator).DeletePrivateKey(pendingKey.mKey);
         return {nullptr, err};
     }
 
@@ -250,7 +250,7 @@ RetWithError<SharedPtr<crypto::PrivateKeyItf>> PKCS11Module::CreateKey(
 
         auto oldKey = mPendingKeys.Front().mValue.mKey;
 
-        err = pkcs11::Utils(*session, mLocalCacheAllocator).DeletePrivateKey(oldKey);
+        err = pkcs11::Utils(*session, *mX509Provider, mLocalCacheAllocator).DeletePrivateKey(oldKey);
         if (!err.IsNone()) {
             LOG_ERR() << "Can't delete pending key = " << err.Message();
         }
@@ -331,7 +331,7 @@ Error PKCS11Module::RemoveCert(const String& certURL, const String& password)
         return err;
     }
 
-    return pkcs11::Utils(*session, mLocalCacheAllocator).DeleteCertificate(id, label);
+    return pkcs11::Utils(*session, *mX509Provider, mLocalCacheAllocator).DeleteCertificate(id, label);
 }
 
 Error PKCS11Module::RemoveKey(const String& keyURL, const String& password)
@@ -354,12 +354,12 @@ Error PKCS11Module::RemoveKey(const String& keyURL, const String& password)
         return err;
     }
 
-    const auto privKey = pkcs11::Utils(*session, mLocalCacheAllocator).FindPrivateKey(id, label);
+    const auto privKey = pkcs11::Utils(*session, *mX509Provider, mLocalCacheAllocator).FindPrivateKey(id, label);
     if (!privKey.mError.IsNone()) {
         return privKey.mError;
     }
 
-    return pkcs11::Utils(*session, mLocalCacheAllocator).DeletePrivateKey(privKey.mValue);
+    return pkcs11::Utils(*session, *mX509Provider, mLocalCacheAllocator).DeletePrivateKey(privKey.mValue);
 }
 
 Error PKCS11Module::ValidateCertificates(
@@ -739,7 +739,7 @@ bool PKCS11Module::CheckCertificate(const crypto::x509::Certificate& cert, const
 Error PKCS11Module::CreateCertificateChain(pkcs11::SessionContext& session, const Array<uint8_t>& id,
     const String& label, const Array<crypto::x509::Certificate>& chain)
 {
-    auto utils = pkcs11::Utils(session, mLocalCacheAllocator);
+    auto utils = pkcs11::Utils(session, *mX509Provider, mLocalCacheAllocator);
 
     auto err = utils.ImportCertificate(id, label, chain[0]);
     if (!err.IsNone()) {
