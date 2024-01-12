@@ -12,6 +12,7 @@
 #include "aos/iam/certhandler.hpp"
 
 #include "mocks/hsm.hpp"
+#include "mocks/privatekey.hpp"
 #include "mocks/storage.hpp"
 #include "mocks/x509provider.hpp"
 
@@ -37,7 +38,7 @@ protected:
 
     void SetUp() override
     {
-        cPrivateKey = MakeShared<crypto::RSAPrivateKey>(&mAllocator, crypto::RSAPublicKey({}, {}));
+        cPrivateKey = MakeShared<crypto::PrivateKeyMock>(&mAllocator, crypto::RSAPublicKey({}, {}));
 
         EXPECT_CALL(mX509Provider, DNToString(_, _))
             .WillRepeatedly(Invoke([](const Array<uint8_t>& dn, String& result) {
@@ -61,7 +62,7 @@ protected:
     }
 
     // certmodule class dependendcies
-    StaticAllocator<sizeof(crypto::RSAPrivateKey)> mAllocator;
+    StaticAllocator<sizeof(crypto::PrivateKeyMock)> mAllocator;
 
     MockHSM                    mPKCS11, mSW, mTPM;
     MockStorage                mStorage;
