@@ -23,11 +23,9 @@ constexpr auto cSchemeMaxLength = Max(sizeof(cSchemeFile), sizeof(cSchemePKCS11)
  * CertLoader
  **********************************************************************************************************************/
 
-CertLoader::CertLoader(
-    crypto::x509::ProviderItf& cryptoProvider, pkcs11::PKCS11Manager& pkcs11Manager, uuid::UUIDManagerItf& uuidManager)
+CertLoader::CertLoader(crypto::x509::ProviderItf& cryptoProvider, pkcs11::PKCS11Manager& pkcs11Manager)
     : mCryptoProvider(cryptoProvider)
     , mPKCS11(pkcs11Manager)
-    , mUUIDManager(uuidManager)
 {
 }
 
@@ -56,7 +54,7 @@ RetWithError<SharedPtr<crypto::x509::CertificateChain>> CertLoader::LoadCertsCha
         uuid::UUID                       id;
         StaticString<pkcs11::cPINLength> userPIN;
 
-        err = ParsePKCS11URL(url, mUUIDManager, library, token, label, id, userPIN);
+        err = ParsePKCS11URL(url, library, token, label, id, userPIN);
         if (!err.IsNone()) {
             return {nullptr, err};
         }
@@ -99,7 +97,7 @@ RetWithError<SharedPtr<crypto::PrivateKeyItf>> CertLoader::LoadPrivKeyByURL(cons
         uuid::UUID                       id;
         StaticString<pkcs11::cPINLength> userPIN;
 
-        err = ParsePKCS11URL(url, mUUIDManager, library, token, label, id, userPIN);
+        err = ParsePKCS11URL(url, library, token, label, id, userPIN);
         if (!err.IsNone()) {
             return {nullptr, err};
         }
@@ -234,8 +232,8 @@ Error ParseFileURL(const String& url, String& path)
  * ParsePKCS11URL
  **********************************************************************************************************************/
 
-Error ParsePKCS11URL(const String& url, uuid::UUIDManagerItf& uuidManager, String& library, String& token,
-    String& label, Array<uint8_t>& id, String& userPin)
+Error ParsePKCS11URL(
+    const String& url, String& library, String& token, String& label, Array<uint8_t>& id, String& userPin)
 {
     StaticString<cSchemeMaxLength> scheme;
 
@@ -266,7 +264,7 @@ Error ParsePKCS11URL(const String& url, uuid::UUIDManagerItf& uuidManager, Strin
         return AOS_ERROR_WRAP(err);
     }
 
-    Tie(id, err) = uuidManager.StringToUUID(uuid);
+    Tie(id, err) = uuid::StringToUUID(uuid);
     if (!err.IsNone()) {
         return AOS_ERROR_WRAP(err);
     }

@@ -14,14 +14,9 @@ namespace aos {
 namespace uuid {
 
 // UUID template assumed to have even number of digits between separators.
-const String UUIDManager::cTemplate = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx";
+static const String cTemplate = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx";
 
-UUIDManager::UUIDManager()
-{
-    srand(time(nullptr)); // use current time as seed for random generator
-}
-
-RetWithError<UUID> UUIDManager::CreateUUID()
+RetWithError<UUID> CreateUUID()
 {
     UUID result;
 
@@ -37,7 +32,7 @@ RetWithError<UUID> UUIDManager::CreateUUID()
     return {result, ErrorEnum::eNone};
 }
 
-RetWithError<StaticString<cUUIDStrLen>> UUIDManager::UUIDToString(const UUID& src)
+RetWithError<StaticString<cUUIDStrLen>> UUIDToString(const UUID& src)
 {
     StaticString<cUUIDStrLen> result;
 
@@ -60,7 +55,7 @@ RetWithError<StaticString<cUUIDStrLen>> UUIDManager::UUIDToString(const UUID& sr
     return {result};
 }
 
-RetWithError<UUID> UUIDManager::StringToUUID(const StaticString<uuid::cUUIDStrLen>& src)
+RetWithError<UUID> StringToUUID(const StaticString<uuid::cUUIDStrLen>& src)
 {
     assert(cTemplate.Size() == src.Size());
 

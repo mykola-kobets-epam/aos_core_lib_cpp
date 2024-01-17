@@ -30,75 +30,27 @@ constexpr auto cUUIDStrLen = AOS_CONFIG_UUID_STR_LEN;
 using UUID = StaticArray<uint8_t, cUUIDLen>;
 
 /**
- * Provides API to manage UUIDs.
+ * Creates unique UUID.
+ *
+ * @return RetWithError<UUID>.
  */
-class UUIDManagerItf {
-public:
-    /**
-     * Creates unique UUID.
-     *
-     * @return RetWithError<UUID>.
-     */
-    virtual RetWithError<UUID> CreateUUID() = 0;
-
-    /**
-     * Converts UUID to string.
-     *
-     * @param uuid uuid.
-     * @return RetWithError<StaticString<cUUIDStrLen>>.
-     */
-    virtual RetWithError<StaticString<cUUIDStrLen>> UUIDToString(const UUID& uuid) = 0;
-
-    /**
-     * Converts string to UUID.
-     *
-     * @param src input string.
-     * @return RetWithError<UUID>.
-     */
-    virtual RetWithError<UUID> StringToUUID(const StaticString<uuid::cUUIDStrLen>& src) = 0;
-
-    /**
-     * Destroys object instance.
-     */
-    virtual ~UUIDManagerItf() = default;
-};
+RetWithError<UUID> CreateUUID();
 
 /**
- * UUID manager implementation.
+ * Converts UUID to string.
+ *
+ * @param uuid uuid.
+ * @return RetWithError<StaticString<cUUIDStrLen>>.
  */
-class UUIDManager : public UUIDManagerItf {
-public:
-    /**
-     * Constructs object instance.
-     */
-    UUIDManager();
+RetWithError<StaticString<cUUIDStrLen>> UUIDToString(const UUID& uuid);
 
-    /**
-     * Creates unique UUID.
-     *
-     * @return RetWithError<UUID>.
-     */
-    RetWithError<UUID> CreateUUID() override;
-
-    /**
-     * Converts UUID to string.
-     *
-     * @param uuid uuid.
-     * @return RetWithError<StaticString<cUUIDStrLen>>.
-     */
-    RetWithError<StaticString<cUUIDStrLen>> UUIDToString(const UUID& uuid) override;
-
-    /**
-     * Converts string to UUID.
-     *
-     * @param src input string.
-     * @return RetWithError<UUID>.
-     */
-    RetWithError<UUID> StringToUUID(const StaticString<uuid::cUUIDStrLen>& src) override;
-
-private:
-    static const String cTemplate;
-};
+/**
+ * Converts string to UUID.
+ *
+ * @param src input string.
+ * @return RetWithError<UUID>.
+ */
+RetWithError<UUID> StringToUUID(const StaticString<uuid::cUUIDStrLen>& src);
 
 } // namespace uuid
 } // namespace aos
