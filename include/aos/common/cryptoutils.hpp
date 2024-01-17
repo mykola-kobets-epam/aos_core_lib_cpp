@@ -25,10 +25,8 @@ public:
      *
      * @param cryptoProvider crypto provider interface.
      * @param pkcs11Manager PKCS11 library manager.
-     * @param uuidManager uuid manager.
      */
-    CertLoader(crypto::x509::ProviderItf& cryptoProvider, pkcs11::PKCS11Manager& pkcs11Manager,
-        uuid::UUIDManagerItf& uuidManager);
+    CertLoader(crypto::x509::ProviderItf& cryptoProvider, pkcs11::PKCS11Manager& pkcs11Manager);
 
     /**
      * Loads certificate chain by URL.
@@ -60,7 +58,6 @@ private:
 
     crypto::x509::ProviderItf& mCryptoProvider;
     pkcs11::PKCS11Manager&     mPKCS11;
-    uuid::UUIDManagerItf&      mUUIDManager;
 
     StaticAllocator<cCertLoaderCapacity> mAllocator;
 };
@@ -87,7 +84,6 @@ Error ParseFileURL(const String& url, String& path);
  * Parses url with PKCS11 scheme.
  *
  * @param url input url.
- * @param uuidManager uuid manager.
  * @param[out] library PKCS11 library.
  * @param[out] token token label.
  * @param[out] label certificate label.
@@ -95,8 +91,8 @@ Error ParseFileURL(const String& url, String& path);
  * @param[out] userPin user PIN.
  * @return Error.
  */
-Error ParsePKCS11URL(const String& url, uuid::UUIDManagerItf& uuidManager, String& library, String& token,
-    String& label, Array<uint8_t>& id, String& userPin);
+Error ParsePKCS11URL(
+    const String& url, String& library, String& token, String& label, Array<uint8_t>& id, String& userPin);
 
 } // namespace cryptoutils
 } // namespace aos

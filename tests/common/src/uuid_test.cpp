@@ -22,12 +22,11 @@ TEST(CommonTest, CreateUUID)
     Error err = ErrorEnum::eNone;
 
     std::vector<UUID> uuids;
-    UUIDManager       manager;
 
     for (int i = 0; i < cTestUUIDsCount; i++) {
         UUID tmp;
 
-        Tie(tmp, err) = manager.CreateUUID();
+        Tie(tmp, err) = CreateUUID();
         ASSERT_TRUE(err.IsNone());
         ASSERT_EQ(tmp.Size(), tmp.MaxSize());
 
@@ -52,7 +51,7 @@ TEST(CommonTest, UUIDToString)
         = {0x01, 0x12, 0x23, 0x34, 0x45, 0x56, 0x67, 0x78, 0x89, 0x9A, 0xAB, 0xBC, 0xCD, 0xDE, 0xEF, 0xFF};
     UUID source = Array<uint8_t>(uuidBlob, uuid::cUUIDLen);
 
-    Tie(destination, err) = UUIDManager().UUIDToString(source);
+    Tie(destination, err) = UUIDToString(source);
     ASSERT_TRUE(err.IsNone());
 
     static constexpr auto expected = "01122334-4556-6778-899A-ABBCCDDEEFFF";
@@ -66,7 +65,7 @@ TEST(CommonTest, StringToUUID)
     uint8_t expected[uuid::cUUIDLen]
         = {0x01, 0x12, 0x23, 0x34, 0x45, 0x56, 0x67, 0x78, 0x89, 0x9A, 0xAB, 0xBC, 0xCD, 0xDE, 0xEF, 0xFF};
 
-    Tie(destination, err) = UUIDManager().StringToUUID("01122334-4556-6778-899A-ABBCCDDEEFFF");
+    Tie(destination, err) = StringToUUID("01122334-4556-6778-899A-ABBCCDDEEFFF");
     ASSERT_TRUE(err.IsNone());
 
     EXPECT_EQ(destination, Array<uint8_t>(expected, uuid::cUUIDLen));

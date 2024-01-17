@@ -74,11 +74,9 @@ public:
      *
      * @param pkcs11 reference to pkcs11 library context.
      * @param x509Provider reference to x509 crypto interface.
-     * @param uuidManager reference to uuid manager.
      * @return Error.
      */
-    Error Init(
-        pkcs11::PKCS11Manager& pkcs11, crypto::x509::ProviderItf& x509Provider, uuid::UUIDManagerItf& uuidManager);
+    Error Init(pkcs11::PKCS11Manager& pkcs11, crypto::x509::ProviderItf& x509Provider);
 
     /**
      * Owns the module.
@@ -203,7 +201,6 @@ private:
 
     SharedPtr<pkcs11::LibraryContext> mPKCS11;
     crypto::x509::ProviderItf*        mX509Provider;
-    uuid::UUIDManagerItf*             mUUIDManager;
 
     uint32_t                         mSlotID;
     StaticString<cTeeLoginTypeLen>   mTeeLoginType;

@@ -50,11 +50,9 @@ PKCS11Module::PKCS11Module(const String& certType, const PKCS11ModuleConfig& con
 {
 }
 
-Error PKCS11Module::Init(
-    pkcs11::PKCS11Manager& pkcs11, crypto::x509::ProviderItf& x509Provider, uuid::UUIDManagerItf& uuidManager)
+Error PKCS11Module::Init(pkcs11::PKCS11Manager& pkcs11, crypto::x509::ProviderItf& x509Provider)
 {
     mX509Provider = &x509Provider;
-    mUUIDManager  = &uuidManager;
 
     mPKCS11 = pkcs11.OpenLibrary(mConfig.mLibrary);
     if (!mPKCS11) {
@@ -205,7 +203,7 @@ RetWithError<SharedPtr<crypto::PrivateKeyItf>> PKCS11Module::CreateKey(
     PKCS11Module::PendingKey pendingKey;
     Error                    err = ErrorEnum::eNone;
 
-    Tie(pendingKey.mUUID, err) = mUUIDManager->CreateUUID();
+    Tie(pendingKey.mUUID, err) = uuid::CreateUUID();
     if (!err.IsNone()) {
         return {nullptr, AOS_ERROR_WRAP(err)};
     }
@@ -575,12 +573,12 @@ Error PKCS11Module::GeneratePIN(const String& loginType, String& userPIN)
     StaticString<cUUIDStringLen> pinStr;
     Error                        err = ErrorEnum::eNone;
 
-    Tie(pin, err) = mUUIDManager->CreateUUID();
+    Tie(pin, err) = uuid::CreateUUID();
     if (!err.IsNone()) {
         AOS_ERROR_WRAP(err);
     }
 
-    Tie(pinStr, err) = mUUIDManager->UUIDToString(pin);
+    Tie(pinStr, err) = uuid::UUIDToString(pin);
     if (!err.IsNone()) {
         AOS_ERROR_WRAP(err);
     }
@@ -761,7 +759,7 @@ Error PKCS11Module::CreateCertificateChain(pkcs11::SessionContext& session, cons
 
         uuid::UUID uuid;
 
-        Tie(uuid, err) = mUUIDManager->CreateUUID();
+        Tie(uuid, err) = uuid::CreateUUID();
         if (!err.IsNone()) {
             return AOS_ERROR_WRAP(err);
         }
@@ -799,7 +797,7 @@ Error PKCS11Module::CreateURL(const String& label, const Array<uint8_t>& id, Str
         StaticString<uuid::cUUIDStrLen> uuid;
         Error                           err = ErrorEnum::eNone;
 
-        Tie(uuid, err) = mUUIDManager->UUIDToString(id);
+        Tie(uuid, err) = uuid::UUIDToString(id);
         if (!err.IsNone()) {
             return AOS_ERROR_WRAP(err);
         }
@@ -824,7 +822,7 @@ Error PKCS11Module::ParseURL(const String& url, String& label, Array<uint8_t>& i
     StaticString<pkcs11::cLabelLen>  token;
     StaticString<pkcs11::cPINLength> userPIN;
 
-    return cryptoutils::ParsePKCS11URL(url, *mUUIDManager, library, token, userPIN, label, id);
+    return cryptoutils::ParsePKCS11URL(url, library, token, label, id, userPIN);
 }
 
 Error PKCS11Module::GetValidInfo(pkcs11::SessionContext& session, Array<SearchObject>& certs,
