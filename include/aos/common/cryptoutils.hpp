@@ -21,12 +21,13 @@ namespace cryptoutils {
 class CertLoader {
 public:
     /**
-     * Constructs object instance.
+     * Initializes object instance.
      *
      * @param cryptoProvider crypto provider interface.
      * @param pkcs11Manager PKCS11 library manager.
+     * @return Error.
      */
-    CertLoader(crypto::x509::ProviderItf& cryptoProvider, pkcs11::PKCS11Manager& pkcs11Manager);
+    Error Init(crypto::x509::ProviderItf& cryptoProvider, pkcs11::PKCS11Manager& pkcs11Manager);
 
     /**
      * Loads certificate chain by URL.
@@ -56,8 +57,8 @@ private:
     RetWithError<SharedPtr<crypto::x509::CertificateChain>> LoadCertsFromFile(const String& fileName);
     RetWithError<SharedPtr<crypto::PrivateKeyItf>>          LoadPrivKeyFromFile(const String& fileName);
 
-    crypto::x509::ProviderItf& mCryptoProvider;
-    pkcs11::PKCS11Manager&     mPKCS11;
+    crypto::x509::ProviderItf* mCryptoProvider = nullptr;
+    pkcs11::PKCS11Manager*     mPKCS11         = nullptr;
 
     StaticAllocator<cCertLoaderCapacity> mAllocator;
 };

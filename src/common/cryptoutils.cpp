@@ -23,10 +23,12 @@ constexpr auto cSchemeMaxLength = Max(sizeof(cSchemeFile), sizeof(cSchemePKCS11)
  * CertLoader
  **********************************************************************************************************************/
 
-CertLoader::CertLoader(crypto::x509::ProviderItf& cryptoProvider, pkcs11::PKCS11Manager& pkcs11Manager)
-    : mCryptoProvider(cryptoProvider)
-    , mPKCS11(pkcs11Manager)
+Error CertLoader::Init(crypto::x509::ProviderItf& cryptoProvider, pkcs11::PKCS11Manager& pkcs11Manager)
 {
+    mCryptoProvider = &cryptoProvider;
+    mPKCS11         = &pkcs11Manager;
+
+    return ErrorEnum::eNone;
 }
 
 RetWithError<SharedPtr<crypto::x509::CertificateChain>> CertLoader::LoadCertsChainByURL(const String& url)
@@ -66,7 +68,7 @@ RetWithError<SharedPtr<crypto::x509::CertificateChain>> CertLoader::LoadCertsCha
             return {nullptr, err};
         }
 
-        return pkcs11::Utils(*session, mCryptoProvider, mAllocator).FindCertificateChain(id, label);
+        return pkcs11::Utils(*session, *mCryptoProvider, mAllocator).FindCertificateChain(id, label);
     }
 
     return {nullptr, ErrorEnum::eInvalidArgument};
@@ -109,7 +111,7 @@ RetWithError<SharedPtr<crypto::PrivateKeyItf>> CertLoader::LoadPrivKeyByURL(cons
             return {nullptr, err};
         }
 
-        auto key = pkcs11::Utils(*session, mCryptoProvider, mAllocator).FindPrivateKey(id, label);
+        auto key = pkcs11::Utils(*session, *mCryptoProvider, mAllocator).FindPrivateKey(id, label);
 
         return {key.mValue.GetPrivKey(), key.mError};
     }
@@ -120,7 +122,7 @@ RetWithError<SharedPtr<crypto::PrivateKeyItf>> CertLoader::LoadPrivKeyByURL(cons
 RetWithError<UniquePtr<pkcs11::SessionContext>> CertLoader::OpenSession(
     const String& libraryPath, const String& token, const String& userPIN)
 {
-    auto library = mPKCS11.OpenLibrary(libraryPath);
+    auto library = mPKCS11->OpenLibrary(libraryPath);
     if (!library) {
         return {nullptr, ErrorEnum::eFailed};
     }
@@ -184,7 +186,7 @@ RetWithError<SharedPtr<crypto::x509::CertificateChain>> CertLoader::LoadCertsFro
 
     auto certificates = MakeShared<crypto::x509::CertificateChain>(&mAllocator);
 
-    err = mCryptoProvider.PEMToX509Certs(*buff, *certificates);
+    err = mCryptoProvider->PEMToX509Certs(*buff, *certificates);
 
     return {certificates, err};
 }
@@ -198,7 +200,7 @@ RetWithError<SharedPtr<crypto::PrivateKeyItf>> CertLoader::LoadPrivKeyFromFile(c
         return {nullptr, err};
     }
 
-    return mCryptoProvider.PEMToX509PrivKey(*buff);
+    return mCryptoProvider->PEMToX509PrivKey(*buff);
 }
 
 /***********************************************************************************************************************
