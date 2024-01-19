@@ -76,9 +76,10 @@ Array<uint8_t> PKCS11RSAPrivateKey::GetPrefix(crypto::Hash hash) const
  * PKCS11ECDSAPrivateKey
  **********************************************************************************************************************/
 
-PKCS11ECDSAPrivateKey::PKCS11ECDSAPrivateKey(
-    SessionContext& session, ObjectHandle privKeyHandle, const crypto::ECDSAPublicKey& pubKey)
+PKCS11ECDSAPrivateKey::PKCS11ECDSAPrivateKey(SessionContext& session, crypto::x509::ProviderItf& cryptoProvider,
+    ObjectHandle privKeyHandle, const crypto::ECDSAPublicKey& pubKey)
     : mSession(session)
+    , mCryptoProvider(cryptoProvider)
     , mPrivKeyHandle(privKeyHandle)
     , mPublicKey(pubKey)
 {
@@ -138,12 +139,12 @@ Error PKCS11ECDSAPrivateKey::MarshalECDSASignature(
     auto encR = MakeUnique<StaticArray<uint8_t, crypto::cSignatureSize / 2>>(&mAllocator);
     auto encS = MakeUnique<StaticArray<uint8_t, crypto::cSignatureSize / 2>>(&mAllocator);
 
-    auto err = crypto::asn1::EncodeBigInt(r, *encR);
+    auto err = mCryptoProvider.ASN1EncodeBigInt(r, *encR);
     if (!err.IsNone()) {
         return err;
     }
 
-    err = crypto::asn1::EncodeBigInt(s, *encS);
+    err = mCryptoProvider.ASN1EncodeBigInt(s, *encS);
     if (!err.IsNone()) {
         return err;
     }
@@ -153,7 +154,7 @@ Error PKCS11ECDSAPrivateKey::MarshalECDSASignature(
     sequence.PushBack(*encR);
     sequence.PushBack(*encS);
 
-    return crypto::asn1::EncodeDERSequence(sequence, signature);
+    return mCryptoProvider.ASN1EncodeDERSequence(sequence, signature);
 }
 
 } // namespace pkcs11

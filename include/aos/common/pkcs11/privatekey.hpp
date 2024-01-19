@@ -88,10 +88,12 @@ public:
      * Constructs object instance.
      *
      * @param session session context.
+     * @param cryptoProvider provider of crypto interface.
      * @param privKeyHandle private key handle.
      * @param pubKey public key.
      */
-    PKCS11ECDSAPrivateKey(SessionContext& session, ObjectHandle privKeyHandle, const crypto::ECDSAPublicKey& pubKey);
+    PKCS11ECDSAPrivateKey(SessionContext& session, crypto::x509::ProviderItf& cryptoProvider,
+        ObjectHandle privKeyHandle, const crypto::ECDSAPublicKey& pubKey);
 
     /**
      * Returns public part of a private key.
@@ -133,9 +135,10 @@ private:
 
     StaticAllocator<sizeof(StaticArray<uint8_t, crypto::cSignatureSize / 2>) * 4> mAllocator;
 
-    SessionContext&        mSession;
-    ObjectHandle           mPrivKeyHandle;
-    crypto::ECDSAPublicKey mPublicKey;
+    SessionContext&            mSession;
+    crypto::x509::ProviderItf& mCryptoProvider;
+    ObjectHandle               mPrivKeyHandle;
+    crypto::ECDSAPublicKey     mPublicKey;
 };
 
 } // namespace pkcs11

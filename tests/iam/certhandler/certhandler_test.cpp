@@ -40,7 +40,7 @@ protected:
     {
         cPrivateKey = MakeShared<crypto::PrivateKeyMock>(&mAllocator, crypto::RSAPublicKey({}, {}));
 
-        EXPECT_CALL(mX509Provider, DNToString(_, _))
+        EXPECT_CALL(mX509Provider, ASN1DecodeDN(_, _))
             .WillRepeatedly(Invoke([](const Array<uint8_t>& dn, String& result) {
                 result = reinterpret_cast<const char*>(dn.begin());
                 return ErrorEnum::eNone;
@@ -83,7 +83,7 @@ const Array<uint8_t> StringToDN(const char* str)
     return Array<uint8_t>(reinterpret_cast<const uint8_t*>(str), strlen(str) + 1);
 }
 
-const String DNToString(const Array<uint8_t>& array)
+const String ASN1DecodeDN(const Array<uint8_t>& array)
 {
     return reinterpret_cast<const char*>(array.Get());
 }
@@ -253,7 +253,7 @@ TEST_F(CertHandlerTest, CreateCSR)
 {
     EXPECT_CALL(mStorage, GetCertsInfo(_, _)).WillOnce(Return(ErrorEnum::eNone));
 
-    EXPECT_CALL(mX509Provider, CreateDN(_, _))
+    EXPECT_CALL(mX509Provider, ASN1EncodeDN(_, _))
         .WillRepeatedly(Invoke([](const String& commonName, Array<uint8_t>& result) {
             result = ::StringToDN(commonName.CStr());
             return ErrorEnum::eNone;
@@ -342,7 +342,7 @@ TEST_F(CertHandlerTest, CreateSelfSignedCert)
 {
     EXPECT_CALL(mStorage, GetCertsInfo(_, _)).WillRepeatedly(Return(ErrorEnum::eNone));
 
-    EXPECT_CALL(mX509Provider, CreateDN(_, _))
+    EXPECT_CALL(mX509Provider, ASN1EncodeDN(_, _))
         .WillRepeatedly(Invoke([](const String& commonName, Array<uint8_t>& result) {
             result = ::StringToDN(commonName.CStr());
             return ErrorEnum::eNone;
