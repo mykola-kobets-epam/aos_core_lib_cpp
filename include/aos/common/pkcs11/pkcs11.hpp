@@ -600,10 +600,10 @@ public:
      * Creates an object instance.
      *
      * @param session session context.
-     * @param provider provider of crypto interface.
+     * @param cryptoProvider provider to x509 crypto provider.
      * @param allocator allocator for token/session objects.
      */
-    Utils(SessionContext& session, crypto::x509::ProviderItf& provider, Allocator& allocator);
+    Utils(SessionContext& session, crypto::x509::ProviderItf& cryptoProvider, Allocator& allocator);
 
     /**
      * Creates an RSA key pair on the token.

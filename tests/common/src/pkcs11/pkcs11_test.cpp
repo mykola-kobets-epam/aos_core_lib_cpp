@@ -12,7 +12,7 @@
 #include "aos/common/pkcs11/privatekey.hpp"
 #include "aos/common/tools/allocator.hpp"
 #include "aos/common/uuid.hpp"
-#include "x509provider.hpp"
+#include "mocks/x509provider.hpp"
 
 #include "../log.hpp"
 
@@ -52,10 +52,9 @@ protected:
     RetWithError<SlotID>                    FindTestToken();
     RetWithError<UniquePtr<SessionContext>> OpenUserSession(bool login = true);
 
-    SlotID                    mSlotID = 0;
-    PKCS11Manager             mManager;
-    SharedPtr<LibraryContext> mLibrary;
-
+    SlotID                     mSlotID = 0;
+    PKCS11Manager              mManager;
+    SharedPtr<LibraryContext>  mLibrary;
     crypto::x509::MockProvider mX509Provider;
 
     StaticAllocator<Max(2 * sizeof(pkcs11::PKCS11RSAPrivateKey), sizeof(pkcs11::PKCS11ECDSAPrivateKey))> mAllocator;

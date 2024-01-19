@@ -329,52 +329,6 @@ struct Extension {
     bool operator!=(const Extension& extension) const { return !operator==(extension); }
 };
 
-/**
- * Encodes array of object identifiers into ASN1 value.
- *
- * @param src array of object identifiers.
- * @param asn1Value result ASN1 value.
- */
-
-inline void Encode(const Array<ObjectIdentifier>& src, Array<uint8_t>& asn1Value)
-{
-    (void)src;
-    (void)asn1Value;
-}
-
-/**
- * Encodes big integer in ASN1 format.
- *
- * @param number big integer.
- * @param[out] asn1Value result ASN1 value.
- * @result Error.
- */
-inline Error EncodeBigInt(const Array<uint8_t>& number, Array<uint8_t>& asn1Value)
-{
-    // Notes:
-    // Current draft implementation does no encoding, just copies number into result buffer.
-    // This is required for cryptoki wrapper tests, which should be provided with already encoded number.
-
-    asn1Value.Clear();
-
-    return asn1Value.Insert(asn1Value.end(), number.begin(), number.end());
-}
-
-/**
- * Creates ASN1 sequence from already encoded DER items.
- *
- * @param items DER encoded items.
- * @param[out] asn1Value result ASN1 value.
- * @result Error.
- */
-inline Error EncodeDERSequence(const Array<Array<uint8_t>>& items, Array<uint8_t>& asn1Value)
-{
-    (void)items;
-    (void)asn1Value;
-
-    return ErrorEnum::eNone;
-}
-
 } // namespace asn1
 
 namespace x509 {
@@ -497,7 +451,7 @@ public:
      * @param[out] result result DN.
      * @result Error.
      */
-    virtual Error CreateDN(const String& commonName, Array<uint8_t>& result) = 0;
+    virtual Error ASN1EncodeDN(const String& commonName, Array<uint8_t>& result) = 0;
 
     /**
      * Returns text representation of x509 distinguished name(DN).
@@ -506,7 +460,33 @@ public:
      * @param[out] result DN text representation.
      * @result Error.
      */
-    virtual Error DNToString(const Array<uint8_t>& dn, String& result) = 0;
+    virtual Error ASN1DecodeDN(const Array<uint8_t>& dn, String& result) = 0;
+
+    /**
+     * Encodes array of object identifiers into ASN1 value.
+     *
+     * @param src array of object identifiers.
+     * @param asn1Value result ASN1 value.
+     */
+    virtual Error ASN1EncodeObjectIds(const Array<asn1::ObjectIdentifier>& src, Array<uint8_t>& asn1Value) = 0;
+
+    /**
+     * Encodes big integer in ASN1 format.
+     *
+     * @param number big integer.
+     * @param[out] asn1Value result ASN1 value.
+     * @result Error.
+     */
+    virtual Error ASN1EncodeBigInt(const Array<uint8_t>& number, Array<uint8_t>& asn1Value) = 0;
+
+    /**
+     * Creates ASN1 sequence from already encoded DER items.
+     *
+     * @param items DER encoded items.
+     * @param[out] asn1Value result ASN1 value.
+     * @result Error.
+     */
+    virtual Error ASN1EncodeDERSequence(const Array<Array<uint8_t>>& items, Array<uint8_t>& asn1Value) = 0;
 
     /**
      * Destroys object instance.

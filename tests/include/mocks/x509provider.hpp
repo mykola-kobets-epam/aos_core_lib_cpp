@@ -24,8 +24,13 @@ public:
     MOCK_METHOD(RetWithError<SharedPtr<PrivateKeyItf>>, PEMToX509PrivKey, (const Array<uint8_t>& pemBlob), (override));
     MOCK_METHOD(Error, DERToX509Cert, (const Array<uint8_t>& derBlob, Certificate& resultCerts), (override));
     MOCK_METHOD(Error, CreateCSR, (const CSR& templ, const PrivateKeyItf& privKey, Array<uint8_t>& pemCSR), (override));
-    MOCK_METHOD(Error, CreateDN, (const String& commonName, Array<uint8_t>& result), (override));
-    MOCK_METHOD(Error, DNToString, (const Array<uint8_t>& dn, String& result), (override));
+    MOCK_METHOD(Error, ASN1EncodeDN, (const String& commonName, Array<uint8_t>& result), (override));
+    MOCK_METHOD(Error, ASN1DecodeDN, (const Array<uint8_t>& dn, String& result), (override));
+    MOCK_METHOD(
+        Error, ASN1EncodeObjectIds, (const Array<asn1::ObjectIdentifier>& src, Array<uint8_t>& asn1Value), (override));
+    MOCK_METHOD(Error, ASN1EncodeBigInt, (const Array<uint8_t>& number, Array<uint8_t>& asn1Value), (override));
+    MOCK_METHOD(
+        Error, ASN1EncodeDERSequence, (const Array<Array<uint8_t>>& items, Array<uint8_t>& asn1Value), (override));
 };
 
 } // namespace x509

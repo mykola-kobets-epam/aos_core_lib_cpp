@@ -114,7 +114,7 @@ Error CertModule::CreateCSR(
 
     templ.mDNSNames = mModuleConfig.mAlternativeNames;
 
-    auto err = mX509Provider->CreateDN(subjectCommonName, templ.mSubject);
+    auto err = mX509Provider->ASN1EncodeDN(subjectCommonName, templ.mSubject);
     if (!err.IsNone()) {
         return err;
     }
@@ -142,9 +142,13 @@ Error CertModule::CreateCSR(
         crypto::asn1::Extension ext;
 
         ext.mId = cOidExtensionExtendedKeyUsage;
-        crypto::asn1::Encode(oids, ext.mValue);
 
-        auto err = templ.mExtraExtensions.PushBack(ext);
+        auto err = mX509Provider->ASN1EncodeObjectIds(oids, ext.mValue);
+        if (!err.IsNone()) {
+            return AOS_ERROR_WRAP(err);
+        }
+
+        err = templ.mExtraExtensions.PushBack(ext);
         if (!err.IsNone()) {
             return AOS_ERROR_WRAP(err);
         }
@@ -196,12 +200,12 @@ Error CertModule::CreateSelfSignedCert(const String& password)
     templ->mNotBefore = Time::Now();
     templ->mNotAfter  = Time::Now().Add(cValidSelfSignedCertPeriod);
 
-    auto err = mX509Provider->CreateDN("Aos Core", templ->mSubject);
+    auto err = mX509Provider->ASN1EncodeDN("Aos Core", templ->mSubject);
     if (!err.IsNone()) {
         return err;
     }
 
-    err = mX509Provider->CreateDN("Aos Core", templ->mIssuer);
+    err = mX509Provider->ASN1EncodeDN("Aos Core", templ->mIssuer);
     if (!err.IsNone()) {
         return err;
     }
@@ -309,8 +313,8 @@ Error CertModule::CheckCertChain(const Array<crypto::x509::Certificate>& chain)
     for (const auto& cert : chain) {
         StaticString<cDNStringLen> issuer, subject;
 
-        mX509Provider->DNToString(cert.mIssuer, issuer);
-        mX509Provider->DNToString(cert.mSubject, subject);
+        mX509Provider->ASN1DecodeDN(cert.mIssuer, issuer);
+        mX509Provider->ASN1DecodeDN(cert.mSubject, subject);
 
         LOG_DBG() << "Check certificate chain: issuer = " << issuer << ", subject = " << subject;
     }

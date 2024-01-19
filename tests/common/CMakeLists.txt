@@ -77,6 +77,6 @@ add_definitions(-DPKCS11_TESTCERT="${CMAKE_CURRENT_BINARY_DIR}/pkcs11cert.der")
 
 add_executable(${TARGET} ${SOURCES})
 target_link_libraries(${TARGET} GTest::gmock_main aoscommoncpp)
-target_include_directories(${TARGET} PRIVATE mocks)
+target_include_directories(${TARGET} PUBLIC ../include)
 
 gtest_discover_tests(${TARGET})

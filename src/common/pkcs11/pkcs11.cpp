@@ -846,9 +846,9 @@ SharedPtr<LibraryContext> PKCS11Manager::OpenLibrary(const String& library)
  * Utils
  **********************************************************************************************************************/
 
-Utils::Utils(SessionContext& session, crypto::x509::ProviderItf& provider, Allocator& allocator)
+Utils::Utils(SessionContext& session, crypto::x509::ProviderItf& cryptoProvider, Allocator& allocator)
     : mSession(session)
-    , mCryptoProvider(provider)
+    , mCryptoProvider(cryptoProvider)
     , mAllocator(allocator)
 {
 }
@@ -1047,7 +1047,7 @@ Error Utils::ImportCertificate(const Array<uint8_t>& id, const String& label, co
 
     StaticArray<uint8_t, crypto::cSerialNumSize> serialNum;
 
-    auto err = crypto::asn1::EncodeBigInt(cert.mSerial, serialNum);
+    auto err = mCryptoProvider.ASN1EncodeBigInt(cert.mSerial, serialNum);
     if (!err.IsNone()) {
         return err;
     }
@@ -1082,7 +1082,7 @@ RetWithError<bool> Utils::HasCertificate(const Array<uint8_t>& issuer, const Arr
     CK_OBJECT_CLASS                              certClass = CKO_CERTIFICATE;
     StaticArray<uint8_t, crypto::cSerialNumSize> asn1SerialNum;
 
-    auto err = crypto::asn1::EncodeBigInt(serialNumber, asn1SerialNum);
+    auto err = mCryptoProvider.ASN1EncodeBigInt(serialNumber, asn1SerialNum);
     if (!err.IsNone()) {
         return {false, err};
     }
@@ -1215,9 +1215,9 @@ RetWithError<PrivateKey> Utils::ExportPrivateKey(
             return {{}, err};
         }
 
-        auto cryptoKey = MakeShared<PKCS11ECDSAPrivateKey>(
-            &mAllocator, mSession, privKeyHandle, crypto::ECDSAPublicKey(attrValues[0], attrValues[1]));
-        PrivateKey pkcsKey = {privKeyHandle, pubKeyHandle, cryptoKey};
+        auto       cryptoKey = MakeShared<PKCS11ECDSAPrivateKey>(&mAllocator, mSession, mCryptoProvider, privKeyHandle,
+            crypto::ECDSAPublicKey(attrValues[0], attrValues[1]));
+        PrivateKey pkcsKey   = {privKeyHandle, pubKeyHandle, cryptoKey};
 
         return {pkcsKey, ErrorEnum::eNone};
     }

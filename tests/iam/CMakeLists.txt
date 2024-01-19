@@ -19,6 +19,6 @@ set(SOURCES certhandler/certhandler_test.cpp)
 
 add_executable(${TARGET} ${SOURCES})
 target_link_libraries(${TARGET} aosiamcpp GTest::gmock_main)
-target_include_directories(${TARGET} PUBLIC ../common)
+target_include_directories(${TARGET} PUBLIC ../include)
 
 gtest_discover_tests(${TARGET})
