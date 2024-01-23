@@ -402,11 +402,17 @@
 #endif
 
 /**
- * Capacity (in bytes) of cryptoutils::CertLoader.
+ * Number of certificate chains to be stored in cryptoutils::CertLoader.
  */
-#ifndef AOS_CONFIG_CRYPTOUTILS_CERTLOADER_CAPACITY
-#define AOS_CONFIG_CRYPTOUTILS_CERTLOADER_CAPACITY                                                                     \
-    AOS_CONFIG_CRYPTO_CERTS_CHAIN_SIZE* AOS_CONFIG_CRYPTO_CERT_DER_SIZE * 5
+#ifndef AOS_CONFIG_CRYPTOUTILS_CERTIFICATE_CHAINS_COUNT
+#define AOS_CONFIG_CRYPTOUTILS_CERTIFICATE_CHAINS_COUNT 5
+#endif
+
+/**
+ * Number of private keys to be stored in cryptoutils::CertLoader.
+ */
+#ifndef AOS_CONFIG_CRYPTOUTILS_KEYS_COUNT
+#define AOS_CONFIG_CRYPTOUTILS_KEYS_COUNT 5
 #endif
 
 /**

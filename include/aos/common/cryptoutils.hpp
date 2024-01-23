@@ -10,6 +10,7 @@
 
 #include "aos/common/crypto.hpp"
 #include "aos/common/pkcs11/pkcs11.hpp"
+#include "aos/common/pkcs11/privatekey.hpp"
 #include "aos/common/uuid.hpp"
 
 namespace aos {
@@ -48,7 +49,12 @@ public:
 private:
     using PEMCertChainBlob = StaticArray<uint8_t, crypto::cCertPEMSize * crypto::cCertChainSize>;
 
-    static constexpr auto cCertLoaderCapacity   = AOS_CONFIG_CRYPTOUTILS_CERTLOADER_CAPACITY;
+    static constexpr auto cCertAllocatorSize
+        = AOS_CONFIG_CRYPTOUTILS_CERTIFICATE_CHAINS_COUNT * crypto::cCertChainSize * sizeof(crypto::x509::Certificate)
+        + sizeof(PEMCertChainBlob);
+    static constexpr auto cKeyAllocatorSize
+        = AOS_CONFIG_CRYPTOUTILS_KEYS_COUNT * pkcs11::cPrivateKeyMaxSize + sizeof(crypto::cCertPEMSize);
+
     static constexpr auto cDefaultPKCS11Library = AOS_CONFIG_CRYPTOUTILS_DEFAULT_PKCS11_LIB;
 
     RetWithError<UniquePtr<pkcs11::SessionContext>> OpenSession(
@@ -61,7 +67,8 @@ private:
     crypto::x509::ProviderItf* mCryptoProvider = nullptr;
     pkcs11::PKCS11Manager*     mPKCS11         = nullptr;
 
-    StaticAllocator<cCertLoaderCapacity> mAllocator;
+    StaticAllocator<cCertAllocatorSize> mCertAllocator;
+    StaticAllocator<cKeyAllocatorSize>  mKeyAllocator;
 };
 
 /**
