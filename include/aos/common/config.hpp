@@ -297,6 +297,13 @@
 #endif
 
 /**
+ * Max expected number of certificates in a chain stored in PEM file.
+ */
+#ifndef AOS_CONFIG_CRYPTO_CERTS_CHAIN_SIZE
+#define AOS_CONFIG_CRYPTO_CERTS_CHAIN_SIZE 3
+#endif
+
+/**
  * Maximum length of PKCS11 slot description.
  */
 #ifndef AOS_CONFIG_PKCS11_SLOT_DESCRIPTION_LEN
@@ -392,13 +399,6 @@
  */
 #ifndef AOS_CONFIG_UUID_STR_LEN
 #define AOS_CONFIG_UUID_STR_LEN AOS_CONFIG_UUID_LEN * 2 + 4 + 1 // 32 hex digits + 4 '-' symbols + '\0'
-#endif
-
-/**
- * Max expected number of certificates in a chain stored in PEM file.
- */
-#ifndef AOS_CONFIG_CRYPTO_CERTS_CHAIN_SIZE
-#define AOS_CONFIG_CRYPTO_CERTS_CHAIN_SIZE 3
 #endif
 
 /**
