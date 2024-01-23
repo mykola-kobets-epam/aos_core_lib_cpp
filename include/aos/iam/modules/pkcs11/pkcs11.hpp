@@ -205,8 +205,7 @@ private:
     StaticString<pkcs11::cPINLength> mUserPIN;
 
     StaticAllocator<sizeof(crypto::x509::Certificate) + sizeof(DERCert)> mTmpObjAllocator;
-    StaticAllocator<Max(sizeof(pkcs11::PKCS11RSAPrivateKey), sizeof(pkcs11::PKCS11ECDSAPrivateKey)) * cCertsPerModule>
-        mLocalCacheAllocator;
+    StaticAllocator<pkcs11::cPrivateKeyMaxSize * cCertsPerModule>        mLocalCacheAllocator;
 
     StaticArray<PendingKey, cCertsPerModule> mPendingKeys;
     UniquePtr<pkcs11::SessionContext>        mSession;

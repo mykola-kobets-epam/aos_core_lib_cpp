@@ -143,6 +143,11 @@ private:
     crypto::ECDSAPublicKey     mPublicKey;
 };
 
+/**
+ * Maximum size of pkcs11 PrivateKey in bytes.
+ */
+constexpr auto cPrivateKeyMaxSize = Max(sizeof(PKCS11RSAPrivateKey), sizeof(PKCS11ECDSAPrivateKey));
+
 } // namespace pkcs11
 } // namespace aos
 

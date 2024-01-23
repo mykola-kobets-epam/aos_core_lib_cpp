@@ -68,7 +68,7 @@ RetWithError<SharedPtr<crypto::x509::CertificateChain>> CertLoader::LoadCertsCha
             return {nullptr, err};
         }
 
-        return pkcs11::Utils(*session, *mCryptoProvider, mAllocator).FindCertificateChain(id, label);
+        return pkcs11::Utils(*session, *mCryptoProvider, mCertAllocator).FindCertificateChain(id, label);
     }
 
     return {nullptr, ErrorEnum::eInvalidArgument};
@@ -111,7 +111,7 @@ RetWithError<SharedPtr<crypto::PrivateKeyItf>> CertLoader::LoadPrivKeyByURL(cons
             return {nullptr, err};
         }
 
-        auto key = pkcs11::Utils(*session, *mCryptoProvider, mAllocator).FindPrivateKey(id, label);
+        auto key = pkcs11::Utils(*session, *mCryptoProvider, mKeyAllocator).FindPrivateKey(id, label);
 
         return {key.mValue.GetPrivKey(), key.mError};
     }
@@ -179,14 +179,14 @@ RetWithError<pkcs11::SlotID> CertLoader::FindToken(pkcs11::LibraryContext& libra
 
 RetWithError<SharedPtr<crypto::x509::CertificateChain>> CertLoader::LoadCertsFromFile(const String& fileName)
 {
-    auto buff = MakeUnique<PEMCertChainBlob>(&mAllocator);
+    auto buff = MakeUnique<PEMCertChainBlob>(&mCertAllocator);
 
     auto err = FS::ReadFile(fileName, *buff);
     if (!err.IsNone()) {
         return {nullptr, err};
     }
 
-    auto certificates = MakeShared<crypto::x509::CertificateChain>(&mAllocator);
+    auto certificates = MakeShared<crypto::x509::CertificateChain>(&mCertAllocator);
 
     err = mCryptoProvider->PEMToX509Certs(*buff, *certificates);
 
@@ -195,7 +195,7 @@ RetWithError<SharedPtr<crypto::x509::CertificateChain>> CertLoader::LoadCertsFro
 
 RetWithError<SharedPtr<crypto::PrivateKeyItf>> CertLoader::LoadPrivKeyFromFile(const String& fileName)
 {
-    auto buff = MakeUnique<StaticArray<uint8_t, crypto::cCertPEMSize>>(&mAllocator);
+    auto buff = MakeUnique<StaticArray<uint8_t, crypto::cCertPEMSize>>(&mKeyAllocator);
 
     auto err = FS::ReadFile(fileName, *buff);
     if (!err.IsNone()) {
