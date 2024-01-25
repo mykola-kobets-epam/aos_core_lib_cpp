@@ -43,7 +43,8 @@ public:
      * @param[out] signature result signature.
      * @return Error.
      */
-    Error Sign(const Array<uint8_t>& digest, const crypto::SignOptions& options, Array<uint8_t>& signature) override;
+    Error Sign(
+        const Array<uint8_t>& digest, const crypto::SignOptions& options, Array<uint8_t>& signature) const override;
 
     /**
      * Decrypts a cipher message.
@@ -53,7 +54,7 @@ public:
      * @param[out] result decoded message.
      * @return Error.
      */
-    Error Decrypt(const Array<uint8_t>& cipher, Array<uint8_t>& result) override;
+    Error Decrypt(const Array<uint8_t>& cipher, Array<uint8_t>& result) const override;
 
 private:
     static constexpr uint8_t cSHA1Prefix[]
@@ -72,7 +73,7 @@ private:
 
     Array<uint8_t> GetPrefix(crypto::Hash hash) const;
 
-    StaticAllocator<sizeof(StaticArray<uint8_t, crypto::cSHA2DigestSize + cMaxPrefixSize>)> mAllocator;
+    mutable StaticAllocator<sizeof(StaticArray<uint8_t, crypto::cSHA2DigestSize + cMaxPrefixSize>)> mAllocator;
 
     SessionContext&      mSession;
     ObjectHandle         mPrivKeyHandle;
@@ -110,7 +111,8 @@ public:
      * @param[out] signature result signature.
      * @return Error.
      */
-    Error Sign(const Array<uint8_t>& digest, const crypto::SignOptions& options, Array<uint8_t>& signature) override;
+    Error Sign(
+        const Array<uint8_t>& digest, const crypto::SignOptions& options, Array<uint8_t>& signature) const override;
 
     /**
      * Decrypts a cipher message.
@@ -121,7 +123,7 @@ public:
      * @param[out] result decoded message.
      * @return Error.
      */
-    Error Decrypt(const Array<uint8_t>& cipher, Array<uint8_t>& result) override
+    Error Decrypt(const Array<uint8_t>& cipher, Array<uint8_t>& result) const override
     {
         (void)cipher;
         (void)result;
@@ -130,10 +132,10 @@ public:
     }
 
 private:
-    Error ParseECDSASignature(const Array<uint8_t>& src, Array<uint8_t>& r, Array<uint8_t>& s);
-    Error MarshalECDSASignature(const Array<uint8_t>& r, const Array<uint8_t>& s, Array<uint8_t>& signature);
+    Error ParseECDSASignature(const Array<uint8_t>& src, Array<uint8_t>& r, Array<uint8_t>& s) const;
+    Error MarshalECDSASignature(const Array<uint8_t>& r, const Array<uint8_t>& s, Array<uint8_t>& signature) const;
 
-    StaticAllocator<sizeof(StaticArray<uint8_t, crypto::cSignatureSize / 2>) * 4> mAllocator;
+    mutable StaticAllocator<sizeof(StaticArray<uint8_t, crypto::cSignatureSize / 2>) * 4> mAllocator;
 
     SessionContext&            mSession;
     crypto::x509::ProviderItf& mCryptoProvider;

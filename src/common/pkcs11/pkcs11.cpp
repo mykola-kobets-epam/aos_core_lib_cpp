@@ -558,7 +558,7 @@ Error SessionContext::InitPIN(const String& pin)
 }
 
 Error SessionContext::GetAttributeValues(
-    ObjectHandle object, const Array<AttributeType>& types, Array<Array<uint8_t>>& values)
+    ObjectHandle object, const Array<AttributeType>& types, Array<Array<uint8_t>>& values) const
 {
     if (!mFunctionList || !mFunctionList->C_GetAttributeValue) {
         LOG_ERR() << "C_GetAttributeValue failed. Library is not initialized.";
@@ -581,7 +581,7 @@ Error SessionContext::GetAttributeValues(
     return GetAttributesValues(pkcsAttributes, values);
 }
 
-Error SessionContext::FindObjects(const Array<ObjectAttribute>& templ, Array<ObjectHandle>& objects)
+Error SessionContext::FindObjects(const Array<ObjectAttribute>& templ, Array<ObjectHandle>& objects) const
 {
     Error initErr = FindObjectsInit(templ);
     if (!initErr.IsNone()) {
@@ -644,7 +644,7 @@ Error SessionContext::DestroyObject(ObjectHandle object)
 }
 
 Error SessionContext::Sign(
-    CK_MECHANISM_PTR mechanism, ObjectHandle privKey, const Array<uint8_t>& data, Array<uint8_t>& signature)
+    CK_MECHANISM_PTR mechanism, ObjectHandle privKey, const Array<uint8_t>& data, Array<uint8_t>& signature) const
 {
     auto err = SignInit(mechanism, privKey);
     if (!err.IsNone()) {
@@ -667,7 +667,7 @@ Error SessionContext::Sign(
 }
 
 Error SessionContext::Decrypt(
-    CK_MECHANISM_PTR mechanism, ObjectHandle privKey, const Array<uint8_t>& data, Array<uint8_t>& result)
+    CK_MECHANISM_PTR mechanism, ObjectHandle privKey, const Array<uint8_t>& data, Array<uint8_t>& result) const
 {
     auto err = DecryptInit(mechanism, privKey);
     if (!err.IsNone()) {
@@ -713,7 +713,7 @@ SessionContext::~SessionContext()
     }
 }
 
-Error SessionContext::SignInit(CK_MECHANISM_PTR mechanism, ObjectHandle privKey)
+Error SessionContext::SignInit(CK_MECHANISM_PTR mechanism, ObjectHandle privKey) const
 {
     if (!mFunctionList || !mFunctionList->C_SignInit) {
         LOG_ERR() << "C_SignInit failed. Library is not initialized.";
@@ -729,7 +729,7 @@ Error SessionContext::SignInit(CK_MECHANISM_PTR mechanism, ObjectHandle privKey)
     return ErrorEnum::eNone;
 }
 
-Error SessionContext::Sign(const Array<uint8_t>& data, CK_BYTE_PTR signature, CK_ULONG_PTR signSize)
+Error SessionContext::Sign(const Array<uint8_t>& data, CK_BYTE_PTR signature, CK_ULONG_PTR signSize) const
 {
     if (!mFunctionList || !mFunctionList->C_Sign) {
         LOG_ERR() << "C_Sign failed. Library is not initialized.";
@@ -745,7 +745,7 @@ Error SessionContext::Sign(const Array<uint8_t>& data, CK_BYTE_PTR signature, CK
     return ErrorEnum::eNone;
 }
 
-Error SessionContext::DecryptInit(CK_MECHANISM_PTR mechanism, ObjectHandle privKey)
+Error SessionContext::DecryptInit(CK_MECHANISM_PTR mechanism, ObjectHandle privKey) const
 {
     if (!mFunctionList || !mFunctionList->C_DecryptInit) {
         LOG_ERR() << "C_DecryptInit failed. Library is not initialized.";
@@ -761,7 +761,7 @@ Error SessionContext::DecryptInit(CK_MECHANISM_PTR mechanism, ObjectHandle privK
     return ErrorEnum::eNone;
 }
 
-Error SessionContext::Decrypt(const Array<uint8_t>& data, CK_BYTE_PTR result, CK_ULONG_PTR resultSize)
+Error SessionContext::Decrypt(const Array<uint8_t>& data, CK_BYTE_PTR result, CK_ULONG_PTR resultSize) const
 {
     if (!mFunctionList || !mFunctionList->C_Decrypt) {
         LOG_ERR() << "C_Decrypt failed. Library is not initialized.";
@@ -777,7 +777,7 @@ Error SessionContext::Decrypt(const Array<uint8_t>& data, CK_BYTE_PTR result, CK
     return ErrorEnum::eNone;
 }
 
-Error SessionContext::FindObjectsInit(const Array<ObjectAttribute>& templ)
+Error SessionContext::FindObjectsInit(const Array<ObjectAttribute>& templ) const
 {
     if (!mFunctionList || !mFunctionList->C_FindObjectsInit) {
         LOG_ERR() << "C_FindObjectsInit failed. Library is not initialized.";
@@ -800,7 +800,7 @@ Error SessionContext::FindObjectsInit(const Array<ObjectAttribute>& templ)
     return ErrorEnum::eNone;
 }
 
-Error SessionContext::FindObjects(Array<ObjectHandle>& objects)
+Error SessionContext::FindObjects(Array<ObjectHandle>& objects) const
 {
     if (!mFunctionList || !mFunctionList->C_FindObjects) {
         LOG_ERR() << "C_FindObjects failed. Library is not initialized.";
@@ -836,7 +836,7 @@ Error SessionContext::FindObjects(Array<ObjectHandle>& objects)
     return ErrorEnum::eFailed;
 }
 
-Error SessionContext::FindObjectsFinal()
+Error SessionContext::FindObjectsFinal() const
 {
     if (!mFunctionList || !mFunctionList->C_FindObjectsFinal) {
         LOG_ERR() << "C_FindObjectsFinal failed. Library is not initialized.";
