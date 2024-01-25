@@ -271,6 +271,20 @@ public:
         return otherKey.mN == mN && otherKey.mE == mE;
     }
 
+    /**
+     * Returns RSA public modulus.
+     *
+     * @return const Array<uint8_t>&.
+     */
+    const Array<uint8_t>& GetN() const { return mN; }
+
+    /**
+     * Returns RSA public exponent.
+     *
+     * @return const Array<uint8_t>&.
+     */
+    const Array<uint8_t>& GetE() const { return mE; }
+
 private:
     StaticArray<uint8_t, cRSAModulusSize>     mN;
     StaticArray<uint8_t, cRSAPubExponentSize> mE;
@@ -316,6 +330,20 @@ public:
 
         return otherKey.mECParamsOID == mECParamsOID && otherKey.mECPoint == mECPoint;
     }
+
+    /**
+     * Returns ECDSA params OID.
+     *
+     * @return const Array<uint8_t>&.
+     */
+    const Array<uint8_t>& GetECParamsOID() const { return mECParamsOID; }
+
+    /**
+     * Returns ECDSA point.
+     *
+     * @return const Array<uint8_t>&.
+     */
+    const Array<uint8_t>& GetECPoint() const { return mECPoint; }
 
 private:
     StaticArray<uint8_t, cECDSAParamsOIDSize> mECParamsOID;
