@@ -34,7 +34,7 @@ const crypto::PublicKeyItf& PKCS11RSAPrivateKey::GetPublic() const
 }
 
 Error PKCS11RSAPrivateKey::Sign(
-    const Array<uint8_t>& digest, const crypto::SignOptions& options, Array<uint8_t>& signature)
+    const Array<uint8_t>& digest, const crypto::SignOptions& options, Array<uint8_t>& signature) const
 {
     auto t = MakeUnique<StaticArray<uint8_t, crypto::cSHA2DigestSize + cMaxPrefixSize>>(&mAllocator);
 
@@ -46,7 +46,7 @@ Error PKCS11RSAPrivateKey::Sign(
     return mSession.Sign(&mechanism, mPrivKeyHandle, *t, signature);
 }
 
-Error PKCS11RSAPrivateKey::Decrypt(const Array<uint8_t>& cipher, Array<uint8_t>& result)
+Error PKCS11RSAPrivateKey::Decrypt(const Array<uint8_t>& cipher, Array<uint8_t>& result) const
 {
     CK_MECHANISM mechanism = {CKM_RSA_PKCS, nullptr, 0};
 
@@ -91,7 +91,7 @@ const crypto::PublicKeyItf& PKCS11ECDSAPrivateKey::GetPublic() const
 }
 
 Error PKCS11ECDSAPrivateKey::Sign(
-    const Array<uint8_t>& digest, const crypto::SignOptions& options, Array<uint8_t>& signature)
+    const Array<uint8_t>& digest, const crypto::SignOptions& options, Array<uint8_t>& signature) const
 {
     (void)options;
 
@@ -113,7 +113,7 @@ Error PKCS11ECDSAPrivateKey::Sign(
     return MarshalECDSASignature(*r, *s, signature);
 }
 
-Error PKCS11ECDSAPrivateKey::ParseECDSASignature(const Array<uint8_t>& src, Array<uint8_t>& r, Array<uint8_t>& s)
+Error PKCS11ECDSAPrivateKey::ParseECDSASignature(const Array<uint8_t>& src, Array<uint8_t>& r, Array<uint8_t>& s) const
 {
     auto size = src.Size();
     if (size % 2 == 1 || size == 0) {
@@ -134,7 +134,7 @@ Error PKCS11ECDSAPrivateKey::ParseECDSASignature(const Array<uint8_t>& src, Arra
 }
 
 Error PKCS11ECDSAPrivateKey::MarshalECDSASignature(
-    const Array<uint8_t>& r, const Array<uint8_t>& s, Array<uint8_t>& signature)
+    const Array<uint8_t>& r, const Array<uint8_t>& s, Array<uint8_t>& signature) const
 {
     auto encR = MakeUnique<StaticArray<uint8_t, crypto::cSignatureSize / 2>>(&mAllocator);
     auto encS = MakeUnique<StaticArray<uint8_t, crypto::cSignatureSize / 2>>(&mAllocator);

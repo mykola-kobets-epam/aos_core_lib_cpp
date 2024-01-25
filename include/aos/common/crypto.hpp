@@ -191,7 +191,7 @@ public:
      * @param[out] signature result signature.
      * @return Error.
      */
-    virtual Error Sign(const Array<uint8_t>& digest, const SignOptions& options, Array<uint8_t>& signature) = 0;
+    virtual Error Sign(const Array<uint8_t>& digest, const SignOptions& options, Array<uint8_t>& signature) const = 0;
 
     /**
      * Decrypts a cipher message.
@@ -200,7 +200,7 @@ public:
      * @param[out] result decoded message.
      * @return Error.
      */
-    virtual Error Decrypt(const Array<uint8_t>& cipher, Array<uint8_t>& result) = 0;
+    virtual Error Decrypt(const Array<uint8_t>& cipher, Array<uint8_t>& result) const = 0;
 
     /**
      * Destroys object instance.

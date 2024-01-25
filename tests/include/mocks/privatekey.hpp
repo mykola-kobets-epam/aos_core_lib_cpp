@@ -43,7 +43,7 @@ public:
      * @param[out] signature result signature.
      * @return Error.
      */
-    Error Sign(const Array<uint8_t>& digest, const SignOptions& options, Array<uint8_t>& signature) override
+    Error Sign(const Array<uint8_t>& digest, const SignOptions& options, Array<uint8_t>& signature) const override
     {
         (void)digest;
         (void)options;
@@ -59,7 +59,7 @@ public:
      * @param[out] result decoded message.
      * @return Error.
      */
-    Error Decrypt(const Array<uint8_t>& cipher, Array<uint8_t>& result) override
+    Error Decrypt(const Array<uint8_t>& cipher, Array<uint8_t>& result) const override
     {
         (void)cipher;
         (void)result;

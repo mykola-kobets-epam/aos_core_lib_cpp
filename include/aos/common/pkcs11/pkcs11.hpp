@@ -373,7 +373,8 @@ public:
      * @param[out] values result attribute values.
      * @return Error.
      */
-    Error GetAttributeValues(ObjectHandle handle, const Array<AttributeType>& types, Array<Array<uint8_t>>& values);
+    Error GetAttributeValues(
+        ObjectHandle handle, const Array<AttributeType>& types, Array<Array<uint8_t>>& values) const;
 
     /**
      * Searches for token and session objects that match a template.
@@ -382,7 +383,7 @@ public:
      * @param[out] objects result object handles.
      * @return Error.
      */
-    Error FindObjects(const Array<ObjectAttribute>& templ, Array<ObjectHandle>& objects);
+    Error FindObjects(const Array<ObjectAttribute>& templ, Array<ObjectHandle>& objects) const;
 
     /**
      * Creates a new object.
@@ -409,7 +410,8 @@ public:
      * @param signature result signature.
      * @return Error.
      */
-    Error Sign(CK_MECHANISM_PTR mechanism, ObjectHandle privKey, const Array<uint8_t>& data, Array<uint8_t>& signature);
+    Error Sign(
+        CK_MECHANISM_PTR mechanism, ObjectHandle privKey, const Array<uint8_t>& data, Array<uint8_t>& signature) const;
 
     /**
      * Decrypts input data.
@@ -420,7 +422,8 @@ public:
      * @param result decrypted data.
      * @return Error.
      */
-    Error Decrypt(CK_MECHANISM_PTR mechanism, ObjectHandle privKey, const Array<uint8_t>& data, Array<uint8_t>& result);
+    Error Decrypt(
+        CK_MECHANISM_PTR mechanism, ObjectHandle privKey, const Array<uint8_t>& data, Array<uint8_t>& result) const;
 
     /**
      * Returns session handle.
@@ -442,15 +445,15 @@ public:
     ~SessionContext();
 
 private:
-    Error SignInit(CK_MECHANISM_PTR mechanism, ObjectHandle privKey);
-    Error Sign(const Array<uint8_t>& data, CK_BYTE_PTR signature, CK_ULONG_PTR signSize);
+    Error SignInit(CK_MECHANISM_PTR mechanism, ObjectHandle privKey) const;
+    Error Sign(const Array<uint8_t>& data, CK_BYTE_PTR signature, CK_ULONG_PTR signSize) const;
 
-    Error DecryptInit(CK_MECHANISM_PTR mechanism, ObjectHandle privKey);
-    Error Decrypt(const Array<uint8_t>& data, CK_BYTE_PTR result, CK_ULONG_PTR resultSize);
+    Error DecryptInit(CK_MECHANISM_PTR mechanism, ObjectHandle privKey) const;
+    Error Decrypt(const Array<uint8_t>& data, CK_BYTE_PTR result, CK_ULONG_PTR resultSize) const;
 
-    Error FindObjectsInit(const Array<ObjectAttribute>& templ);
-    Error FindObjects(Array<ObjectHandle>& objects);
-    Error FindObjectsFinal();
+    Error FindObjectsInit(const Array<ObjectAttribute>& templ) const;
+    Error FindObjects(Array<ObjectHandle>& objects) const;
+    Error FindObjectsFinal() const;
 
     SessionHandle        mHandle;
     CK_FUNCTION_LIST_PTR mFunctionList;
