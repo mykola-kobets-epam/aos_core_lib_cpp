@@ -24,6 +24,7 @@ set(SOURCES
     src/tools/queue_test.cpp
     src/tools/thread_test.cpp
     src/tools/time_test.cpp
+    src/tools/string_test.cpp
     src/pkcs11/pkcs11_test.cpp
     src/monitoring_test.cpp
     src/types_test.cpp

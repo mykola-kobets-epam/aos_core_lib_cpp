@@ -422,6 +422,48 @@ public:
     }
 
     /**
+     * Looks for a substring in the current string and returns its starting position.
+     * If substring is not found returns an error and index to the end of the string.
+     *
+     * @param startPos starting position for search.
+     * @param substr substring to search.
+     * @return RetWithError<size_t>.
+     */
+    RetWithError<size_t> FindSubstr(size_t startPos, const String& substr) const
+    {
+        for (size_t i = startPos; i < Size() - substr.Size(); i++) {
+            const auto chunk = Array<char>(CStr() + i, substr.Size());
+
+            if (chunk == substr) {
+                return {i, ErrorEnum::eNone};
+            }
+        }
+
+        return {Size(), ErrorEnum::eNotFound};
+    }
+
+    /**
+     * Looks for any character from the symbol list and returns its position.
+     * If character is not found returns an error and index to the end of the string.
+     *
+     * @param startPos starting position for search.
+     * @param symbols symbols to search.
+     * @return RetWithError<size_t>.
+     */
+    RetWithError<size_t> FindAny(size_t startPos, const String& symbols) const
+    {
+        for (size_t i = startPos; i < Size(); i++) {
+            for (const auto ch : symbols) {
+                if (ch == (*this)[i]) {
+                    return {i, ErrorEnum::eNone};
+                }
+            }
+        }
+
+        return {Size(), ErrorEnum::eNotFound};
+    }
+
+    /**
      * Executes search by specified regex string and returns match by its number.
      *
      * @tparam cMatchInd specifies index of the match to be returned.
