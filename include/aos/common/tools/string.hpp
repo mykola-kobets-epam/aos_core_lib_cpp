@@ -12,7 +12,6 @@
 
 #include <ctype.h>
 #include <inttypes.h>
-#include <regex.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -461,46 +460,6 @@ public:
         }
 
         return {Size(), ErrorEnum::eNotFound};
-    }
-
-    /**
-     * Executes search by specified regex string and returns match by its number.
-     *
-     * @tparam cMatchInd specifies index of the match to be returned.
-     * @param regex POSIX extended regular expression.
-     * @param[out] match result match.
-     * @return Error.
-     */
-    template <int cMatchInd>
-    Error Search(const String& regex, String& match) const
-    {
-        regex_t    r;
-        regmatch_t matches[cMatchInd + 1];
-
-        int ret = regcomp(&r, regex.CStr(), REG_EXTENDED);
-        if (ret != 0) {
-            return ErrorEnum::eInvalidArgument;
-        }
-
-        ret = regexec(&r, CStr(), cMatchInd + 1, matches, 0);
-        if (ret != 0) {
-            return ErrorEnum::eNotFound;
-        }
-
-        if (matches[cMatchInd].rm_so == -1) {
-            return ErrorEnum::eNotFound;
-        }
-
-        match.Clear();
-
-        Error err = match.Insert(match.end(), CStr() + matches[cMatchInd].rm_so, CStr() + matches[cMatchInd].rm_eo);
-        if (!err.IsNone()) {
-            return err;
-        }
-
-        *match.end() = 0;
-
-        return ErrorEnum::eNone;
     }
 
 private:
