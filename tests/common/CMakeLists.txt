@@ -29,6 +29,7 @@ set(SOURCES
     src/monitoring_test.cpp
     src/types_test.cpp
     src/uuid_test.cpp
+    src/cryptoutils_test.cpp
     ${CMAKE_SOURCE_DIR}/src/common/monitoring/monitoring.cpp
     src/crypto_test.cpp
 )
