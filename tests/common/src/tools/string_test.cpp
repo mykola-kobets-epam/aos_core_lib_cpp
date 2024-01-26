@@ -247,3 +247,53 @@ TEST(StringTest, Remove)
     ASSERT_TRUE(str3.Remove(str3.begin() + 14, str3.end()).IsNone());
     ASSERT_EQ(str3, expected);
 }
+
+TEST(StringTest, FindSubstr)
+{
+    StaticString<100> str = "Hello World!";
+    Error             err = ErrorEnum::eNone;
+    size_t            pos = 0;
+
+    Tie(pos, err) = str.FindSubstr(0, "World");
+    ASSERT_TRUE(err.IsNone());
+    EXPECT_EQ(pos, 6);
+
+    Tie(pos, err) = str.FindSubstr(5, "World");
+    ASSERT_TRUE(err.IsNone());
+    EXPECT_EQ(pos, 6);
+
+    Tie(pos, err) = str.FindSubstr(6, "World");
+    ASSERT_TRUE(err.IsNone());
+    EXPECT_EQ(pos, 6);
+
+    Tie(pos, err) = str.FindSubstr(7, "World");
+    ASSERT_FALSE(err.IsNone());
+    EXPECT_EQ(pos, str.Size());
+}
+
+TEST(StringTest, FindAny)
+{
+    StaticString<100> str = "Hello World!";
+    Error             err = ErrorEnum::eNone;
+    size_t            pos = 0;
+
+    Tie(pos, err) = str.FindAny(0, "!W");
+    ASSERT_TRUE(err.IsNone());
+    EXPECT_EQ(pos, 6);
+
+    Tie(pos, err) = str.FindAny(5, "!W");
+    ASSERT_TRUE(err.IsNone());
+    EXPECT_EQ(pos, 6);
+
+    Tie(pos, err) = str.FindAny(6, "!W");
+    ASSERT_TRUE(err.IsNone());
+    EXPECT_EQ(pos, 6);
+
+    Tie(pos, err) = str.FindAny(7, "!W");
+    ASSERT_TRUE(err.IsNone());
+    EXPECT_EQ(pos, 11);
+
+    Tie(pos, err) = str.FindAny(0, "a");
+    ASSERT_FALSE(err.IsNone());
+    EXPECT_EQ(pos, str.Size());
+}
