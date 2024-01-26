@@ -210,27 +210,6 @@ TEST(StringTest, Format)
     ASSERT_EQ(str, "id: 10");
 }
 
-TEST(StringTest, Search)
-{
-    StaticString<40> str = "pkcs11:object=10;id=40";
-
-    StaticString<20> object;
-    StaticString<20> id;
-
-    const char* regex = ".*object=([0-9]+).*id=([0-9]+)";
-
-    ASSERT_TRUE(str.Search<1>(regex, object).IsNone());
-    EXPECT_EQ(object, "10");
-
-    ASSERT_TRUE(str.Search<2>(regex, id).IsNone());
-    EXPECT_EQ(id, "40");
-
-    ASSERT_EQ(str.Search<3>(regex, id), ErrorEnum::eNotFound);
-
-    StaticString<1> smallId;
-    ASSERT_EQ(str.Search<2>(regex, smallId), ErrorEnum::eNoMemory);
-}
-
 TEST(StringTest, Remove)
 {
     const auto expected = "Thank you, sir";

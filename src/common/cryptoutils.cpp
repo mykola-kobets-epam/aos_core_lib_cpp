@@ -206,12 +206,47 @@ RetWithError<SharedPtr<crypto::PrivateKeyItf>> CertLoader::LoadPrivKeyFromFile(c
 }
 
 /***********************************************************************************************************************
+ * Private
+ **********************************************************************************************************************/
+
+Error FindUrlParam(const String& url, const String& paramName, String& paramValue)
+{
+    Error  err   = ErrorEnum::eNone;
+    size_t start = 0, end = 0;
+
+    Tie(start, err) = url.FindSubstr(0, paramName);
+
+    if (!err.IsNone()) {
+        return ErrorEnum::eNone;
+    }
+
+    start += paramName.Size() + 1; // skip paramName=
+
+    Tie(end, err) = url.FindAny(start, ";&?");
+
+    paramValue.Clear();
+
+    return paramValue.Insert(paramValue.end(), url.Get() + start, url.Get() + end);
+}
+
+/***********************************************************************************************************************
  * ParseURLScheme
  **********************************************************************************************************************/
 
 Error ParseURLScheme(const String& url, String& scheme)
 {
-    return url.Search<1>("^(.*)://", scheme);
+    Error  err = ErrorEnum::eNone;
+    size_t pos = 0;
+
+    Tie(pos, err) = url.FindSubstr(0, ":");
+
+    if (!err.IsNone()) {
+        return err;
+    }
+
+    scheme.Clear();
+
+    return scheme.Insert(scheme.end(), url.CStr(), url.CStr() + pos);
 }
 
 /***********************************************************************************************************************
@@ -229,7 +264,7 @@ Error ParseFileURL(const String& url, String& path)
 
     path.Clear();
 
-    return path.Insert(path.begin(), url.begin() + scheme.Size() + String("://").Size(), url.end());
+    return path.Insert(path.begin(), url.begin() + scheme.Size() + String(":").Size(), url.end());
 }
 
 /***********************************************************************************************************************
@@ -246,24 +281,24 @@ Error ParsePKCS11URL(
         return ErrorEnum::eFailed;
     }
 
-    err = url.Search<1>("module\\-path=([^;&]*)", library);
+    err = FindUrlParam(url, "module-path", library);
     if (!err.IsNone() && !err.Is(ErrorEnum::eNotFound)) {
         return AOS_ERROR_WRAP(err);
     }
 
-    err = url.Search<1>("token=([^;&]*)", token);
+    err = FindUrlParam(url, "token", token);
     if (!err.IsNone() && !err.Is(ErrorEnum::eNotFound)) {
         return AOS_ERROR_WRAP(err);
     }
 
-    err = url.Search<1>("object=([^;&]*)", label);
+    err = FindUrlParam(url, "object", label);
     if (!err.IsNone()) {
         return AOS_ERROR_WRAP(err);
     }
 
     StaticString<uuid::cUUIDStrLen> uuid;
 
-    err = url.Search<1>("id=([^;&]*)", uuid);
+    err = FindUrlParam(url, "id", uuid);
     if (!err.IsNone()) {
         return AOS_ERROR_WRAP(err);
     }
@@ -273,7 +308,7 @@ Error ParsePKCS11URL(
         return AOS_ERROR_WRAP(err);
     }
 
-    err = url.Search<1>("pin\\-value=([^;&]*)", userPin);
+    err = FindUrlParam(url, "pin-value", userPin);
     if (!err.IsNone() && !err.Is(ErrorEnum::eNotFound)) {
         return AOS_ERROR_WRAP(err);
     }
