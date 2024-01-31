@@ -249,15 +249,17 @@ aos::RetWithError<psa_key_id_t> AosPsaAddKey(const aos::crypto::PrivateKeyItf& m
 
 void AosPsaRemoveKey(psa_key_id_t keyId)
 {
-    aos::LockGuard lock(sMutex);
+    aos::UniqueLock lock(sMutex);
 
     for (auto& key : sBuiltinKeys) {
         if (key.mKeyId == keyId) {
             sBuiltinKeys.Remove(&key);
 
+            lock.Unlock();
+
             psa_destroy_key(MBEDTLS_SVC_KEY_ID_GET_KEY_ID(keyId));
 
-            break;
+            return;
         }
     }
 }
