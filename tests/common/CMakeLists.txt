@@ -16,7 +16,6 @@ set(SOURCES
     src/crypto_test.cpp
     src/cryptoutils_test.cpp
     src/monitoring_test.cpp
-    src/pkcs11/pkcs11_test.cpp
     src/tools/allocator_test.cpp
     src/tools/array_test.cpp
     src/tools/buffer_test.cpp
@@ -41,36 +40,10 @@ set(SOURCES
 add_definitions(-DAOS_CONFIG_MONITORING_SEND_PERIOD_SEC=2 -DAOS_CONFIG_MONITORING_POLL_PERIOD_SEC=1)
 
 # ######################################################################################################################
-# Setup SoftHSM2
+# Add subdirectories
 # ######################################################################################################################
 
-find_library(
-    SOFTHSM2_LIB
-    NAMES softhsm2
-    PATH_SUFFIXES softhsm
-)
-
-if(NOT SOFTHSM2_LIB)
-    message(FATAL_ERROR "softhsm2 library not found")
-endif()
-
-set(SOFTHSM_BASE ${CMAKE_CURRENT_BINARY_DIR}/softhsm)
-
-file(MAKE_DIRECTORY ${SOFTHSM_BASE}/tokens/)
-
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/pkcs11/softhsm2.conf ${SOFTHSM_BASE}/softhsm2.conf COPYONLY)
-file(APPEND ${SOFTHSM_BASE}/softhsm2.conf "directories.tokendir = ${SOFTHSM_BASE}/tokens/\n")
-
-add_definitions(-DSOFTHSM2_CONF="${SOFTHSM_BASE}/softhsm2.conf" -DSOFTHSM2_LIB="${SOFTHSM2_LIB}")
-
-# ######################################################################################################################
-# Setup PKCS11 test certificates
-# ######################################################################################################################
-
-configure_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/pkcs11/pkcs11cert.der ${CMAKE_CURRENT_BINARY_DIR}/pkcs11cert.der COPYONLY
-)
-add_definitions(-DPKCS11_TESTCERT="${CMAKE_CURRENT_BINARY_DIR}/pkcs11cert.der")
+add_subdirectory(src/pkcs11)
 
 # ######################################################################################################################
 # Test
