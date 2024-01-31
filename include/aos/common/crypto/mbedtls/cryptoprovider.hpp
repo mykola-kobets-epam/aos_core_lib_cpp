@@ -133,7 +133,8 @@ public:
 private:
     aos::Error ParseX509Certs(mbedtls_x509_crt* currentCrt, aos::crypto::x509::Certificate& cert);
     aos::Error GetX509CertExtensions(aos::crypto::x509::Certificate& cert, mbedtls_x509_crt* crt);
-    void       GetX509CertData(aos::crypto::x509::Certificate& cert, mbedtls_x509_crt* crt);
+    aos::Error GetX509CertData(aos::crypto::x509::Certificate& cert, mbedtls_x509_crt* crt);
+    aos::Error ConvertTime(const mbedtls_x509_time& src, aos::Time& dst);
 
     void       InitializeCSR(mbedtls_x509write_csr& csr, mbedtls_pk_context& pk);
     aos::Error SetCSRProperties(

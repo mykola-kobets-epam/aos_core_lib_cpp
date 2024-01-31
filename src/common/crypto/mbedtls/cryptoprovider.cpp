@@ -387,26 +387,86 @@ aos::Error MbedTLSCryptoProvider::ASN1EncodeDERSequence(
 
 aos::Error MbedTLSCryptoProvider::ParseX509Certs(mbedtls_x509_crt* currentCrt, aos::crypto::x509::Certificate& cert)
 {
-    GetX509CertData(cert, currentCrt);
+    auto err = GetX509CertData(cert, currentCrt);
+    if (!err.IsNone()) {
+        return err;
+    }
 
     return GetX509CertExtensions(cert, currentCrt);
 }
 
-void MbedTLSCryptoProvider::GetX509CertData(aos::crypto::x509::Certificate& cert, mbedtls_x509_crt* crt)
+Error MbedTLSCryptoProvider::GetX509CertData(aos::crypto::x509::Certificate& cert, mbedtls_x509_crt* crt)
 {
-    cert.mSubject.Resize(crt->subject_raw.len);
+    auto err = cert.mSubject.Resize(crt->subject_raw.len);
+    if (!err.IsNone()) {
+        return err;
+    }
+
     memcpy(cert.mSubject.Get(), crt->subject_raw.p, crt->subject_raw.len);
 
-    cert.mIssuer.Resize(crt->issuer_raw.len);
+    err = cert.mIssuer.Resize(crt->issuer_raw.len);
+    if (!err.IsNone()) {
+        return err;
+    }
+
     memcpy(cert.mIssuer.Get(), crt->issuer_raw.p, crt->issuer_raw.len);
 
-    cert.mSerial.Resize(crt->serial.len);
+    err = cert.mSerial.Resize(crt->serial.len);
+    if (!err.IsNone()) {
+        return err;
+    }
+
     memcpy(cert.mSerial.Get(), crt->serial.p, crt->serial.len);
+
+    err = ConvertTime(crt->valid_from, cert.mNotBefore);
+    if (!err.IsNone()) {
+        return err;
+    }
+
+    err = ConvertTime(crt->valid_to, cert.mNotAfter);
+    if (!err.IsNone()) {
+        return err;
+    }
+
+    err = cert.mRaw.Resize(crt->raw.len);
+    if (!err.IsNone()) {
+        return err;
+    }
+
+    memcpy(cert.mRaw.Get(), crt->raw.p, crt->raw.len);
+
+    return aos::ErrorEnum::eNone;
+}
+
+aos::Error MbedTLSCryptoProvider::ConvertTime(const mbedtls_x509_time& src, aos::Time& dst)
+{
+    tm tmp;
+
+    tmp.tm_year = src.year - 1900;
+    tmp.tm_mon  = src.mon - 1;
+    tmp.tm_mday = src.day;
+    tmp.tm_hour = src.hour;
+    tmp.tm_min  = src.min;
+    tmp.tm_sec  = src.sec;
+
+    auto seconds = timegm(&tmp);
+    if (seconds < 0) {
+        return aos::ErrorEnum::eNone;
+    }
+
+    dst = Time::Unix(seconds, 0);
+
+    return ErrorEnum::eNone;
 }
 
 aos::Error MbedTLSCryptoProvider::GetX509CertExtensions(aos::crypto::x509::Certificate& cert, mbedtls_x509_crt* crt)
 {
-    mbedtls_asn1_buf      buf = crt->v3_ext;
+    mbedtls_asn1_buf buf = crt->v3_ext;
+
+    if (buf.len == 0) {
+        return ErrorEnum::eNone;
+    }
+
     mbedtls_asn1_sequence extns;
 
     auto ret = mbedtls_asn1_get_sequence_of(
@@ -674,6 +734,11 @@ aos::Error MbedTLSCryptoProvider::SetCertificateSerialNumber(
 
         auto ret
             = mbedtls_mpi_fill_random(&serial, MBEDTLS_X509_RFC5280_MAX_SERIAL_LEN, mbedtls_ctr_drbg_random, &ctrDrbg);
+        if (ret != 0) {
+            return AOS_ERROR_WRAP(ret);
+        }
+
+        ret = mbedtls_mpi_shift_r(&serial, 1);
         if (ret != 0) {
             return AOS_ERROR_WRAP(ret);
         }
