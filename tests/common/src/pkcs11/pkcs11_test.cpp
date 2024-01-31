@@ -428,5 +428,51 @@ TEST_F(PKCS11Test, GenPIN)
     }
 }
 
+TEST_F(PKCS11Test, FindCertificateChain)
+{
+    Error                     err = ErrorEnum::eNone;
+    UniquePtr<SessionContext> session;
+
+    Tie(session, err) = OpenUserSession(true);
+    ASSERT_TRUE(err.IsNone());
+
+    // create ids
+    uuid::UUID caId, clientId;
+
+    Tie(caId, err) = uuid::StringToUUID("08080808-0404-0404-0404-121212121212");
+    ASSERT_TRUE(err.IsNone());
+
+    Tie(clientId, err) = uuid::StringToUUID("00000000-0404-0404-0404-121212121212");
+    ASSERT_TRUE(err.IsNone());
+
+    // read certificates
+    StaticArray<uint8_t, crypto::cCertDERSize> derBlob;
+    crypto::x509::Certificate                  caCert, clientCert;
+
+    ASSERT_TRUE(ReadFile(WORK_DIR "/certificates/ca.cer.der", derBlob).IsNone());
+    ASSERT_TRUE(mCryptoProvider.DERToX509Cert(derBlob, caCert).IsNone());
+
+    ASSERT_TRUE(ReadFile(WORK_DIR "/certificates/client.cer.der", derBlob).IsNone());
+    ASSERT_TRUE(mCryptoProvider.DERToX509Cert(derBlob, clientCert).IsNone());
+
+    // import certificates
+    ASSERT_TRUE(Utils(*session, mCryptoProvider, mAllocator).ImportCertificate(caId, mLabel, caCert).IsNone());
+    ASSERT_TRUE(Utils(*session, mCryptoProvider, mAllocator).ImportCertificate(clientId, mLabel, clientCert).IsNone());
+
+    // find two certificate chain
+    SharedPtr<crypto::x509::CertificateChain> chain;
+
+    Tie(chain, err) = Utils(*session, mCryptoProvider, mAllocator).FindCertificateChain(clientId, mLabel);
+
+    ASSERT_TRUE(err.IsNone());
+    ASSERT_TRUE(chain);
+
+    ASSERT_EQ(chain->Size(), 2);
+    ASSERT_EQ((*chain)[0].mSubject, clientCert.mSubject);
+    ASSERT_EQ((*chain)[0].mIssuer, clientCert.mIssuer);
+    ASSERT_EQ((*chain)[1].mSubject, caCert.mSubject);
+    ASSERT_EQ((*chain)[1].mIssuer, caCert.mIssuer);
+}
+
 } // namespace pkcs11
 } // namespace aos
