@@ -248,6 +248,13 @@
 #endif
 
 /**
+ * Maximum size of serial number encoded in DER format(in bytes).
+ */
+#ifndef AOS_CONFIG_CRYPTO_SERIAL_NUM_DER_SIZE
+#define AOS_CONFIG_CRYPTO_SERIAL_NUM_DER_SIZE AOS_CONFIG_CRYPTO_SERIAL_NUM_SIZE + 3;
+#endif
+
+/**
  * Subject common name length.
  */
 #ifndef AOS_CONFIG_CRYPTO_SUBJECT_COMMON_NAME_LEN

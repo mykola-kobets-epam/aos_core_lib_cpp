@@ -1102,7 +1102,7 @@ Error Utils::ImportCertificate(const Array<uint8_t>& id, const String& label, co
     CK_BBOOL            trueVal      = CK_TRUE;
     CK_BBOOL            falseVal     = CK_FALSE;
 
-    StaticArray<uint8_t, crypto::cSerialNumSize> serialNum;
+    StaticArray<uint8_t, crypto::cSerialNumDERSize> serialNum;
 
     auto err = mCryptoProvider.ASN1EncodeBigInt(cert.mSerial, serialNum);
     if (!err.IsNone()) {
@@ -1136,8 +1136,8 @@ RetWithError<bool> Utils::HasCertificate(const Array<uint8_t>& issuer, const Arr
 {
     static constexpr auto cSingleObject = 1;
 
-    CK_OBJECT_CLASS                              certClass = CKO_CERTIFICATE;
-    StaticArray<uint8_t, crypto::cSerialNumSize> asn1SerialNum;
+    CK_OBJECT_CLASS                                 certClass = CKO_CERTIFICATE;
+    StaticArray<uint8_t, crypto::cSerialNumDERSize> asn1SerialNum;
 
     auto err = mCryptoProvider.ASN1EncodeBigInt(serialNumber, asn1SerialNum);
     if (!err.IsNone()) {
@@ -1182,12 +1182,15 @@ RetWithError<SharedPtr<crypto::x509::CertificateChain>> Utils::FindCertificateCh
         return {nullptr, err};
     }
 
-    err = FindCertificateChain(*certificate, *chain);
+    err = chain->PushBack(*certificate);
     if (!err.IsNone()) {
         return {nullptr, err};
     }
 
-    err = chain->Insert(chain->begin(), certificate.Get(), certificate.Get() + 1);
+    err = FindCertificateChain(*certificate, *chain);
+    if (!err.IsNone()) {
+        return {nullptr, err};
+    }
 
     return {chain, err};
 }
@@ -1314,7 +1317,7 @@ Error Utils::FindCertificateChain(const crypto::x509::Certificate& certificate, 
     auto err = mSession.FindObjects(certTempl, handles);
     if (err.IsNone()) {
         Tie(foundCert, err) = GetCertificate(handles[0]);
-    } else if (err == ErrorEnum::eNotFound) {
+    } else if (err == ErrorEnum::eNotFound && !certificate.mAuthorityKeyId.IsEmpty()) {
         Tie(foundCert, err) = FindCertificateByKeyID(certificate.mAuthorityKeyId);
     } else {
         return err;
@@ -1324,8 +1327,8 @@ Error Utils::FindCertificateChain(const crypto::x509::Certificate& certificate, 
         return err;
     }
 
-    for (auto cur : chain) {
-        if (cur.mSubject == certificate.mSubject) {
+    for (const auto& cur : chain) {
+        if (cur.mSubject == foundCert->mSubject) {
             return ErrorEnum::eNone;
         }
     }
@@ -1371,9 +1374,10 @@ RetWithError<SharedPtr<crypto::x509::Certificate>> Utils::FindCertificateByKeyID
 RetWithError<SharedPtr<crypto::x509::Certificate>> Utils::GetCertificate(ObjectHandle handle)
 {
     auto certificate = MakeShared<crypto::x509::Certificate>(&mAllocator);
-
     StaticArray<Array<uint8_t>, cObjectAttributesCount> attrValues;
     StaticArray<AttributeType, cObjectAttributesCount>  attrTypes;
+
+    certificate->mRaw.Resize(certificate->mRaw.MaxSize());
 
     attrTypes.PushBack(CKA_VALUE);
     attrValues.PushBack(certificate->mRaw);
@@ -1382,6 +1386,8 @@ RetWithError<SharedPtr<crypto::x509::Certificate>> Utils::GetCertificate(ObjectH
     if (!err.IsNone()) {
         return {nullptr, err};
     }
+
+    certificate->mRaw.Resize(attrValues[0].Size());
 
     err = mCryptoProvider.DERToX509Cert(certificate->mRaw, *certificate);
 
