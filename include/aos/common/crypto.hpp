@@ -181,11 +181,11 @@ public:
  */
 class HashType {
 public:
-    enum class Enum { eSHA1, eSHA224, eSHA256, eSHA384, eSHA512 };
+    enum class Enum { eNone, eSHA1, eSHA224, eSHA256, eSHA384, eSHA512 };
 
     static const Array<const char* const> GetStrings()
     {
-        static const char* const sContentTypeStrings[] = {"SHA1", "SHA224", "SHA256", "SHA384", "SHA512"};
+        static const char* const sContentTypeStrings[] = {"NONE", "SHA1", "SHA224", "SHA256", "SHA384", "SHA512"};
         return Array<const char* const>(sContentTypeStrings, ArraySize(sContentTypeStrings));
     };
 };
