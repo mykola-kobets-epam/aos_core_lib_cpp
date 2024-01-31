@@ -62,7 +62,7 @@ static int ASN1EncodeObjectIds(const Array<asn1::ObjectIdentifier>& oids, unsign
 
         mbedtls_asn1_buf resOID = {};
 
-        auto ret = mbedtls_oid_from_numeric_string(&resOID, oid.Get(), oid.Size());
+        ret = mbedtls_oid_from_numeric_string(&resOID, oid.Get(), oid.Size());
         if (ret != 0) {
             return ret;
         }
