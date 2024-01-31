@@ -8,11 +8,12 @@
 #include <fstream>
 #include <gmock/gmock.h>
 
+#include "aos/common/crypto/mbedtls/cryptoprovider.hpp"
 #include "aos/common/pkcs11/pkcs11.hpp"
 #include "aos/common/pkcs11/privatekey.hpp"
 #include "aos/common/tools/allocator.hpp"
+#include "aos/common/tools/fs.hpp"
 #include "aos/common/uuid.hpp"
-#include "mocks/x509provider.hpp"
 
 #include "../log.hpp"
 
@@ -29,7 +30,7 @@ class PKCS11Test : public Test {
 protected:
     void SetUp() override
     {
-        setenv("SOFTHSM2_CONF", SOFTHSM2_CONF, true);
+        setenv("SOFTHSM2_CONF", WORK_DIR "/softhsm/softhsm2.conf", true);
 
         Log::SetCallback([](LogModule module, LogLevel level, const String& message) {
             static std::mutex           sLogMutex;
@@ -42,8 +43,12 @@ protected:
         mLibrary = mManager.OpenLibrary(SOFTHSM2_LIB);
         ASSERT_TRUE(mLibrary);
 
+        ASSERT_TRUE(mCryptoProvider.Init().IsNone());
+
         InitTestToken();
     }
+
+    void TearDown() override { ASSERT_TRUE(FS::ClearDir(WORK_DIR "/softhsm/tokens").IsNone()); }
 
     static constexpr auto mLabel = "iam pkcs11 test slot";
     static constexpr auto mPIN   = "admin";
@@ -52,12 +57,15 @@ protected:
     RetWithError<SlotID>                    FindTestToken();
     RetWithError<UniquePtr<SessionContext>> OpenUserSession(bool login = true);
 
-    SlotID                     mSlotID = 0;
-    PKCS11Manager              mManager;
-    SharedPtr<LibraryContext>  mLibrary;
-    crypto::x509::MockProvider mX509Provider;
+    SlotID                        mSlotID = 0;
+    PKCS11Manager                 mManager;
+    SharedPtr<LibraryContext>     mLibrary;
+    crypto::MbedTLSCryptoProvider mCryptoProvider;
 
-    StaticAllocator<Max(2 * sizeof(pkcs11::PKCS11RSAPrivateKey), sizeof(pkcs11::PKCS11ECDSAPrivateKey))> mAllocator;
+    StaticAllocator<Max(2 * sizeof(pkcs11::PKCS11RSAPrivateKey), sizeof(pkcs11::PKCS11ECDSAPrivateKey),
+        2 * sizeof(crypto::x509::Certificate) + sizeof(crypto::x509::CertificateChain)
+            + 2 * sizeof(pkcs11::PKCS11RSAPrivateKey))>
+        mAllocator;
 };
 
 void PKCS11Test::InitTestToken()
@@ -134,20 +142,24 @@ RetWithError<UniquePtr<SessionContext>> PKCS11Test::OpenUserSession(bool login)
 
 Error ReadFile(const char* filename, Array<uint8_t>& array)
 {
-    std::ifstream   file(filename, std::ios::binary | std::ios::ate);
+    std::ifstream file(filename, std::ios::binary | std::ios::ate);
+    if (!file) {
+        return ErrorEnum::eFailed;
+    }
+
     std::streamsize size = file.tellg();
     file.seekg(0, std::ios::beg);
 
     Error err = array.Resize(size);
     if (!err.IsNone()) {
-        return ErrorEnum::eNone;
+        return ErrorEnum::eFailed;
     }
 
-    if (file.read(reinterpret_cast<char*>(array.Get()), size)) {
-        return ErrorEnum::eNone;
+    if (!file.read(reinterpret_cast<char*>(array.Get()), size)) {
+        return ErrorEnum::eFailed;
     }
 
-    return ErrorEnum::eFailed;
+    return ErrorEnum::eNone;
 }
 
 /***********************************************************************************************************************
@@ -235,14 +247,14 @@ TEST_F(PKCS11Test, GenerateRSAKeyPairWithLabel)
     ASSERT_TRUE(err.IsNone());
 
     // generate key
-    static const uint8_t uuid[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-
     uuid::UUID id;
-    id.Insert(id.end(), uuid, uuid + sizeof(uuid));
+
+    Tie(id, err) = uuid::StringToUUID("08080808-0404-0404-0404-121212121212");
+    ASSERT_TRUE(err.IsNone());
 
     PrivateKey key;
 
-    Tie(key, err) = Utils(*session1, mX509Provider, mAllocator).GenerateRSAKeyPairWithLabel(id, mLabel, 2048);
+    Tie(key, err) = Utils(*session1, mCryptoProvider, mAllocator).GenerateRSAKeyPairWithLabel(id, mLabel, 2048);
     ASSERT_TRUE(err.IsNone());
 
     // check key exists in a new session
@@ -260,7 +272,7 @@ TEST_F(PKCS11Test, GenerateRSAKeyPairWithLabel)
     ASSERT_THAT(std::vector<ObjectHandle>(objects.begin(), objects.end()), Contains(key.GetPubHandle()));
 
     // remove key
-    err = Utils(*session1, mX509Provider, mAllocator).DeletePrivateKey(key);
+    err = Utils(*session1, mCryptoProvider, mAllocator).DeletePrivateKey(key);
     ASSERT_TRUE(err.IsNone());
 
     // check key doesn't exist anymore
@@ -278,15 +290,15 @@ TEST_F(PKCS11Test, GenerateECDSAKeyPairWithLabel)
     ASSERT_TRUE(err.IsNone());
 
     // generate key
-    static const uint8_t uuid[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-
     uuid::UUID id;
-    id.Insert(id.end(), uuid, uuid + sizeof(uuid));
+
+    Tie(id, err) = uuid::StringToUUID("08080808-0404-0404-0404-121212121212");
+    ASSERT_TRUE(err.IsNone());
 
     PrivateKey key;
 
     Tie(key, err)
-        = Utils(*session1, mX509Provider, mAllocator).GenerateECDSAKeyPairWithLabel(id, mLabel, EllipticCurve::eP384);
+        = Utils(*session1, mCryptoProvider, mAllocator).GenerateECDSAKeyPairWithLabel(id, mLabel, EllipticCurve::eP384);
     ASSERT_TRUE(err.IsNone());
 
     // check key exists in a new session
@@ -304,7 +316,7 @@ TEST_F(PKCS11Test, GenerateECDSAKeyPairWithLabel)
     ASSERT_THAT(std::vector<ObjectHandle>(objects.begin(), objects.end()), Contains(key.GetPubHandle()));
 
     // remove key
-    err = Utils(*session1, mX509Provider, mAllocator).DeletePrivateKey(key);
+    err = Utils(*session1, mCryptoProvider, mAllocator).DeletePrivateKey(key);
     ASSERT_TRUE(err.IsNone());
 
     // check key doesn't exist anymore
@@ -322,19 +334,19 @@ TEST_F(PKCS11Test, FindPrivateKey)
     ASSERT_TRUE(err.IsNone());
 
     // generate key
-    static const uint8_t uuid[] = {'F', 'i', 'n', 'd', 'P', 'r', 'i', 'v', 'K', 'e', 'y'};
-
     uuid::UUID id;
-    id.Insert(id.end(), uuid, uuid + sizeof(uuid));
+
+    Tie(id, err) = uuid::StringToUUID("08080808-0404-0404-0404-121212121212");
+    ASSERT_TRUE(err.IsNone());
 
     PrivateKey key;
 
-    Tie(key, err) = Utils(*session, mX509Provider, mAllocator).GenerateRSAKeyPairWithLabel(id, mLabel, 2048);
+    Tie(key, err) = Utils(*session, mCryptoProvider, mAllocator).GenerateRSAKeyPairWithLabel(id, mLabel, 2048);
     ASSERT_TRUE(err.IsNone());
 
     // find PrivateKey
     PrivateKey foundKey;
-    Tie(foundKey, err) = Utils(*session, mX509Provider, mAllocator).FindPrivateKey(id, mLabel);
+    Tie(foundKey, err) = Utils(*session, mCryptoProvider, mAllocator).FindPrivateKey(id, mLabel);
     ASSERT_TRUE(err.IsNone());
 
     ASSERT_EQ(key.GetPrivHandle(), foundKey.GetPrivHandle());
@@ -342,32 +354,16 @@ TEST_F(PKCS11Test, FindPrivateKey)
     ASSERT_TRUE(key.GetPrivKey()->GetPublic().IsEqual(foundKey.GetPrivKey()->GetPublic()));
 
     // remove key
-    err = Utils(*session, mX509Provider, mAllocator).DeletePrivateKey(key);
+    err = Utils(*session, mCryptoProvider, mAllocator).DeletePrivateKey(key);
     ASSERT_TRUE(err.IsNone());
 
     // check key doesn't exist anymore
-    Tie(foundKey, err) = Utils(*session, mX509Provider, mAllocator).FindPrivateKey(id, mLabel);
+    Tie(foundKey, err) = Utils(*session, mCryptoProvider, mAllocator).FindPrivateKey(id, mLabel);
     ASSERT_EQ(err, ErrorEnum::eNotFound);
 }
 
-//
-// Test certificate generation commands:
-//
-// # non-interactive cert gen with year expiration
-// openssl req -x509 -newkey rsa:2048 -keyout pkcs11key.pem -out pkcs11cert.pem -sha256 -days 365 -nodes -subj
-// "/C=XX/ST=StateName/L=CityName/O=CompanyName/OU=CompanySectionName/CN=CommonNameOrHostname"
-//
-// #convert pem to der
-// openssl rsa -in pkcs11key.pem -outform DER -out pkcs11key.der
-// openssl x509 -outform der -in pkcs11cert.pem -out pkcs11cert.der
-//
-
 TEST_F(PKCS11Test, ImportCertificate)
 {
-    static const uint8_t uuid[]          = {'F', 'i', 'n', 'd', 'P', 'r', 'i', 'v', 'K', 'e', 'y'};
-    static const uint8_t cAosCoreName[]  = {'A', 'o', 's', ' ', 'C', 'o', 'r', 'e'};
-    static const uint8_t cSerialNumber[] = {0, 1, 2, 3, 4, 5, 6, 7};
-
     Error                     err = ErrorEnum::eNone;
     UniquePtr<SessionContext> session;
 
@@ -375,31 +371,34 @@ TEST_F(PKCS11Test, ImportCertificate)
     ASSERT_TRUE(err.IsNone());
 
     // import certificate
-    uuid::UUID                id;
-    crypto::x509::Certificate cert;
+    uuid::UUID id;
 
-    id.Insert(id.end(), uuid, uuid + sizeof(uuid));
+    Tie(id, err) = uuid::StringToUUID("08080808-0404-0404-0404-121212121212");
+    ASSERT_TRUE(err.IsNone());
 
-    cert.mSubject.Insert(cert.mSubject.begin(), cAosCoreName, cAosCoreName + sizeof(cAosCoreName));
-    cert.mIssuer.Insert(cert.mIssuer.begin(), cAosCoreName, cAosCoreName + sizeof(cAosCoreName));
-    cert.mSerial.Insert(cert.mSerial.begin(), cSerialNumber, cSerialNumber + sizeof(cSerialNumber));
-    ASSERT_TRUE(ReadFile(PKCS11_TESTCERT, cert.mRaw).IsNone());
+    StaticArray<uint8_t, crypto::cCertDERSize> derBlob;
+    crypto::x509::Certificate                  caCert;
 
-    ASSERT_TRUE(Utils(*session, mX509Provider, mAllocator).ImportCertificate(id, mLabel, cert).IsNone());
+    ASSERT_TRUE(ReadFile(WORK_DIR "/certificates/ca.cer.der", derBlob).IsNone());
+    ASSERT_TRUE(mCryptoProvider.DERToX509Cert(derBlob, caCert).IsNone());
+
+    ASSERT_TRUE(Utils(*session, mCryptoProvider, mAllocator).ImportCertificate(id, mLabel, caCert).IsNone());
 
     // check certificate exist
     bool hasCertificate = false;
 
-    Tie(hasCertificate, err) = Utils(*session, mX509Provider, mAllocator).HasCertificate(cert.mIssuer, cert.mSerial);
+    Tie(hasCertificate, err)
+        = Utils(*session, mCryptoProvider, mAllocator).HasCertificate(caCert.mIssuer, caCert.mSerial);
     ASSERT_TRUE(err.IsNone());
     ASSERT_TRUE(hasCertificate);
 
     // delete certificate
-    err = Utils(*session, mX509Provider, mAllocator).DeleteCertificate(id, mLabel);
+    err = Utils(*session, mCryptoProvider, mAllocator).DeleteCertificate(id, mLabel);
     ASSERT_TRUE(err.IsNone());
 
     // check certificate doesn't exist
-    Tie(hasCertificate, err) = Utils(*session, mX509Provider, mAllocator).HasCertificate(cert.mIssuer, cert.mSerial);
+    Tie(hasCertificate, err)
+        = Utils(*session, mCryptoProvider, mAllocator).HasCertificate(caCert.mIssuer, caCert.mSerial);
     ASSERT_TRUE(err.IsNone());
     ASSERT_FALSE(hasCertificate);
 }
