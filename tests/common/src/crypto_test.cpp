@@ -758,8 +758,13 @@ TEST(CryptoTest, ASN1EncodeBigInt)
 
     ASSERT_EQ(provider.ASN1EncodeBigInt(inputBigInt, asn1Value), aos::ErrorEnum::eNone);
 
-    std::vector<uint8_t>       actual       = {asn1Value.begin(), asn1Value.end()};
-    const std::vector<uint8_t> expectedASN1 = {0x2, 0x8, 0x17, 0xad, 0x4f, 0x60, 0x5c, 0xda, 0xe7, 0x9e};
+    std::vector<uint8_t> actual = {asn1Value.begin(), asn1Value.end()};
+
+    //  Currently BigInt is stored in a little endian format.
+    //  It might not be correct, comparing to python asn1 encoder(which uses big endian).
+    //  Nevertheless otherwise ECDSA::Sign(PKCS11)/Verify(mbedtls) combination doesn't work.
+    //  A topic for future investigation.
+    const std::vector<uint8_t> expectedASN1 = {0x2, 0x8, 0x9e, 0xe7, 0xda, 0x5c, 0x60, 0x4f, 0xad, 0x17};
 
     EXPECT_THAT(actual, ElementsAreArray(expectedASN1));
 }

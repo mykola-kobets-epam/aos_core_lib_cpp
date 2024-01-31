@@ -22,20 +22,6 @@ namespace crypto {
  * Static
  **********************************************************************************************************************/
 
-static void Reverse(uint8_t* beg, uint8_t* end)
-{
-    end--;
-    while (beg < end) {
-        auto tmp = *beg;
-
-        *beg = *end;
-        *end = tmp;
-
-        beg++;
-        end--;
-    }
-}
-
 static int ASN1EncodeDERSequence(const Array<Array<uint8_t>>& items, unsigned char** p, unsigned char* start)
 {
     size_t len = 0;
@@ -88,8 +74,9 @@ static int ASN1EncodeBigInt(const Array<uint8_t>& number, unsigned char** p, uns
     size_t len = 0;
     int    ret = 0;
 
+    // Implementation currently uses a little endian integer format to make ECDSA::Sign(PKCS11)/Verify(mbedtls)
+    // combination work.
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_raw_buffer(p, start, number.Get(), number.Size()));
-    Reverse(*p, *p + number.Size());
 
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len));
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_INTEGER));
@@ -348,10 +335,6 @@ aos::Error MbedTLSCryptoProvider::ASN1EncodeBigInt(const aos::Array<uint8_t>& nu
 {
     asn1Value.Resize(asn1Value.MaxSize());
     uint8_t* p = asn1Value.Get() + asn1Value.Size();
-
-    // MBEDTLS MPI implementation seem doesn't work as expected:
-    // mbedtls_mpi_read_binary & mbedtls_asn1_write_mpi writes integer backward into result ASN1 buffer.
-    // Implement some workaround for that.
 
     int len = aos::crypto::ASN1EncodeBigInt(number, &p, asn1Value.Get());
     if (len < 0) {

@@ -7,6 +7,7 @@
 
 #include <fstream>
 #include <gmock/gmock.h>
+#include <mbedtls/sha256.h>
 
 #include "aos/common/crypto/mbedtls/cryptoprovider.hpp"
 #include "aos/common/pkcs11/pkcs11.hpp"
@@ -140,26 +141,82 @@ RetWithError<UniquePtr<SessionContext>> PKCS11Test::OpenUserSession(bool login)
     return session;
 }
 
-Error ReadFile(const char* filename, Array<uint8_t>& array)
+/***********************************************************************************************************************
+ * Static
+ **********************************************************************************************************************/
+
+static void ImportRSAPublicKey(const crypto::RSAPublicKey& rsaKey, mbedtls_pk_context& ctx)
 {
-    std::ifstream file(filename, std::ios::binary | std::ios::ate);
-    if (!file) {
-        return ErrorEnum::eFailed;
-    }
+    const auto& n = rsaKey.GetN();
+    const auto& e = rsaKey.GetE();
 
-    std::streamsize size = file.tellg();
-    file.seekg(0, std::ios::beg);
+    ASSERT_EQ(mbedtls_pk_setup(&ctx, mbedtls_pk_info_from_type(MBEDTLS_PK_RSA)), 0);
 
-    Error err = array.Resize(size);
-    if (!err.IsNone()) {
-        return ErrorEnum::eFailed;
-    }
+    mbedtls_rsa_context* rsaCtx = mbedtls_pk_rsa(ctx);
 
-    if (!file.read(reinterpret_cast<char*>(array.Get()), size)) {
-        return ErrorEnum::eFailed;
-    }
+    ASSERT_EQ(mbedtls_rsa_import_raw(rsaCtx, n.Get(), n.Size(), nullptr, 0, nullptr, 0, nullptr, 0, nullptr, 0), 0);
+    ASSERT_EQ(mbedtls_rsa_import_raw(rsaCtx, nullptr, 0, nullptr, 0, nullptr, 0, nullptr, 0, e.Get(), e.Size()), 0);
+    ASSERT_EQ(mbedtls_rsa_complete(rsaCtx), 0);
+    ASSERT_EQ(mbedtls_rsa_check_pubkey(rsaCtx), 0);
+}
 
-    return ErrorEnum::eNone;
+static void ImportECDSAPublicKey(const crypto::ECDSAPublicKey& ecdsaKey, mbedtls_pk_context& ctx)
+{
+    // We can ignore ECPARAMS as we support SECP384R1 curve only
+    const auto& ecParams = ecdsaKey.GetECParamsOID();
+    (void)ecParams;
+
+    const auto& ecPoint = ecdsaKey.GetECPoint();
+
+    ASSERT_EQ(mbedtls_pk_setup(&ctx, mbedtls_pk_info_from_type(MBEDTLS_PK_ECDSA)), 0);
+
+    mbedtls_ecdsa_context* ecdsaCtx = mbedtls_pk_ec(ctx);
+
+    mbedtls_ecdsa_init(ecdsaCtx);
+    ASSERT_EQ(mbedtls_ecp_group_load(&ecdsaCtx->private_grp, MBEDTLS_ECP_DP_SECP384R1), 0);
+
+    // skip OCTETSTRING tag & length (added by PKCS11)
+    uint8_t* p   = const_cast<uint8_t*>(ecPoint.Get());
+    size_t   len = 0;
+
+    ASSERT_EQ(mbedtls_asn1_get_tag(&p, ecPoint.end(), &len, MBEDTLS_ASN1_OCTET_STRING), 0);
+
+    // read EC point
+    ASSERT_EQ(mbedtls_ecp_point_read_binary(&ecdsaCtx->private_grp, &ecdsaCtx->private_Q, p, len), 0);
+}
+
+static bool VerifySHA256RSASignature(
+    const crypto::RSAPublicKey& pubKey, const Array<uint8_t>& signature, const StaticArray<uint8_t, 32>& digest)
+{
+    mbedtls_pk_context pubKeyCtx;
+
+    mbedtls_pk_init(&pubKeyCtx);
+
+    ImportRSAPublicKey(pubKey, pubKeyCtx);
+
+    int ret = mbedtls_pk_verify(
+        &pubKeyCtx, MBEDTLS_MD_SHA256, digest.Get(), digest.Size(), signature.Get(), signature.Size());
+
+    mbedtls_pk_free(&pubKeyCtx);
+
+    return ret == 0;
+}
+
+static bool VerifyECDSASignature(
+    const crypto::ECDSAPublicKey& pubKey, const Array<uint8_t>& signature, const StaticArray<uint8_t, 32>& digest)
+{
+    mbedtls_pk_context pubKeyCtx;
+
+    mbedtls_pk_init(&pubKeyCtx);
+
+    ImportECDSAPublicKey(pubKey, pubKeyCtx);
+
+    mbedtls_ecdsa_context* ecdsaCtx = mbedtls_pk_ec(pubKeyCtx);
+    int ret = mbedtls_ecdsa_read_signature(ecdsaCtx, digest.Get(), digest.Size(), signature.Get(), signature.Size());
+
+    mbedtls_pk_free(&pubKeyCtx);
+
+    return ret == 0;
 }
 
 /***********************************************************************************************************************
@@ -379,7 +436,7 @@ TEST_F(PKCS11Test, ImportCertificate)
     StaticArray<uint8_t, crypto::cCertDERSize> derBlob;
     crypto::x509::Certificate                  caCert;
 
-    ASSERT_TRUE(ReadFile(WORK_DIR "/certificates/ca.cer.der", derBlob).IsNone());
+    ASSERT_TRUE(FS::ReadFile(WORK_DIR "/certificates/ca.cer.der", derBlob).IsNone());
     ASSERT_TRUE(mCryptoProvider.DERToX509Cert(derBlob, caCert).IsNone());
 
     ASSERT_TRUE(Utils(*session, mCryptoProvider, mAllocator).ImportCertificate(id, mLabel, caCert).IsNone());
@@ -449,10 +506,10 @@ TEST_F(PKCS11Test, FindCertificateChain)
     StaticArray<uint8_t, crypto::cCertDERSize> derBlob;
     crypto::x509::Certificate                  caCert, clientCert;
 
-    ASSERT_TRUE(ReadFile(WORK_DIR "/certificates/ca.cer.der", derBlob).IsNone());
+    ASSERT_TRUE(FS::ReadFile(WORK_DIR "/certificates/ca.cer.der", derBlob).IsNone());
     ASSERT_TRUE(mCryptoProvider.DERToX509Cert(derBlob, caCert).IsNone());
 
-    ASSERT_TRUE(ReadFile(WORK_DIR "/certificates/client.cer.der", derBlob).IsNone());
+    ASSERT_TRUE(FS::ReadFile(WORK_DIR "/certificates/client.cer.der", derBlob).IsNone());
     ASSERT_TRUE(mCryptoProvider.DERToX509Cert(derBlob, clientCert).IsNone());
 
     // import certificates
@@ -472,6 +529,83 @@ TEST_F(PKCS11Test, FindCertificateChain)
     ASSERT_EQ((*chain)[0].mIssuer, clientCert.mIssuer);
     ASSERT_EQ((*chain)[1].mSubject, caCert.mSubject);
     ASSERT_EQ((*chain)[1].mIssuer, caCert.mIssuer);
+}
+
+TEST_F(PKCS11Test, PKCS11RSAPrivateKeySign)
+{
+    Error                     err = ErrorEnum::eNone;
+    UniquePtr<SessionContext> session;
+
+    Tie(session, err) = OpenUserSession(true);
+    ASSERT_TRUE(err.IsNone());
+
+    // generate key
+    uuid::UUID id;
+
+    Tie(id, err) = uuid::StringToUUID("08080808-0404-0404-0404-121212121212");
+    ASSERT_TRUE(err.IsNone());
+
+    PrivateKey pkcs11key;
+
+    Tie(pkcs11key, err) = Utils(*session, mCryptoProvider, mAllocator).GenerateRSAKeyPairWithLabel(id, mLabel, 2048);
+    ASSERT_TRUE(err.IsNone());
+
+    // generate signature
+    auto privKey = pkcs11key.GetPrivKey();
+
+    const std::string msg = "Hello World";
+
+    StaticArray<uint8_t, 32> digest;
+
+    digest.Resize(digest.MaxSize());
+    mbedtls_sha256(reinterpret_cast<const uint8_t*>(msg.data()), msg.length(), digest.Get(), 0);
+
+    StaticArray<uint8_t, 256> signature;
+
+    ASSERT_TRUE(privKey->Sign(digest, {crypto::HashEnum::eSHA256}, signature).IsNone());
+
+    // verify signature valid
+    const auto& pubKey = static_cast<const crypto::RSAPublicKey&>(privKey->GetPublic());
+
+    ASSERT_TRUE(VerifySHA256RSASignature(pubKey, signature, digest));
+}
+
+TEST_F(PKCS11Test, PKCS11ECDSAPrivateKeySign)
+{
+    Error                     err = ErrorEnum::eNone;
+    UniquePtr<SessionContext> session;
+
+    Tie(session, err) = OpenUserSession(true);
+    ASSERT_TRUE(err.IsNone());
+
+    // generate key
+    uuid::UUID id;
+
+    Tie(id, err) = uuid::StringToUUID("08080808-0404-0404-0404-121212121212");
+    ASSERT_TRUE(err.IsNone());
+
+    PrivateKey pkcs11key;
+
+    Tie(pkcs11key, err)
+        = Utils(*session, mCryptoProvider, mAllocator).GenerateECDSAKeyPairWithLabel(id, mLabel, EllipticCurve::eP384);
+    ASSERT_TRUE(err.IsNone());
+
+    // generate signature
+    auto privKey = pkcs11key.GetPrivKey();
+
+    const std::string msg = "Hello World";
+
+    StaticArray<uint8_t, 32>  digest;
+    StaticArray<uint8_t, 256> signature;
+
+    digest.Insert(digest.begin(), reinterpret_cast<const uint8_t*>(&msg.front()),
+        reinterpret_cast<const uint8_t*>(&msg.back() + 1));
+    ASSERT_TRUE(privKey->Sign(digest, {crypto::HashEnum::eNone}, signature).IsNone());
+
+    // verify signature valid
+    const auto& pubKey = static_cast<const crypto::ECDSAPublicKey&>(privKey->GetPublic());
+
+    ASSERT_TRUE(VerifyECDSASignature(pubKey, signature, digest));
 }
 
 } // namespace pkcs11
