@@ -100,8 +100,7 @@ RetWithError<SharedPtr<crypto::PrivateKeyItf>> CertModule::CreateKey(const Strin
     return mHSM->CreateKey(password, mModuleConfig.mKeyType);
 }
 
-Error CertModule::CreateCSR(
-    const String& subjectCommonName, const crypto::PrivateKeyItf& privKey, Array<uint8_t>& pemCSR)
+Error CertModule::CreateCSR(const String& subjectCommonName, const crypto::PrivateKeyItf& privKey, String& pemCSR)
 {
     crypto::x509::CSR          templ;
     StaticString<cDNStringLen> subject;
@@ -156,7 +155,7 @@ Error CertModule::CreateCSR(
     return mX509Provider->CreateCSR(templ, privKey, pemCSR);
 }
 
-Error CertModule::ApplyCert(const Array<uint8_t>& pemCert, CertInfo& info)
+Error CertModule::ApplyCert(const String& pemCert, CertInfo& info)
 {
     auto certificates = MakeUnique<crypto::x509::CertificateChain>(&mAllocator);
 

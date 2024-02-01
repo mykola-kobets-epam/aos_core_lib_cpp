@@ -181,7 +181,7 @@ RetWithError<SharedPtr<crypto::x509::CertificateChain>> CertLoader::LoadCertsFro
 {
     auto buff = MakeUnique<PEMCertChainBlob>(&mCertAllocator);
 
-    auto err = FS::ReadFile(fileName, *buff);
+    auto err = FS::ReadFileToString(fileName, *buff);
     if (!err.IsNone()) {
         return {nullptr, err};
     }
@@ -195,9 +195,9 @@ RetWithError<SharedPtr<crypto::x509::CertificateChain>> CertLoader::LoadCertsFro
 
 RetWithError<SharedPtr<crypto::PrivateKeyItf>> CertLoader::LoadPrivKeyFromFile(const String& fileName)
 {
-    auto buff = MakeUnique<StaticArray<uint8_t, crypto::cCertPEMSize>>(&mKeyAllocator);
+    auto buff = MakeUnique<StaticString<crypto::cCertPEMSize>>(&mKeyAllocator);
 
-    auto err = FS::ReadFile(fileName, *buff);
+    auto err = FS::ReadFileToString(fileName, *buff);
     if (!err.IsNone()) {
         return {nullptr, err};
     }

@@ -196,7 +196,7 @@ public:
      * @param[out] pemCSR result csr in PEM.
      * @return Error.
      */
-    Error CreateCSR(const String& subjectCommonName, const crypto::PrivateKeyItf& privKey, Array<uint8_t>& pemCSR);
+    Error CreateCSR(const String& subjectCommonName, const crypto::PrivateKeyItf& privKey, String& pemCSR);
 
     /**
      * Applies certificate to a module.
@@ -205,7 +205,7 @@ public:
      * @param[out] info result certificate information.
      * @returns Error.
      */
-    Error ApplyCert(const Array<uint8_t>& pemCert, CertInfo& info);
+    Error ApplyCert(const String& pemCert, CertInfo& info);
 
     /**
      * Creates a self signed certificate.
@@ -225,7 +225,7 @@ private:
 
     using ModuleCertificates    = StaticArray<CertInfo, cCertsPerModule>;
     using CertificateChain      = StaticArray<crypto::x509::Certificate, crypto::cCertChainSize>;
-    using SelfSignedCertificate = StaticArray<uint8_t, crypto::cCertPEMSize>;
+    using SelfSignedCertificate = StaticString<crypto::cCertPEMSize>;
 
     Error RemoveInvalidCerts(const String& password);
     Error RemoveInvalidKeys(const String& password);

@@ -66,7 +66,7 @@ public:
      * @returns Error.
      */
     virtual Error CreateKey(
-        const String& certType, const String& subjectCommonName, const String& password, Array<uint8_t>& pemCSR)
+        const String& certType, const String& subjectCommonName, const String& password, String& pemCSR)
         = 0;
 
     /**
@@ -77,7 +77,7 @@ public:
      * @param[out] info result certificate information.
      * @returns Error.
      */
-    virtual Error ApplyCertificate(const String& certType, const Array<uint8_t>& pemCert, CertInfo& info) = 0;
+    virtual Error ApplyCertificate(const String& certType, const String& pemCert, CertInfo& info) = 0;
 
     /**
      * Returns certificate info.
@@ -165,8 +165,8 @@ public:
      * @param[out] pemCSR certificate signing request in PEM.
      * @returns Error.
      */
-    Error CreateKey(const String& certType, const String& subjectCommonName, const String& password,
-        Array<uint8_t>& pemCSR) override;
+    Error CreateKey(
+        const String& certType, const String& subjectCommonName, const String& password, String& pemCSR) override;
 
     /**
      * Applies certificate.
@@ -176,7 +176,7 @@ public:
      * @param[out] info result certificate information.
      * @returns Error.
      */
-    Error ApplyCertificate(const String& certType, const Array<uint8_t>& pemCert, CertInfo& info) override;
+    Error ApplyCertificate(const String& certType, const String& pemCert, CertInfo& info) override;
 
     /**
      * Returns certificate info.

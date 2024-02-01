@@ -38,12 +38,12 @@ public:
      * @param parent a parent certificate in a certificate chain.
      * @param pubKey public key.
      * @param privKey private key.
-     * @param[out] resultCert result certificate in PEM format.
+     * @param[out] pemCert result certificate in PEM format.
      * @result Error.
      */
     aos::Error CreateCertificate(const aos::crypto::x509::Certificate& templ,
         const aos::crypto::x509::Certificate& parent, const aos::crypto::PrivateKeyItf& privKey,
-        aos::Array<uint8_t>& pemCert) override;
+        String& pemCert) override;
 
     /**
      * Reads certificates from a PEM blob.
@@ -52,8 +52,7 @@ public:
      * @param[out] resultCerts result certificate chain.
      * @result Error.
      */
-    aos::Error PEMToX509Certs(
-        const aos::Array<uint8_t>& pemBlob, aos::Array<aos::crypto::x509::Certificate>& resultCerts) override;
+    aos::Error PEMToX509Certs(const String& pemBlob, aos::Array<aos::crypto::x509::Certificate>& resultCerts) override;
 
     /**
      * Reads certificate from a DER blob.
@@ -72,8 +71,8 @@ public:
      * @param[out] pemCSR result CSR in PEM format.
      * @result Error.
      */
-    aos::Error CreateCSR(const aos::crypto::x509::CSR& templ, const aos::crypto::PrivateKeyItf& privKey,
-        aos::Array<uint8_t>& pemCSR) override;
+    aos::Error CreateCSR(
+        const aos::crypto::x509::CSR& templ, const aos::crypto::PrivateKeyItf& privKey, aos::String& pemCSR) override;
 
     /**
      * Reads private key from a PEM blob.
@@ -81,8 +80,7 @@ public:
      * @param pemBlob raw certificates in a PEM format.
      * @result RetWithError<SharedPtr<PrivateKeyItf>>.
      */
-    aos::RetWithError<aos::SharedPtr<aos::crypto::PrivateKeyItf>> PEMToX509PrivKey(
-        const aos::Array<uint8_t>& pemBlob) override;
+    aos::RetWithError<aos::SharedPtr<aos::crypto::PrivateKeyItf>> PEMToX509PrivKey(const String& pemBlob) override;
 
     /**
      * Constructs x509 distinguished name(DN) from the argument list.
@@ -141,7 +139,7 @@ private:
         mbedtls_x509write_csr& csr, mbedtls_pk_context& pk, const aos::crypto::x509::CSR& templ);
     aos::Error SetCSRAlternativeNames(mbedtls_x509write_csr& csr, const aos::crypto::x509::CSR& templ);
     aos::Error SetCSRExtraExtensions(mbedtls_x509write_csr& csr, const aos::crypto::x509::CSR& templ);
-    aos::Error WriteCSRPem(mbedtls_x509write_csr& csr, aos::Array<uint8_t>& pemCSR);
+    aos::Error WriteCSRPem(mbedtls_x509write_csr& csr, aos::String& pemCSR);
 
     aos::RetWithError<mbedtls_svc_key_id_t> SetupOpaqueKey(
         mbedtls_pk_context& pk, const aos::crypto::PrivateKeyItf& privKey);
@@ -151,7 +149,7 @@ private:
     aos::Error SetCertificateProperties(mbedtls_x509write_cert& cert, mbedtls_pk_context& pk,
         mbedtls_ctr_drbg_context& ctrDrbg, const aos::crypto::x509::Certificate& templ,
         const aos::crypto::x509::Certificate& parent);
-    aos::Error WriteCertificatePem(mbedtls_x509write_cert& cert, aos::Array<uint8_t>& pemCert);
+    aos::Error WriteCertificatePem(mbedtls_x509write_cert& cert, aos::String& pemCert);
     aos::Error SetCertificateSerialNumber(
         mbedtls_x509write_cert& cert, mbedtls_ctr_drbg_context& ctrDrbg, const aos::crypto::x509::Certificate& templ);
     aos::Error SetCertificateSubjectKeyIdentifier(
