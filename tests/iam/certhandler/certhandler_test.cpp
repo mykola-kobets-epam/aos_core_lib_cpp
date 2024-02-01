@@ -56,8 +56,8 @@ protected:
             .WillOnce(DoAll(SetArgReferee<1>(devCertInfo), SetArgReferee<2>(cPassword), Return(ErrorEnum::eNone)));
         EXPECT_CALL(mStorage, AddCertInfo(cPKCS11Type, devCertInfo)).WillOnce(Return(ErrorEnum::eNone));
 
-        StaticArray<uint8_t, 1> pemCert;
-        CertInfo                certInfo;
+        StaticString<1> pemCert;
+        CertInfo        certInfo;
 
         EXPECT_EQ(ErrorEnum::eNone, mCertHandler.ApplyCertificate(cPKCS11Type, pemCert, certInfo));
     }
@@ -211,7 +211,7 @@ TEST_F(CertHandlerTest, CreateKey)
     EXPECT_CALL(mPKCS11, CreateKey(cPassword, cDefaultConfig.mKeyType)).WillOnce(Return(privateKeyRes));
     EXPECT_CALL(mX509Provider, CreateCSR(_, _, _)).WillOnce(Return(ErrorEnum::eNone));
 
-    StaticArray<uint8_t, 1> csr;
+    StaticString<1> csr;
 
     ASSERT_EQ(ErrorEnum::eNone, mCertHandler.CreateKey(cPKCS11Type, cSubjectCN, cPassword, csr));
 }
@@ -226,7 +226,7 @@ TEST_F(CertHandlerTest, CreateKeyModuleNotFound)
     ASSERT_EQ(ErrorEnum::eNone, pkcs11Module.Init(cPKCS11Type, cDefaultConfig, mX509Provider, mPKCS11, mStorage));
     ASSERT_EQ(ErrorEnum::eNone, mCertHandler.RegisterModule(pkcs11Module));
 
-    StaticArray<uint8_t, 1> csr;
+    StaticString<1> csr;
 
     ASSERT_EQ(ErrorEnum::eNotFound, mCertHandler.CreateKey(cSWType, cSubjectCN, cPassword, csr));
 }
@@ -246,7 +246,7 @@ TEST_F(CertHandlerTest, CreateKeyKeyGenError)
     EXPECT_CALL(mPKCS11, CreateKey(cPassword, cDefaultConfig.mKeyType)).WillOnce(Return(privateKeyRes));
     EXPECT_CALL(mX509Provider, CreateCSR(_, _, _)).Times(0);
 
-    StaticArray<uint8_t, 1> csr;
+    StaticString<1> csr;
 
     ASSERT_EQ(ErrorEnum::eFailed, mCertHandler.CreateKey(cPKCS11Type, cSubjectCN, cPassword, csr));
 }
@@ -291,7 +291,7 @@ TEST_F(CertHandlerTest, CreateCSR)
         Field(&CSR::mDNSNames, moduleConfig.mAlternativeNames), Field(&CSR::mExtraExtensions, extensions));
     EXPECT_CALL(mX509Provider, CreateCSR(templ, _, _)).WillOnce(Return(ErrorEnum::eNone));
 
-    StaticArray<uint8_t, 1> csr;
+    StaticString<1> csr;
     ASSERT_EQ(ErrorEnum::eNone, mCertHandler.CreateKey(cPKCS11Type, cSubjectCN, cPassword, csr));
 }
 
@@ -476,7 +476,7 @@ TEST_F(CertHandlerTest, RemoveInvalidCert)
     EXPECT_CALL(mPKCS11, CreateKey(cPassword, cDefaultConfig.mKeyType)).WillOnce(Return(privateKeyRes));
     EXPECT_CALL(mX509Provider, CreateCSR(_, _, _)).WillOnce(Return(ErrorEnum::eNone));
 
-    StaticArray<uint8_t, 1> csr;
+    StaticString<1> csr;
 
     ASSERT_EQ(ErrorEnum::eNone, mCertHandler.CreateKey(cPKCS11Type, cSubjectCN, cPassword, csr));
 }

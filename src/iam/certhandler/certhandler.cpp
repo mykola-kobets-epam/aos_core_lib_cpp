@@ -74,7 +74,7 @@ Error CertHandler::Clear(const String& certType)
 }
 
 Error CertHandler::CreateKey(
-    const String& certType, const String& subjectCommonName, const String& password, Array<uint8_t>& pemCSR)
+    const String& certType, const String& subjectCommonName, const String& password, String& pemCSR)
 {
     LockGuard lock(mMutex);
 
@@ -93,7 +93,7 @@ Error CertHandler::CreateKey(
     return module->CreateCSR(subjectCommonName, *key.mValue, pemCSR);
 }
 
-Error CertHandler::ApplyCertificate(const String& certType, const Array<uint8_t>& cert, CertInfo& info)
+Error CertHandler::ApplyCertificate(const String& certType, const String& cert, CertInfo& info)
 {
     LockGuard lock(mMutex);
 

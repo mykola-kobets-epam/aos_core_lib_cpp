@@ -114,7 +114,7 @@ static std::pair<aos::Error, std::vector<unsigned char>> GenerateECPrivateKey()
     return {aos::ErrorEnum::eNone, keyBuf};
 }
 
-static int PemToDer(const unsigned char* pemData, size_t pemSize, std::vector<unsigned char>& derData)
+static int PemToDer(const char* pemData, size_t pemSize, std::vector<unsigned char>& derData)
 {
     mbedtls_x509_crt cert;
 
@@ -122,7 +122,7 @@ static int PemToDer(const unsigned char* pemData, size_t pemSize, std::vector<un
 
     std::unique_ptr<mbedtls_x509_crt, decltype(&mbedtls_x509_crt_free)> derDataPtr(&cert, mbedtls_x509_crt_free);
 
-    auto ret = mbedtls_x509_crt_parse(derDataPtr.get(), pemData, pemSize);
+    auto ret = mbedtls_x509_crt_parse(derDataPtr.get(), reinterpret_cast<const uint8_t*>(pemData), pemSize);
     if (ret != 0) {
         return ret;
     }
@@ -233,14 +233,14 @@ static aos::Error ExtractECPublicKeyFromPrivate(
     return 0;
 }
 
-static int VerifyCertificate(const aos::StaticArray<uint8_t, aos::crypto::cCertPEMSize>& pemCRT)
+static int VerifyCertificate(const aos::String& pemCRT)
 {
     mbedtls_x509_crt cert;
     mbedtls_x509_crt_init(&cert);
 
     std::unique_ptr<mbedtls_x509_crt, decltype(&mbedtls_x509_crt_free)> certPtr(&cert, mbedtls_x509_crt_free);
 
-    int ret = mbedtls_x509_crt_parse(&cert, pemCRT.Get(), pemCRT.Size());
+    int ret = mbedtls_x509_crt_parse(&cert, reinterpret_cast<const uint8_t*>(pemCRT.Get()), pemCRT.Size() + 1);
     if (ret != 0) {
         return ret;
     }
@@ -423,14 +423,14 @@ TEST(CryptoTest, DERToX509Certs)
 
     aos::crypto::RSAPublicKey rsaPublicKey {mN, mE};
 
-    RSAPrivateKey                                        rsaPK {rsaPublicKey, std::move(rsaPKRet.second)};
-    aos::StaticArray<uint8_t, aos::crypto::cCertPEMSize> pemCRT;
+    RSAPrivateKey                                rsaPK {rsaPublicKey, std::move(rsaPKRet.second)};
+    aos::StaticString<aos::crypto::cCertPEMSize> pemCRT;
 
     ASSERT_EQ(crypto.CreateCertificate(templ, parent, rsaPK, pemCRT), aos::ErrorEnum::eNone);
 
     std::vector<unsigned char> derCertificate(aos::crypto::cCertDERSize);
 
-    int ret = PemToDer(pemCRT.Get(), pemCRT.Size(), derCertificate);
+    int ret = PemToDer(pemCRT.CStr(), pemCRT.Size() + 1, derCertificate);
     ASSERT_EQ(ret, 0);
 
     aos::Array<uint8_t>            pemBlob(derCertificate.data(), derCertificate.size());
@@ -491,12 +491,12 @@ TEST(CryptoTest, PEMToX509Certs)
 
     aos::crypto::RSAPublicKey rsaPublicKey {mN, mE};
 
-    RSAPrivateKey                                        rsaPK {rsaPublicKey, std::move(rsaPKRet.second)};
-    aos::StaticArray<uint8_t, aos::crypto::cCertPEMSize> pemCRT;
+    RSAPrivateKey                                rsaPK {rsaPublicKey, std::move(rsaPKRet.second)};
+    aos::StaticString<aos::crypto::cCertPEMSize> pemCRT;
 
     ASSERT_EQ(crypto.CreateCertificate(templ, parent, rsaPK, pemCRT), aos::ErrorEnum::eNone);
 
-    aos::Array<uint8_t>                                 pemBlob(pemCRT.Get(), pemCRT.Size());
+    aos::String                                         pemBlob(pemCRT.Get(), pemCRT.Size());
     aos::StaticArray<aos::crypto::x509::Certificate, 1> certs;
 
     auto error = crypto.PEMToX509Certs(pemBlob, certs);
@@ -550,7 +550,7 @@ TEST(CryptoTest, CreateCSR)
     templ.mExtraExtensions[0].mId    = MBEDTLS_OID_SUBJECT_KEY_IDENTIFIER;
     templ.mExtraExtensions[0].mValue = aos::Array<uint8_t>(subject_key_identifier_val, val_len);
 
-    aos::StaticArray<uint8_t, 4096> pemCSR;
+    aos::StaticString<4096> pemCSR;
 
     aos::StaticArray<uint8_t, aos::crypto::cRSAModulusSize>     mN;
     aos::StaticArray<uint8_t, aos::crypto::cRSAPubExponentSize> mE;
@@ -573,7 +573,7 @@ TEST(CryptoTest, CreateCSR)
 
     std::unique_ptr<mbedtls_x509_csr, decltype(&mbedtls_x509_csr_free)> csrPtr(&csr, mbedtls_x509_csr_free);
 
-    ret = mbedtls_x509_csr_parse(csrPtr.get(), pemCSR.Get(), pemCSR.Size());
+    ret = mbedtls_x509_csr_parse(csrPtr.get(), reinterpret_cast<const uint8_t*>(pemCSR.Get()), pemCSR.Size() + 1);
     ASSERT_EQ(ret, 0);
 }
 
@@ -607,8 +607,8 @@ TEST(CryptoTest, CreateSelfSignedCert)
 
     aos::crypto::RSAPublicKey rsaPublicKey {mN, mE};
 
-    RSAPrivateKey                                        rsaPK {rsaPublicKey, std::move(rsaPKRet.second)};
-    aos::StaticArray<uint8_t, aos::crypto::cCertPEMSize> pemCRT;
+    RSAPrivateKey                                rsaPK {rsaPublicKey, std::move(rsaPKRet.second)};
+    aos::StaticString<aos::crypto::cCertPEMSize> pemCRT;
 
     ASSERT_EQ(crypto.CreateCertificate(templ, parent, rsaPK, pemCRT), aos::ErrorEnum::eNone);
 
@@ -639,7 +639,7 @@ TEST(CryptoTest, CreateCSRUsingECKey)
     templ.mExtraExtensions[0].mId    = MBEDTLS_OID_SUBJECT_KEY_IDENTIFIER;
     templ.mExtraExtensions[0].mValue = aos::Array<uint8_t>(subject_key_identifier_val, val_len);
 
-    aos::StaticArray<uint8_t, 4096> pemCSR;
+    aos::StaticString<4096> pemCSR;
 
     aos::StaticArray<uint8_t, aos::crypto::cECDSAParamsOIDSize> mParamsOID;
     aos::StaticArray<uint8_t, aos::crypto::cECDSAPointDERSize>  mECPoint;
@@ -663,7 +663,7 @@ TEST(CryptoTest, CreateCSRUsingECKey)
 
     std::unique_ptr<mbedtls_x509_csr, decltype(&mbedtls_x509_csr_free)> csrPtr(&csr, mbedtls_x509_csr_free);
 
-    ret = mbedtls_x509_csr_parse(csrPtr.get(), pemCSR.Get(), pemCSR.Size());
+    ret = mbedtls_x509_csr_parse(csrPtr.get(), reinterpret_cast<const uint8_t*>(pemCSR.Get()), pemCSR.Size() + 1);
     ASSERT_EQ(ret, 0);
 }
 

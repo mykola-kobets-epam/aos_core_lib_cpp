@@ -461,11 +461,11 @@ public:
      * @param parent a parent certificate in a certificate chain.
      * @param pubKey public key.
      * @param privKey private key.
-     * @param[out] resultCert result certificate in PEM format.
+     * @param[out] pemCert result certificate in PEM format.
      * @result Error.
      */
     virtual Error CreateCertificate(
-        const Certificate& templ, const Certificate& parent, const PrivateKeyItf& privKey, Array<uint8_t>& pemCert)
+        const Certificate& templ, const Certificate& parent, const PrivateKeyItf& privKey, String& pemCert)
         = 0;
 
     /**
@@ -475,7 +475,7 @@ public:
      * @param[out] resultCerts result certificate chain.
      * @result Error.
      */
-    virtual Error PEMToX509Certs(const Array<uint8_t>& pemBlob, Array<Certificate>& resultCerts) = 0;
+    virtual Error PEMToX509Certs(const String& pemBlob, Array<Certificate>& resultCerts) = 0;
 
     /**
      * Reads private key from a PEM blob.
@@ -483,7 +483,7 @@ public:
      * @param pemBlob raw certificates in a PEM format.
      * @result RetWithError<SharedPtr<PrivateKeyItf>>.
      */
-    virtual RetWithError<SharedPtr<PrivateKeyItf>> PEMToX509PrivKey(const Array<uint8_t>& pemBlob) = 0;
+    virtual RetWithError<SharedPtr<PrivateKeyItf>> PEMToX509PrivKey(const String& pemBlob) = 0;
 
     /**
      * Reads certificate from a DER blob.
@@ -502,7 +502,7 @@ public:
      * @param[out] pemCSR result CSR in PEM format.
      * @result Error.
      */
-    virtual Error CreateCSR(const CSR& templ, const PrivateKeyItf& privKey, Array<uint8_t>& pemCSR) = 0;
+    virtual Error CreateCSR(const CSR& templ, const PrivateKeyItf& privKey, String& pemCSR) = 0;
 
     /**
      * Constructs x509 distinguished name(DN) from the argument list.
