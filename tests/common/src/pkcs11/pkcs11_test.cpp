@@ -202,6 +202,48 @@ static bool VerifySHA256RSASignature(
     return ret == 0;
 }
 
+static bool Encrypt(const crypto::RSAPublicKey& pubKey, const Array<uint8_t>& msg, Array<uint8_t>& cipher)
+{
+    mbedtls_pk_context pubKeyCtx;
+    mbedtls_pk_init(&pubKeyCtx);
+
+    ImportRSAPublicKey(pubKey, pubKeyCtx);
+
+    // setup entropy
+    mbedtls_entropy_context  entropy;
+    mbedtls_ctr_drbg_context ctrDrbg;
+    const char*              pers = "mbedtls_pk_encrypt";
+
+    mbedtls_ctr_drbg_init(&ctrDrbg);
+    mbedtls_entropy_init(&entropy);
+
+    int ret = mbedtls_ctr_drbg_seed(&ctrDrbg, mbedtls_entropy_func, &entropy, (const unsigned char*)pers, strlen(pers));
+
+    if (ret != 0) {
+        mbedtls_pk_free(&pubKeyCtx);
+        mbedtls_entropy_free(&entropy);
+        mbedtls_ctr_drbg_free(&ctrDrbg);
+
+        return false;
+    }
+
+    // encrypt
+    size_t len = 0;
+
+    cipher.Resize(cipher.MaxSize());
+
+    ret = mbedtls_pk_encrypt(
+        &pubKeyCtx, msg.Get(), msg.Size(), cipher.Get(), &len, cipher.Size(), mbedtls_ctr_drbg_random, &ctrDrbg);
+
+    cipher.Resize(len);
+
+    mbedtls_pk_free(&pubKeyCtx);
+    mbedtls_entropy_free(&entropy);
+    mbedtls_ctr_drbg_free(&ctrDrbg);
+
+    return ret == 0;
+}
+
 static bool VerifyECDSASignature(
     const crypto::ECDSAPublicKey& pubKey, const Array<uint8_t>& signature, const StaticArray<uint8_t, 32>& digest)
 {
@@ -606,6 +648,49 @@ TEST_F(PKCS11Test, PKCS11ECDSAPrivateKeySign)
     const auto& pubKey = static_cast<const crypto::ECDSAPublicKey&>(privKey->GetPublic());
 
     ASSERT_TRUE(VerifyECDSASignature(pubKey, signature, digest));
+}
+
+TEST_F(PKCS11Test, PKCS11RSAPrivateKeyDecrypt)
+{
+    Error                     err = ErrorEnum::eNone;
+    UniquePtr<SessionContext> session;
+
+    Tie(session, err) = OpenUserSession(true);
+    ASSERT_TRUE(err.IsNone());
+
+    // generate key
+    uuid::UUID id;
+
+    Tie(id, err) = uuid::StringToUUID("08080808-0404-0404-0404-121212121212");
+    ASSERT_TRUE(err.IsNone());
+
+    PrivateKey pkcs11key;
+
+    Tie(pkcs11key, err) = Utils(*session, mCryptoProvider, mAllocator).GenerateRSAKeyPairWithLabel(id, mLabel, 2048);
+    ASSERT_TRUE(err.IsNone());
+
+    // encrypt message
+    const auto& privKey = pkcs11key.GetPrivKey();
+    const auto& pubKey  = static_cast<const crypto::RSAPublicKey&>(privKey->GetPublic());
+
+    const std::string sample = "Hello World";
+
+    StaticArray<uint8_t, 32>  msg;
+    StaticArray<uint8_t, 256> cipher;
+
+    msg.Insert(msg.begin(), reinterpret_cast<const uint8_t*>(&sample.front()),
+        reinterpret_cast<const uint8_t*>(&sample.back() + 1));
+
+    ASSERT_TRUE(Encrypt(pubKey, msg, cipher));
+
+    // decrypt message
+    StaticArray<uint8_t, 256> result;
+
+    ASSERT_TRUE(privKey->Decrypt(cipher, result).IsNone());
+
+    const auto actual   = std::vector<uint8_t>(result.begin(), result.end());
+    const auto expected = std::vector<uint8_t>(msg.begin(), msg.end());
+    EXPECT_THAT(actual, ElementsAreArray(expected));
 }
 
 } // namespace pkcs11

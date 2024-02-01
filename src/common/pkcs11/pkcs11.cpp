@@ -674,19 +674,17 @@ Error SessionContext::Decrypt(
         return err;
     }
 
-    CK_ULONG resultSize = 0;
+    // SoftHSM doesn't provide a precise size with Decrypt(data, nullptr, &resultSize) call.
+    CK_ULONG resultSize = result.MaxSize();
 
-    err = Decrypt(data, nullptr, &resultSize);
+    result.Resize(result.MaxSize());
+
+    err = Decrypt(data, result.Get(), &resultSize);
     if (!err.IsNone()) {
         return err;
     }
 
-    err = result.Resize(resultSize);
-    if (!err.IsNone()) {
-        return err;
-    }
-
-    return Decrypt(data, result.Get(), &resultSize);
+    return result.Resize(resultSize);
 }
 
 SessionHandle SessionContext::GetHandle() const
