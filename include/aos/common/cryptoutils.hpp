@@ -57,7 +57,7 @@ private:
 
     static constexpr auto cDefaultPKCS11Library = AOS_CONFIG_CRYPTOUTILS_DEFAULT_PKCS11_LIB;
 
-    RetWithError<UniquePtr<pkcs11::SessionContext>> OpenSession(
+    RetWithError<SharedPtr<pkcs11::SessionContext>> OpenSession(
         const String& libraryPath, const String& token, const String& userPIN);
     RetWithError<pkcs11::SlotID> FindToken(pkcs11::LibraryContext& library, const String& token);
 

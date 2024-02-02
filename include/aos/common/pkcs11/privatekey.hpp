@@ -25,7 +25,8 @@ public:
      * @param privKeyHandle private key handle.
      * @param pubKey public key.
      */
-    PKCS11RSAPrivateKey(SessionContext& session, ObjectHandle privKeyHandle, const crypto::RSAPublicKey& pubKey);
+    PKCS11RSAPrivateKey(
+        const SharedPtr<SessionContext>& session, ObjectHandle privKeyHandle, const crypto::RSAPublicKey& pubKey);
 
     /**
      * Returns public part of a private key.
@@ -75,9 +76,9 @@ private:
 
     mutable StaticAllocator<sizeof(StaticArray<uint8_t, crypto::cSHA2DigestSize + cMaxPrefixSize>)> mAllocator;
 
-    SessionContext&      mSession;
-    ObjectHandle         mPrivKeyHandle;
-    crypto::RSAPublicKey mPublicKey;
+    SharedPtr<SessionContext> mSession;
+    ObjectHandle              mPrivKeyHandle;
+    crypto::RSAPublicKey      mPublicKey;
 };
 
 /**
@@ -93,7 +94,7 @@ public:
      * @param privKeyHandle private key handle.
      * @param pubKey public key.
      */
-    PKCS11ECDSAPrivateKey(SessionContext& session, crypto::x509::ProviderItf& cryptoProvider,
+    PKCS11ECDSAPrivateKey(const SharedPtr<SessionContext>& session, crypto::x509::ProviderItf& cryptoProvider,
         ObjectHandle privKeyHandle, const crypto::ECDSAPublicKey& pubKey);
 
     /**
@@ -132,7 +133,7 @@ public:
     }
 
 private:
-    SessionContext&            mSession;
+    SharedPtr<SessionContext>  mSession;
     crypto::x509::ProviderItf& mCryptoProvider;
     ObjectHandle               mPrivKeyHandle;
     crypto::ECDSAPublicKey     mPublicKey;
