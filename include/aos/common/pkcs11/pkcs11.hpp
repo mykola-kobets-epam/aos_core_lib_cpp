@@ -580,10 +580,10 @@ public:
      * Opens a session between an application and a token in a particular slot.
      *
      * @param slotID slot identifier.
-     * @param flags  indicates the type of session.
-     * @return Error.
+     * @param flags indicates the type of session.
+     * @return RetWithError<SharedPtr<SessionContext>>.
      */
-    RetWithError<UniquePtr<SessionContext>> OpenSession(SlotID slotID, uint32_t flags);
+    RetWithError<SharedPtr<SessionContext>> OpenSession(SlotID slotID, uint32_t flags);
 
     /**
      * Destroys object instance.
@@ -656,7 +656,7 @@ public:
      * @param cryptoProvider provider to x509 crypto provider.
      * @param allocator allocator for token/session objects.
      */
-    Utils(SessionContext& session, crypto::x509::ProviderItf& cryptoProvider, Allocator& allocator);
+    Utils(const SharedPtr<SessionContext>& session, crypto::x509::ProviderItf& cryptoProvider, Allocator& allocator);
 
     /**
      * Creates an RSA key pair on the token.
@@ -753,7 +753,7 @@ private:
 
     RetWithError<SharedPtr<crypto::x509::Certificate>> GetCertificate(ObjectHandle handle);
 
-    SessionContext&            mSession;
+    SharedPtr<SessionContext>  mSession;
     crypto::x509::ProviderItf& mCryptoProvider;
     Allocator&                 mAllocator;
 };

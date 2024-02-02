@@ -113,7 +113,7 @@ Error PKCS11Module::SetOwner(const String& password)
         return AOS_ERROR_WRAP(err);
     }
 
-    pkcs11::SessionContext* session;
+    SharedPtr<pkcs11::SessionContext> session;
 
     Tie(session, err) = CreateSession(false, password);
     if (!err.IsNone()) {
@@ -147,7 +147,7 @@ Error PKCS11Module::Clear()
         return ErrorEnum::eNone;
     }
 
-    pkcs11::SessionContext* session;
+    SharedPtr<pkcs11::SessionContext> session;
 
     Tie(session, err) = CreateSession(true, mUserPIN);
     if (!err.IsNone()) {
@@ -185,7 +185,7 @@ RetWithError<SharedPtr<crypto::PrivateKeyItf>> PKCS11Module::CreateKey(const Str
 
     pendingKey.mUUID = uuid::CreateUUID();
 
-    pkcs11::SessionContext* session;
+    SharedPtr<pkcs11::SessionContext> session;
 
     Tie(session, err) = CreateSession(true, mUserPIN);
     if (!err.IsNone()) {
@@ -194,7 +194,7 @@ RetWithError<SharedPtr<crypto::PrivateKeyItf>> PKCS11Module::CreateKey(const Str
 
     switch (keyType.GetValue()) {
     case aos::crypto::KeyTypeEnum::eRSA:
-        Tie(pendingKey.mKey, err) = pkcs11::Utils(*session, *mX509Provider, mLocalCacheAllocator)
+        Tie(pendingKey.mKey, err) = pkcs11::Utils(session, *mX509Provider, mLocalCacheAllocator)
                                         .GenerateRSAKeyPairWithLabel(pendingKey.mUUID, mCertType, cRSAKeyLength);
         if (!err.IsNone()) {
             return {nullptr, AOS_ERROR_WRAP(err)};
@@ -202,7 +202,7 @@ RetWithError<SharedPtr<crypto::PrivateKeyItf>> PKCS11Module::CreateKey(const Str
         break;
 
     case aos::crypto::KeyTypeEnum::eECDSA:
-        Tie(pendingKey.mKey, err) = pkcs11::Utils(*session, *mX509Provider, mLocalCacheAllocator)
+        Tie(pendingKey.mKey, err) = pkcs11::Utils(session, *mX509Provider, mLocalCacheAllocator)
                                         .GenerateECDSAKeyPairWithLabel(pendingKey.mUUID, mCertType, cECSDACurveID);
         if (!err.IsNone()) {
             return {nullptr, AOS_ERROR_WRAP(err)};
@@ -217,7 +217,7 @@ RetWithError<SharedPtr<crypto::PrivateKeyItf>> PKCS11Module::CreateKey(const Str
 
     err = TokenMemInfo();
     if (!err.IsNone()) {
-        pkcs11::Utils(*session, *mX509Provider, mLocalCacheAllocator).DeletePrivateKey(pendingKey.mKey);
+        pkcs11::Utils(session, *mX509Provider, mLocalCacheAllocator).DeletePrivateKey(pendingKey.mKey);
         return {nullptr, err};
     }
 
@@ -226,7 +226,7 @@ RetWithError<SharedPtr<crypto::PrivateKeyItf>> PKCS11Module::CreateKey(const Str
 
         auto oldKey = mPendingKeys.Front().mValue.mKey;
 
-        err = pkcs11::Utils(*session, *mX509Provider, mLocalCacheAllocator).DeletePrivateKey(oldKey);
+        err = pkcs11::Utils(session, *mX509Provider, mLocalCacheAllocator).DeletePrivateKey(oldKey);
         if (!err.IsNone()) {
             LOG_ERR() << "Can't delete pending key = " << err.Message();
         }
@@ -243,8 +243,8 @@ Error PKCS11Module::ApplyCert(const Array<crypto::x509::Certificate>& certChain,
 {
     (void)password;
 
-    Error                   err = ErrorEnum::eNone;
-    pkcs11::SessionContext* session;
+    Error                             err = ErrorEnum::eNone;
+    SharedPtr<pkcs11::SessionContext> session;
 
     Tie(session, err) = CreateSession(true, mUserPIN);
     if (!err.IsNone()) {
@@ -267,7 +267,7 @@ Error PKCS11Module::ApplyCert(const Array<crypto::x509::Certificate>& certChain,
         return AOS_ERROR_WRAP(ErrorEnum::eNotFound);
     }
 
-    err = CreateCertificateChain(*session, curKey.GetValue().mUUID, mCertType, certChain);
+    err = CreateCertificateChain(session, curKey.GetValue().mUUID, mCertType, certChain);
     if (!err.IsNone()) {
         return err;
     }
@@ -291,8 +291,8 @@ Error PKCS11Module::RemoveCert(const String& certURL, const String& password)
 {
     (void)password;
 
-    Error                   err = ErrorEnum::eNone;
-    pkcs11::SessionContext* session;
+    Error                             err = ErrorEnum::eNone;
+    SharedPtr<pkcs11::SessionContext> session;
 
     Tie(session, err) = CreateSession(true, mUserPIN);
     if (!err.IsNone()) {
@@ -307,15 +307,15 @@ Error PKCS11Module::RemoveCert(const String& certURL, const String& password)
         return err;
     }
 
-    return pkcs11::Utils(*session, *mX509Provider, mLocalCacheAllocator).DeleteCertificate(id, label);
+    return pkcs11::Utils(session, *mX509Provider, mLocalCacheAllocator).DeleteCertificate(id, label);
 }
 
 Error PKCS11Module::RemoveKey(const String& keyURL, const String& password)
 {
     (void)password;
 
-    Error                   err = ErrorEnum::eNone;
-    pkcs11::SessionContext* session;
+    Error                             err = ErrorEnum::eNone;
+    SharedPtr<pkcs11::SessionContext> session;
 
     Tie(session, err) = CreateSession(true, mUserPIN);
     if (!err.IsNone()) {
@@ -330,12 +330,12 @@ Error PKCS11Module::RemoveKey(const String& keyURL, const String& password)
         return err;
     }
 
-    const auto privKey = pkcs11::Utils(*session, *mX509Provider, mLocalCacheAllocator).FindPrivateKey(id, label);
+    const auto privKey = pkcs11::Utils(session, *mX509Provider, mLocalCacheAllocator).FindPrivateKey(id, label);
     if (!privKey.mError.IsNone()) {
         return AOS_ERROR_WRAP(privKey.mError);
     }
 
-    err = pkcs11::Utils(*session, *mX509Provider, mLocalCacheAllocator).DeletePrivateKey(privKey.mValue);
+    err = pkcs11::Utils(session, *mX509Provider, mLocalCacheAllocator).DeletePrivateKey(privKey.mValue);
     if (!err.IsNone()) {
         return AOS_ERROR_WRAP(err);
     }
@@ -346,9 +346,9 @@ Error PKCS11Module::RemoveKey(const String& keyURL, const String& password)
 Error PKCS11Module::ValidateCertificates(
     Array<StaticString<cURLLen>>& invalidCerts, Array<StaticString<cURLLen>>& invalidKeys, Array<CertInfo>& validCerts)
 {
-    Error                   err     = ErrorEnum::eNone;
-    bool                    isOwned = false;
-    pkcs11::SessionContext* session;
+    Error                             err     = ErrorEnum::eNone;
+    bool                              isOwned = false;
+    SharedPtr<pkcs11::SessionContext> session;
 
     Tie(isOwned, err) = IsOwned();
     if (!err.IsNone() || !isOwned) {
@@ -580,7 +580,7 @@ Error PKCS11Module::GetUserPin(String& pin) const
     return ErrorEnum::eNone;
 }
 
-RetWithError<pkcs11::SessionContext*> PKCS11Module::CreateSession(bool userLogin, const String& pin)
+RetWithError<SharedPtr<pkcs11::SessionContext>> PKCS11Module::CreateSession(bool userLogin, const String& pin)
 {
     Error err = ErrorEnum::eNone;
 
@@ -614,16 +614,16 @@ RetWithError<pkcs11::SessionContext*> PKCS11Module::CreateSession(bool userLogin
     if (userLogin && !isUserLoggedIn) {
         LOG_DBG() << "User login: session = " << mSession->GetHandle() << ", slotID = " << mSlotID;
 
-        return {mSession.Get(), AOS_ERROR_WRAP(mSession->Login(CKU_USER, mUserPIN))};
+        return {mSession, AOS_ERROR_WRAP(mSession->Login(CKU_USER, mUserPIN))};
     }
 
     if (!userLogin && !isSOLoggedIn) {
         LOG_DBG() << "SO login: session = " << mSession->GetHandle() << ", slotID = " << mSlotID;
 
-        return {mSession.Get(), AOS_ERROR_WRAP(mSession->Login(CKU_SO, pin))};
+        return {mSession, AOS_ERROR_WRAP(mSession->Login(CKU_SO, pin))};
     }
 
-    return {mSession.Get(), ErrorEnum::eNone};
+    return {mSession, ErrorEnum::eNone};
 }
 
 Error PKCS11Module::FindObject(pkcs11::SessionContext& session, const SearchObject& filter, Array<SearchObject>& dst)
@@ -722,7 +722,7 @@ bool PKCS11Module::CheckCertificate(const crypto::x509::Certificate& cert, const
     return cert.mPublicKey->IsEqual(key.GetPublic());
 }
 
-Error PKCS11Module::CreateCertificateChain(pkcs11::SessionContext& session, const Array<uint8_t>& id,
+Error PKCS11Module::CreateCertificateChain(const SharedPtr<pkcs11::SessionContext>& session, const Array<uint8_t>& id,
     const String& label, const Array<crypto::x509::Certificate>& chain)
 {
     auto utils = pkcs11::Utils(session, *mX509Provider, mLocalCacheAllocator);

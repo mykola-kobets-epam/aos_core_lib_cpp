@@ -171,7 +171,7 @@ private:
     Error GeneratePIN(const String& loginType, String& userPIN);
     Error GetUserPin(String& pin) const;
 
-    RetWithError<pkcs11::SessionContext*> CreateSession(bool userLogin, const String& pin);
+    RetWithError<SharedPtr<pkcs11::SessionContext>> CreateSession(bool userLogin, const String& pin);
 
     Error FindObject(pkcs11::SessionContext& session, const SearchObject& filter, Array<SearchObject>& dst);
 
@@ -179,8 +179,8 @@ private:
 
     bool CheckCertificate(const crypto::x509::Certificate& cert, const crypto::PrivateKeyItf& key) const;
 
-    Error CreateCertificateChain(pkcs11::SessionContext& session, const Array<uint8_t>& id, const String& label,
-        const Array<crypto::x509::Certificate>& chain);
+    Error CreateCertificateChain(const SharedPtr<pkcs11::SessionContext>& session, const Array<uint8_t>& id,
+        const String& label, const Array<crypto::x509::Certificate>& chain);
 
     Error CreateURL(const String& label, const Array<uint8_t>& id, String& url);
     Error ParseURL(const String& url, String& label, Array<uint8_t>& id);
@@ -210,7 +210,7 @@ private:
     StaticAllocator<pkcs11::cPrivateKeyMaxSize * cCertsPerModule> mLocalCacheAllocator;
 
     StaticArray<PendingKey, cCertsPerModule> mPendingKeys;
-    UniquePtr<pkcs11::SessionContext>        mSession;
+    SharedPtr<pkcs11::SessionContext>        mSession;
 };
 
 } // namespace certhandler

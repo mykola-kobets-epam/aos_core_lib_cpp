@@ -21,7 +21,7 @@ constexpr uint8_t PKCS11RSAPrivateKey::cSHA384Prefix[];
 constexpr uint8_t PKCS11RSAPrivateKey::cSHA512Prefix[];
 
 PKCS11RSAPrivateKey::PKCS11RSAPrivateKey(
-    SessionContext& session, ObjectHandle privKeyHandle, const crypto::RSAPublicKey& pubKey)
+    const SharedPtr<SessionContext>& session, ObjectHandle privKeyHandle, const crypto::RSAPublicKey& pubKey)
     : mSession(session)
     , mPrivKeyHandle(privKeyHandle)
     , mPublicKey(pubKey)
@@ -43,14 +43,14 @@ Error PKCS11RSAPrivateKey::Sign(
 
     CK_MECHANISM mechanism = {CKM_RSA_PKCS, nullptr, 0};
 
-    return mSession.Sign(&mechanism, mPrivKeyHandle, *t, signature);
+    return mSession->Sign(&mechanism, mPrivKeyHandle, *t, signature);
 }
 
 Error PKCS11RSAPrivateKey::Decrypt(const Array<uint8_t>& cipher, Array<uint8_t>& result) const
 {
     CK_MECHANISM mechanism = {CKM_RSA_PKCS, nullptr, 0};
 
-    return mSession.Decrypt(&mechanism, mPrivKeyHandle, cipher, result);
+    return mSession->Decrypt(&mechanism, mPrivKeyHandle, cipher, result);
 }
 
 Array<uint8_t> PKCS11RSAPrivateKey::GetPrefix(crypto::Hash hash) const
@@ -76,8 +76,8 @@ Array<uint8_t> PKCS11RSAPrivateKey::GetPrefix(crypto::Hash hash) const
  * PKCS11ECDSAPrivateKey
  **********************************************************************************************************************/
 
-PKCS11ECDSAPrivateKey::PKCS11ECDSAPrivateKey(SessionContext& session, crypto::x509::ProviderItf& cryptoProvider,
-    ObjectHandle privKeyHandle, const crypto::ECDSAPublicKey& pubKey)
+PKCS11ECDSAPrivateKey::PKCS11ECDSAPrivateKey(const SharedPtr<SessionContext>& session,
+    crypto::x509::ProviderItf& cryptoProvider, ObjectHandle privKeyHandle, const crypto::ECDSAPublicKey& pubKey)
     : mSession(session)
     , mCryptoProvider(cryptoProvider)
     , mPrivKeyHandle(privKeyHandle)
@@ -97,7 +97,7 @@ Error PKCS11ECDSAPrivateKey::Sign(
 
     CK_MECHANISM mechanism = {CKM_ECDSA, nullptr, 0};
 
-    return mSession.Sign(&mechanism, mPrivKeyHandle, digest, signature);
+    return mSession->Sign(&mechanism, mPrivKeyHandle, digest, signature);
 }
 
 } // namespace pkcs11

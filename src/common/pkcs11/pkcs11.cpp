@@ -445,7 +445,7 @@ Error LibraryContext::GetLibInfo(LibInfo& libInfo) const
     return ConvertFromPKCS11LibInfo(pkcsInfo, libInfo);
 }
 
-RetWithError<UniquePtr<SessionContext>> LibraryContext::OpenSession(SlotID slotID, uint32_t flags)
+RetWithError<SharedPtr<SessionContext>> LibraryContext::OpenSession(SlotID slotID, uint32_t flags)
 {
     if (!mFunctionList || !mFunctionList->C_OpenSession) {
         return {nullptr, ErrorEnum::eWrongState};
@@ -458,9 +458,9 @@ RetWithError<UniquePtr<SessionContext>> LibraryContext::OpenSession(SlotID slotI
         return {nullptr, static_cast<int>(rv)};
     }
 
-    auto session = MakeUnique<SessionContext>(&mAllocator, handle, mFunctionList);
+    auto session = MakeShared<SessionContext>(&mAllocator, handle, mFunctionList);
 
-    return {Move(session), ErrorEnum::eNone};
+    return {session, ErrorEnum::eNone};
 }
 
 LibraryContext::~LibraryContext()
@@ -862,7 +862,7 @@ SharedPtr<LibraryContext> PKCS11Manager::OpenLibrary(const String& library)
  * Utils
  **********************************************************************************************************************/
 
-Utils::Utils(SessionContext& session, crypto::x509::ProviderItf& cryptoProvider, Allocator& allocator)
+Utils::Utils(const SharedPtr<SessionContext>& session, crypto::x509::ProviderItf& cryptoProvider, Allocator& allocator)
     : mSession(session)
     , mCryptoProvider(cryptoProvider)
     , mAllocator(allocator)
@@ -872,7 +872,7 @@ Utils::Utils(SessionContext& session, crypto::x509::ProviderItf& cryptoProvider,
 RetWithError<PrivateKey> Utils::GenerateRSAKeyPairWithLabel(
     const Array<uint8_t>& id, const String& label, size_t bitsCount)
 {
-    auto funcList = mSession.GetFunctionList();
+    auto funcList = mSession->GetFunctionList();
 
     if (!funcList || !funcList->C_GenerateKeyPair) {
         return {{}, ErrorEnum::eWrongState};
@@ -911,7 +911,7 @@ RetWithError<PrivateKey> Utils::GenerateRSAKeyPairWithLabel(
     ObjectHandle privKeyHandle = CK_INVALID_HANDLE;
     ObjectHandle pubKeyHandle  = CK_INVALID_HANDLE;
 
-    CK_RV rv = funcList->C_GenerateKeyPair(mSession.GetHandle(), &mechanism, pubKeyTempl.Get(), pubKeyTempl.Size(),
+    CK_RV rv = funcList->C_GenerateKeyPair(mSession->GetHandle(), &mechanism, pubKeyTempl.Get(), pubKeyTempl.Size(),
         privKeyTempl.Get(), privKeyTempl.Size(), &pubKeyHandle, &privKeyHandle);
 
     if (rv != CKR_OK) {
@@ -927,7 +927,7 @@ RetWithError<PrivateKey> Utils::GenerateECDSAKeyPairWithLabel(
     // only P384 curve is supported for now
     assert(curve == EllipticCurve::eP384);
 
-    auto funcList = mSession.GetFunctionList();
+    auto funcList = mSession->GetFunctionList();
 
     if (!funcList || !funcList->C_GenerateKeyPair) {
         return {{}, ErrorEnum::eWrongState};
@@ -963,7 +963,7 @@ RetWithError<PrivateKey> Utils::GenerateECDSAKeyPairWithLabel(
     ObjectHandle privKeyHandle = CK_INVALID_HANDLE;
     ObjectHandle pubKeyHandle  = CK_INVALID_HANDLE;
 
-    CK_RV rv = funcList->C_GenerateKeyPair(mSession.GetHandle(), &mechanism, pubKeyTempl.Get(), pubKeyTempl.Size(),
+    CK_RV rv = funcList->C_GenerateKeyPair(mSession->GetHandle(), &mechanism, pubKeyTempl.Get(), pubKeyTempl.Size(),
         privKeyTempl.Get(), privKeyTempl.Size(), &pubKeyHandle, &privKeyHandle);
 
     if (rv != CKR_OK) {
@@ -988,7 +988,7 @@ RetWithError<PrivateKey> Utils::FindPrivateKey(const Array<uint8_t>& id, const S
 
     StaticArray<ObjectHandle, cKeysPerToken> privKeys;
 
-    auto err = mSession.FindObjects(privKeyTempl, privKeys);
+    auto err = mSession->FindObjects(privKeyTempl, privKeys);
     if (!err.IsNone()) {
         return {{}, err};
     }
@@ -1012,12 +1012,12 @@ RetWithError<PrivateKey> Utils::FindPrivateKey(const Array<uint8_t>& id, const S
     StaticArray<ObjectHandle, cKeysPerToken> pubKeys;
 
     for (const auto& privKey : privKeys) {
-        err = mSession.GetAttributeValues(privKey, keyTypeAttribute, keyTypeValue);
+        err = mSession->GetAttributeValues(privKey, keyTypeAttribute, keyTypeValue);
         if (!err.IsNone()) {
             return {{}, err};
         }
 
-        err = mSession.FindObjects(pubKeyTempl, pubKeys);
+        err = mSession->FindObjects(pubKeyTempl, pubKeys);
         if (!err.IsNone()) {
             return {{}, err};
         }
@@ -1034,17 +1034,17 @@ RetWithError<PrivateKey> Utils::FindPrivateKey(const Array<uint8_t>& id, const S
 
 Error Utils::DeletePrivateKey(const PrivateKey& key)
 {
-    auto err = mSession.DestroyObject(key.GetPrivHandle());
+    auto err = mSession->DestroyObject(key.GetPrivHandle());
     if (!err.IsNone()) {
         return err;
     }
 
-    return mSession.DestroyObject(key.GetPubHandle());
+    return mSession->DestroyObject(key.GetPubHandle());
 }
 
 Error Utils::ImportCertificate(const Array<uint8_t>& id, const String& label, const crypto::x509::Certificate& cert)
 {
-    auto funcList = mSession.GetFunctionList();
+    auto funcList = mSession->GetFunctionList();
 
     if (!funcList || !funcList->C_CreateObject) {
         return ErrorEnum::eWrongState;
@@ -1077,7 +1077,7 @@ Error Utils::ImportCertificate(const Array<uint8_t>& id, const String& label, co
 
     ObjectHandle certHandle = CK_INVALID_HANDLE;
 
-    CK_RV rv = funcList->C_CreateObject(mSession.GetHandle(), certTempl.Get(), certTempl.Size(), &certHandle);
+    CK_RV rv = funcList->C_CreateObject(mSession->GetHandle(), certTempl.Get(), certTempl.Size(), &certHandle);
     if (rv != CKR_OK) {
         return static_cast<int>(rv);
     }
@@ -1104,7 +1104,7 @@ RetWithError<bool> Utils::HasCertificate(const Array<uint8_t>& issuer, const Arr
 
     StaticArray<ObjectHandle, cSingleObject> certHandles;
 
-    err = mSession.FindObjects(certTempl, certHandles);
+    err = mSession->FindObjects(certTempl, certHandles);
     // "not enough memory" treat as success and certificate found
     if (err.Is(ErrorEnum::eNoMemory)) {
         return {true, ErrorEnum::eNone};
@@ -1161,13 +1161,13 @@ Error Utils::DeleteCertificate(const Array<uint8_t>& id, const String& label)
 
     StaticArray<ObjectHandle, cKeysPerToken> certHandles;
 
-    auto err = mSession.FindObjects(certTempl, certHandles);
+    auto err = mSession->FindObjects(certTempl, certHandles);
     if (!err.IsNone()) {
         return err;
     }
 
     for (const auto handle : certHandles) {
-        err = mSession.DestroyObject(handle);
+        err = mSession->DestroyObject(handle);
         if (!err.IsNone()) {
             return err;
         }
@@ -1198,7 +1198,7 @@ RetWithError<PrivateKey> Utils::ExportPrivateKey(
         attrValues.PushBack(n);
         attrValues.PushBack(e);
 
-        auto err = mSession.GetAttributeValues(pubKeyHandle, attrTypes, attrValues);
+        auto err = mSession->GetAttributeValues(pubKeyHandle, attrTypes, attrValues);
         if (!err.IsNone()) {
             return {{}, err};
         }
@@ -1223,7 +1223,7 @@ RetWithError<PrivateKey> Utils::ExportPrivateKey(
         attrValues.PushBack(derEncodedParams);
         attrValues.PushBack(derEcodedPoint);
 
-        auto err = mSession.GetAttributeValues(pubKeyHandle, attrTypes, attrValues);
+        auto err = mSession->GetAttributeValues(pubKeyHandle, attrTypes, attrValues);
         if (!err.IsNone()) {
             return {{}, err};
         }
@@ -1262,7 +1262,7 @@ Error Utils::FindCertificates(const Array<uint8_t>& id, const String& label, Arr
     certTempl.PushBack({CKA_ID, id});
     certTempl.PushBack({CKA_LABEL, ConvertToAttributeValue(label)});
 
-    return mSession.FindObjects(certTempl, handles);
+    return mSession->FindObjects(certTempl, handles);
 }
 
 Error Utils::FindCertificateChain(const crypto::x509::Certificate& certificate, crypto::x509::CertificateChain& chain)
@@ -1280,7 +1280,7 @@ Error Utils::FindCertificateChain(const crypto::x509::Certificate& certificate, 
     StaticArray<ObjectHandle, cKeysPerToken> handles;
     SharedPtr<crypto::x509::Certificate>     foundCert;
 
-    auto err = mSession.FindObjects(certTempl, handles);
+    auto err = mSession->FindObjects(certTempl, handles);
     if (err.IsNone()) {
         Tie(foundCert, err) = GetCertificate(handles[0]);
     } else if (err == ErrorEnum::eNotFound && !certificate.mAuthorityKeyId.IsEmpty()) {
@@ -1316,7 +1316,7 @@ RetWithError<SharedPtr<crypto::x509::Certificate>> Utils::FindCertificateByKeyID
 
     StaticArray<ObjectHandle, cKeysPerToken> handles;
 
-    auto err = mSession.FindObjects(certTempl, handles);
+    auto err = mSession->FindObjects(certTempl, handles);
     if (err.IsNone()) {
         return {nullptr, err};
     }
@@ -1348,7 +1348,7 @@ RetWithError<SharedPtr<crypto::x509::Certificate>> Utils::GetCertificate(ObjectH
     attrTypes.PushBack(CKA_VALUE);
     attrValues.PushBack(certificate->mRaw);
 
-    auto err = mSession.GetAttributeValues(handle, attrTypes, attrValues);
+    auto err = mSession->GetAttributeValues(handle, attrTypes, attrValues);
     if (!err.IsNone()) {
         return {nullptr, err};
     }

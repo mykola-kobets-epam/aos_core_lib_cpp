@@ -56,7 +56,7 @@ protected:
 
     void                                    InitTestToken();
     RetWithError<SlotID>                    FindTestToken();
-    RetWithError<UniquePtr<SessionContext>> OpenUserSession(bool login = true);
+    RetWithError<SharedPtr<SessionContext>> OpenUserSession(bool login = true);
 
     SlotID                        mSlotID = 0;
     PKCS11Manager                 mManager;
@@ -83,7 +83,7 @@ void PKCS11Test::InitTestToken()
         Tie(mSlotID, err) = FindTestToken();
         ASSERT_TRUE(err.IsNone());
 
-        UniquePtr<SessionContext> session;
+        SharedPtr<SessionContext> session;
 
         Tie(session, err) = mLibrary->OpenSession(mSlotID, CKF_RW_SESSION | CKF_SERIAL_SESSION);
         ASSERT_TRUE(err.IsNone());
@@ -121,10 +121,10 @@ RetWithError<SlotID> PKCS11Test::FindTestToken()
     return {0, ErrorEnum::eNotFound};
 }
 
-RetWithError<UniquePtr<SessionContext>> PKCS11Test::OpenUserSession(bool login)
+RetWithError<SharedPtr<SessionContext>> PKCS11Test::OpenUserSession(bool login)
 {
     Error                     err = ErrorEnum::eNone;
-    UniquePtr<SessionContext> session;
+    SharedPtr<SessionContext> session;
 
     Tie(session, err) = mLibrary->OpenSession(mSlotID, CKF_RW_SESSION | CKF_SERIAL_SESSION);
     if (!err.IsNone() || !session) {
@@ -293,7 +293,7 @@ TEST_F(PKCS11Test, Login)
     constexpr auto cBadPIN = "user";
 
     Error                     err = ErrorEnum::eNone;
-    UniquePtr<SessionContext> session;
+    SharedPtr<SessionContext> session;
 
     Tie(session, err) = mLibrary->OpenSession(mSlotID, CKF_RW_SESSION | CKF_SERIAL_SESSION);
     ASSERT_TRUE(err.IsNone() && session);
@@ -309,7 +309,7 @@ TEST_F(PKCS11Test, Login)
 TEST_F(PKCS11Test, SessionInfo)
 {
     Error                     err = ErrorEnum::eNone;
-    UniquePtr<SessionContext> session;
+    SharedPtr<SessionContext> session;
     SessionInfo               sessionInfo;
 
     Tie(session, err) = OpenUserSession();
@@ -326,7 +326,7 @@ TEST_F(PKCS11Test, SessionInfo)
 TEST_F(PKCS11Test, CreateMultipleSessions)
 {
     Error                     err = ErrorEnum::eNone;
-    UniquePtr<SessionContext> session1, session2, session3;
+    SharedPtr<SessionContext> session1, session2, session3;
 
     Tie(session1, err) = OpenUserSession(true);
     ASSERT_TRUE(err.IsNone());
@@ -346,7 +346,7 @@ TEST_F(PKCS11Test, CreateMultipleSessions)
 TEST_F(PKCS11Test, GenerateRSAKeyPairWithLabel)
 {
     Error                     err = ErrorEnum::eNone;
-    UniquePtr<SessionContext> session1, session2;
+    SharedPtr<SessionContext> session1, session2;
 
     Tie(session1, err) = OpenUserSession(true);
     ASSERT_TRUE(err.IsNone());
@@ -359,7 +359,7 @@ TEST_F(PKCS11Test, GenerateRSAKeyPairWithLabel)
 
     PrivateKey key;
 
-    Tie(key, err) = Utils(*session1, mCryptoProvider, mAllocator).GenerateRSAKeyPairWithLabel(id, mLabel, 2048);
+    Tie(key, err) = Utils(session1, mCryptoProvider, mAllocator).GenerateRSAKeyPairWithLabel(id, mLabel, 2048);
     ASSERT_TRUE(err.IsNone());
 
     // check key exists in a new session
@@ -377,7 +377,7 @@ TEST_F(PKCS11Test, GenerateRSAKeyPairWithLabel)
     ASSERT_THAT(std::vector<ObjectHandle>(objects.begin(), objects.end()), Contains(key.GetPubHandle()));
 
     // remove key
-    err = Utils(*session1, mCryptoProvider, mAllocator).DeletePrivateKey(key);
+    err = Utils(session1, mCryptoProvider, mAllocator).DeletePrivateKey(key);
     ASSERT_TRUE(err.IsNone());
 
     // check key doesn't exist anymore
@@ -389,7 +389,7 @@ TEST_F(PKCS11Test, GenerateRSAKeyPairWithLabel)
 TEST_F(PKCS11Test, GenerateECDSAKeyPairWithLabel)
 {
     Error                     err = ErrorEnum::eNone;
-    UniquePtr<SessionContext> session1, session2;
+    SharedPtr<SessionContext> session1, session2;
 
     Tie(session1, err) = OpenUserSession(true);
     ASSERT_TRUE(err.IsNone());
@@ -403,7 +403,7 @@ TEST_F(PKCS11Test, GenerateECDSAKeyPairWithLabel)
     PrivateKey key;
 
     Tie(key, err)
-        = Utils(*session1, mCryptoProvider, mAllocator).GenerateECDSAKeyPairWithLabel(id, mLabel, EllipticCurve::eP384);
+        = Utils(session1, mCryptoProvider, mAllocator).GenerateECDSAKeyPairWithLabel(id, mLabel, EllipticCurve::eP384);
     ASSERT_TRUE(err.IsNone());
 
     // check ECDSA public key params
@@ -428,7 +428,7 @@ TEST_F(PKCS11Test, GenerateECDSAKeyPairWithLabel)
     ASSERT_THAT(std::vector<ObjectHandle>(objects.begin(), objects.end()), Contains(key.GetPubHandle()));
 
     // remove key
-    err = Utils(*session1, mCryptoProvider, mAllocator).DeletePrivateKey(key);
+    err = Utils(session1, mCryptoProvider, mAllocator).DeletePrivateKey(key);
     ASSERT_TRUE(err.IsNone());
 
     // check key doesn't exist anymore
@@ -440,7 +440,7 @@ TEST_F(PKCS11Test, GenerateECDSAKeyPairWithLabel)
 TEST_F(PKCS11Test, FindPrivateKey)
 {
     Error                     err = ErrorEnum::eNone;
-    UniquePtr<SessionContext> session;
+    SharedPtr<SessionContext> session;
 
     Tie(session, err) = OpenUserSession(true);
     ASSERT_TRUE(err.IsNone());
@@ -453,12 +453,12 @@ TEST_F(PKCS11Test, FindPrivateKey)
 
     PrivateKey key;
 
-    Tie(key, err) = Utils(*session, mCryptoProvider, mAllocator).GenerateRSAKeyPairWithLabel(id, mLabel, 2048);
+    Tie(key, err) = Utils(session, mCryptoProvider, mAllocator).GenerateRSAKeyPairWithLabel(id, mLabel, 2048);
     ASSERT_TRUE(err.IsNone());
 
     // find PrivateKey
     PrivateKey foundKey;
-    Tie(foundKey, err) = Utils(*session, mCryptoProvider, mAllocator).FindPrivateKey(id, mLabel);
+    Tie(foundKey, err) = Utils(session, mCryptoProvider, mAllocator).FindPrivateKey(id, mLabel);
     ASSERT_TRUE(err.IsNone());
 
     ASSERT_EQ(key.GetPrivHandle(), foundKey.GetPrivHandle());
@@ -466,18 +466,18 @@ TEST_F(PKCS11Test, FindPrivateKey)
     ASSERT_TRUE(key.GetPrivKey()->GetPublic().IsEqual(foundKey.GetPrivKey()->GetPublic()));
 
     // remove key
-    err = Utils(*session, mCryptoProvider, mAllocator).DeletePrivateKey(key);
+    err = Utils(session, mCryptoProvider, mAllocator).DeletePrivateKey(key);
     ASSERT_TRUE(err.IsNone());
 
     // check key doesn't exist anymore
-    Tie(foundKey, err) = Utils(*session, mCryptoProvider, mAllocator).FindPrivateKey(id, mLabel);
+    Tie(foundKey, err) = Utils(session, mCryptoProvider, mAllocator).FindPrivateKey(id, mLabel);
     ASSERT_EQ(err, ErrorEnum::eNotFound);
 }
 
 TEST_F(PKCS11Test, ImportCertificate)
 {
     Error                     err = ErrorEnum::eNone;
-    UniquePtr<SessionContext> session;
+    SharedPtr<SessionContext> session;
 
     Tie(session, err) = OpenUserSession(true);
     ASSERT_TRUE(err.IsNone());
@@ -494,23 +494,23 @@ TEST_F(PKCS11Test, ImportCertificate)
     ASSERT_TRUE(FS::ReadFile(WORK_DIR "/certificates/ca.cer.der", derBlob).IsNone());
     ASSERT_TRUE(mCryptoProvider.DERToX509Cert(derBlob, caCert).IsNone());
 
-    ASSERT_TRUE(Utils(*session, mCryptoProvider, mAllocator).ImportCertificate(id, mLabel, caCert).IsNone());
+    ASSERT_TRUE(Utils(session, mCryptoProvider, mAllocator).ImportCertificate(id, mLabel, caCert).IsNone());
 
     // check certificate exist
     bool hasCertificate = false;
 
     Tie(hasCertificate, err)
-        = Utils(*session, mCryptoProvider, mAllocator).HasCertificate(caCert.mIssuer, caCert.mSerial);
+        = Utils(session, mCryptoProvider, mAllocator).HasCertificate(caCert.mIssuer, caCert.mSerial);
     ASSERT_TRUE(err.IsNone());
     ASSERT_TRUE(hasCertificate);
 
     // delete certificate
-    err = Utils(*session, mCryptoProvider, mAllocator).DeleteCertificate(id, mLabel);
+    err = Utils(session, mCryptoProvider, mAllocator).DeleteCertificate(id, mLabel);
     ASSERT_TRUE(err.IsNone());
 
     // check certificate doesn't exist
     Tie(hasCertificate, err)
-        = Utils(*session, mCryptoProvider, mAllocator).HasCertificate(caCert.mIssuer, caCert.mSerial);
+        = Utils(session, mCryptoProvider, mAllocator).HasCertificate(caCert.mIssuer, caCert.mSerial);
     ASSERT_TRUE(err.IsNone());
     ASSERT_FALSE(hasCertificate);
 }
@@ -543,7 +543,7 @@ TEST_F(PKCS11Test, GenPIN)
 TEST_F(PKCS11Test, FindCertificateChain)
 {
     Error                     err = ErrorEnum::eNone;
-    UniquePtr<SessionContext> session;
+    SharedPtr<SessionContext> session;
 
     Tie(session, err) = OpenUserSession(true);
     ASSERT_TRUE(err.IsNone());
@@ -568,13 +568,13 @@ TEST_F(PKCS11Test, FindCertificateChain)
     ASSERT_TRUE(mCryptoProvider.DERToX509Cert(derBlob, clientCert).IsNone());
 
     // import certificates
-    ASSERT_TRUE(Utils(*session, mCryptoProvider, mAllocator).ImportCertificate(caId, mLabel, caCert).IsNone());
-    ASSERT_TRUE(Utils(*session, mCryptoProvider, mAllocator).ImportCertificate(clientId, mLabel, clientCert).IsNone());
+    ASSERT_TRUE(Utils(session, mCryptoProvider, mAllocator).ImportCertificate(caId, mLabel, caCert).IsNone());
+    ASSERT_TRUE(Utils(session, mCryptoProvider, mAllocator).ImportCertificate(clientId, mLabel, clientCert).IsNone());
 
     // find two certificate chain
     SharedPtr<crypto::x509::CertificateChain> chain;
 
-    Tie(chain, err) = Utils(*session, mCryptoProvider, mAllocator).FindCertificateChain(clientId, mLabel);
+    Tie(chain, err) = Utils(session, mCryptoProvider, mAllocator).FindCertificateChain(clientId, mLabel);
 
     ASSERT_TRUE(err.IsNone());
     ASSERT_TRUE(chain);
@@ -589,7 +589,7 @@ TEST_F(PKCS11Test, FindCertificateChain)
 TEST_F(PKCS11Test, PKCS11RSAPrivateKeySign)
 {
     Error                     err = ErrorEnum::eNone;
-    UniquePtr<SessionContext> session;
+    SharedPtr<SessionContext> session;
 
     Tie(session, err) = OpenUserSession(true);
     ASSERT_TRUE(err.IsNone());
@@ -602,7 +602,7 @@ TEST_F(PKCS11Test, PKCS11RSAPrivateKeySign)
 
     PrivateKey pkcs11key;
 
-    Tie(pkcs11key, err) = Utils(*session, mCryptoProvider, mAllocator).GenerateRSAKeyPairWithLabel(id, mLabel, 2048);
+    Tie(pkcs11key, err) = Utils(session, mCryptoProvider, mAllocator).GenerateRSAKeyPairWithLabel(id, mLabel, 2048);
     ASSERT_TRUE(err.IsNone());
 
     // generate signature
@@ -628,7 +628,7 @@ TEST_F(PKCS11Test, PKCS11RSAPrivateKeySign)
 TEST_F(PKCS11Test, PKCS11ECDSAPrivateKeySign)
 {
     Error                     err = ErrorEnum::eNone;
-    UniquePtr<SessionContext> session;
+    SharedPtr<SessionContext> session;
 
     Tie(session, err) = OpenUserSession(true);
     ASSERT_TRUE(err.IsNone());
@@ -642,7 +642,7 @@ TEST_F(PKCS11Test, PKCS11ECDSAPrivateKeySign)
     PrivateKey pkcs11key;
 
     Tie(pkcs11key, err)
-        = Utils(*session, mCryptoProvider, mAllocator).GenerateECDSAKeyPairWithLabel(id, mLabel, EllipticCurve::eP384);
+        = Utils(session, mCryptoProvider, mAllocator).GenerateECDSAKeyPairWithLabel(id, mLabel, EllipticCurve::eP384);
     ASSERT_TRUE(err.IsNone());
 
     // generate signature
@@ -666,7 +666,7 @@ TEST_F(PKCS11Test, PKCS11ECDSAPrivateKeySign)
 TEST_F(PKCS11Test, PKCS11RSAPrivateKeyDecrypt)
 {
     Error                     err = ErrorEnum::eNone;
-    UniquePtr<SessionContext> session;
+    SharedPtr<SessionContext> session;
 
     Tie(session, err) = OpenUserSession(true);
     ASSERT_TRUE(err.IsNone());
@@ -679,7 +679,7 @@ TEST_F(PKCS11Test, PKCS11RSAPrivateKeyDecrypt)
 
     PrivateKey pkcs11key;
 
-    Tie(pkcs11key, err) = Utils(*session, mCryptoProvider, mAllocator).GenerateRSAKeyPairWithLabel(id, mLabel, 2048);
+    Tie(pkcs11key, err) = Utils(session, mCryptoProvider, mAllocator).GenerateRSAKeyPairWithLabel(id, mLabel, 2048);
     ASSERT_TRUE(err.IsNone());
 
     // encrypt message

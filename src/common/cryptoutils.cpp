@@ -61,14 +61,14 @@ RetWithError<SharedPtr<crypto::x509::CertificateChain>> CertLoader::LoadCertsCha
             return {nullptr, err};
         }
 
-        UniquePtr<pkcs11::SessionContext> session;
+        SharedPtr<pkcs11::SessionContext> session;
 
         Tie(session, err) = OpenSession(library, token, userPIN);
         if (!err.IsNone()) {
             return {nullptr, err};
         }
 
-        return pkcs11::Utils(*session, *mCryptoProvider, mCertAllocator).FindCertificateChain(id, label);
+        return pkcs11::Utils(session, *mCryptoProvider, mCertAllocator).FindCertificateChain(id, label);
     }
 
     return {nullptr, ErrorEnum::eInvalidArgument};
@@ -104,14 +104,14 @@ RetWithError<SharedPtr<crypto::PrivateKeyItf>> CertLoader::LoadPrivKeyByURL(cons
             return {nullptr, err};
         }
 
-        UniquePtr<pkcs11::SessionContext> session;
+        SharedPtr<pkcs11::SessionContext> session;
 
         Tie(session, err) = OpenSession(library, token, userPIN);
         if (!err.IsNone()) {
             return {nullptr, err};
         }
 
-        auto key = pkcs11::Utils(*session, *mCryptoProvider, mKeyAllocator).FindPrivateKey(id, label);
+        auto key = pkcs11::Utils(session, *mCryptoProvider, mKeyAllocator).FindPrivateKey(id, label);
 
         return {key.mValue.GetPrivKey(), key.mError};
     }
@@ -119,7 +119,7 @@ RetWithError<SharedPtr<crypto::PrivateKeyItf>> CertLoader::LoadPrivKeyByURL(cons
     return {nullptr, ErrorEnum::eInvalidArgument};
 }
 
-RetWithError<UniquePtr<pkcs11::SessionContext>> CertLoader::OpenSession(
+RetWithError<SharedPtr<pkcs11::SessionContext>> CertLoader::OpenSession(
     const String& libraryPath, const String& token, const String& userPIN)
 {
     const char* correctedPath = libraryPath.IsEmpty() ? cDefaultPKCS11Library : libraryPath.CStr();
@@ -131,7 +131,7 @@ RetWithError<UniquePtr<pkcs11::SessionContext>> CertLoader::OpenSession(
 
     pkcs11::SlotID                    slotID;
     Error                             err = ErrorEnum::eNone;
-    UniquePtr<pkcs11::SessionContext> session;
+    SharedPtr<pkcs11::SessionContext> session;
 
     Tie(slotID, err) = FindToken(*library, token);
     if (!err.IsNone()) {
