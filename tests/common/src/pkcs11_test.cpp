@@ -16,7 +16,7 @@
 #include "aos/common/tools/fs.hpp"
 #include "aos/common/tools/uuid.hpp"
 
-#include "../log.hpp"
+#include "log.hpp"
 
 using namespace testing;
 
@@ -31,7 +31,7 @@ class PKCS11Test : public Test {
 protected:
     void SetUp() override
     {
-        setenv("SOFTHSM2_CONF", WORK_DIR "/softhsm/softhsm2.conf", true);
+        setenv("SOFTHSM2_CONF", SOFTHSM_BASE_DIR "/softhsm2.conf", true);
 
         Log::SetCallback([](LogModule module, LogLevel level, const String& message) {
             static std::mutex           sLogMutex;
@@ -49,7 +49,7 @@ protected:
         InitTestToken();
     }
 
-    void TearDown() override { ASSERT_TRUE(FS::ClearDir(WORK_DIR "/softhsm/tokens").IsNone()); }
+    void TearDown() override { ASSERT_TRUE(FS::ClearDir(SOFTHSM_BASE_DIR "/tokens").IsNone()); }
 
     static constexpr auto mLabel = "iam pkcs11 test slot";
     static constexpr auto mPIN   = "admin";
@@ -491,7 +491,7 @@ TEST_F(PKCS11Test, ImportCertificate)
     StaticArray<uint8_t, crypto::cCertDERSize> derBlob;
     crypto::x509::Certificate                  caCert;
 
-    ASSERT_TRUE(FS::ReadFile(WORK_DIR "/certificates/ca.cer.der", derBlob).IsNone());
+    ASSERT_TRUE(FS::ReadFile(CERTIFICATES_DIR "/ca.cer.der", derBlob).IsNone());
     ASSERT_TRUE(mCryptoProvider.DERToX509Cert(derBlob, caCert).IsNone());
 
     ASSERT_TRUE(Utils(session, mCryptoProvider, mAllocator).ImportCertificate(id, mLabel, caCert).IsNone());
@@ -561,10 +561,10 @@ TEST_F(PKCS11Test, FindCertificateChain)
     StaticArray<uint8_t, crypto::cCertDERSize> derBlob;
     crypto::x509::Certificate                  caCert, clientCert;
 
-    ASSERT_TRUE(FS::ReadFile(WORK_DIR "/certificates/ca.cer.der", derBlob).IsNone());
+    ASSERT_TRUE(FS::ReadFile(CERTIFICATES_DIR "/ca.cer.der", derBlob).IsNone());
     ASSERT_TRUE(mCryptoProvider.DERToX509Cert(derBlob, caCert).IsNone());
 
-    ASSERT_TRUE(FS::ReadFile(WORK_DIR "/certificates/client.cer.der", derBlob).IsNone());
+    ASSERT_TRUE(FS::ReadFile(CERTIFICATES_DIR "/client.cer.der", derBlob).IsNone());
     ASSERT_TRUE(mCryptoProvider.DERToX509Cert(derBlob, clientCert).IsNone());
 
     // import certificates
