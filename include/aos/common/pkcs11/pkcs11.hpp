@@ -577,13 +577,18 @@ public:
     Error GetLibInfo(LibInfo& libInfo) const;
 
     /**
-     * Opens a session between an application and a token in a particular slot.
+     * Opens a session between an application and a token in a particular slot or returns one from the pool.
      *
      * @param slotID slot identifier.
      * @param flags indicates the type of session.
      * @return RetWithError<SharedPtr<SessionContext>>.
      */
-    RetWithError<SharedPtr<SessionContext>> OpenSession(SlotID slotID, uint32_t flags);
+    RetWithError<SharedPtr<SessionContext>> OpenSession(SlotID slotID, Flags flags);
+
+    /**
+     * Clears internal session pool.
+     */
+    void ClearSessions();
 
     /**
      * Destroys object instance.
@@ -591,8 +596,22 @@ public:
     ~LibraryContext();
 
 private:
+    static constexpr auto cSessionsMaxCount = AOS_CONFIG_PKCS11_SESSION_POOL_MAX_SIZE;
+
+    struct SessionParams {
+        SlotID mSlotID;
+        Flags  mFlags;
+
+        bool operator==(const SessionParams& other) const { return mSlotID == other.mSlotID && mFlags == other.mFlags; }
+    };
+
+    RetWithError<SharedPtr<SessionContext>> PKCS11OpenSession(SlotID slotID, Flags flags);
+
     CK_FUNCTION_LIST_PTR                                      mFunctionList;
     StaticAllocator<sizeof(SessionContext) * cSessionsPerLib> mAllocator;
+
+    StaticArray<Pair<SessionParams, SharedPtr<SessionContext>>, cSessionsMaxCount> mSessions;
+    size_t                                                                         mLRUInd = 0;
 };
 
 /**

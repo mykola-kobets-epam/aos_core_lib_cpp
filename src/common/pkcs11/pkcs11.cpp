@@ -445,7 +445,58 @@ Error LibraryContext::GetLibInfo(LibInfo& libInfo) const
     return ConvertFromPKCS11LibInfo(pkcsInfo, libInfo);
 }
 
-RetWithError<SharedPtr<SessionContext>> LibraryContext::OpenSession(SlotID slotID, uint32_t flags)
+RetWithError<SharedPtr<SessionContext>> LibraryContext::OpenSession(SlotID slotID, Flags flags)
+{
+    SessionParams params = {slotID, flags};
+
+    for (auto& val : mSessions) {
+        if (val.mFirst == params) {
+            return {val.mSecond, ErrorEnum::eNone};
+        }
+    }
+
+    Error                     err = ErrorEnum::eNone;
+    SharedPtr<SessionContext> session;
+
+    Tie(session, err) = PKCS11OpenSession(slotID, flags);
+    if (!err.IsNone()) {
+        return {session, err};
+    }
+
+    if (mSessions.Size() != mSessions.MaxSize()) {
+        mSessions.PushBack({params, session});
+
+        return {session, ErrorEnum::eNone};
+    }
+
+    mSessions[mLRUInd] = Pair<SessionParams, SharedPtr<SessionContext>>(params, session);
+
+    mLRUInd++;
+    if (mLRUInd == mSessions.Size()) {
+        mLRUInd = 0;
+    }
+
+    return {session, ErrorEnum::eNone};
+}
+
+void LibraryContext::ClearSessions()
+{
+    mSessions.Clear();
+}
+
+LibraryContext::~LibraryContext()
+{
+    if (!mFunctionList || !mFunctionList->C_Finalize) {
+        LOG_ERR() << "Finalize library failed: library is not initialized";
+    }
+
+    CK_RV rv = mFunctionList->C_Finalize(nullptr);
+    if (rv != CKR_OK) {
+        LOG_ERR() << "Finalize library failed: err = " << rv;
+    }
+}
+
+RetWithError<SharedPtr<SessionContext>> LibraryContext::PKCS11OpenSession(SlotID slotID, Flags flags)
 {
     if (!mFunctionList || !mFunctionList->C_OpenSession) {
         return {nullptr, ErrorEnum::eWrongState};
@@ -461,18 +512,6 @@ RetWithError<SharedPtr<SessionContext>> LibraryContext::OpenSession(SlotID slotI
     auto session = MakeShared<SessionContext>(&mAllocator, handle, mFunctionList);
 
     return {session, ErrorEnum::eNone};
-}
-
-LibraryContext::~LibraryContext()
-{
-    if (!mFunctionList || !mFunctionList->C_Finalize) {
-        LOG_ERR() << "Finalize library failed: library is not initialized";
-    }
-
-    CK_RV rv = mFunctionList->C_Finalize(nullptr);
-    if (rv != CKR_OK) {
-        LOG_ERR() << "Finalize library failed: err = " << rv;
-    }
 }
 
 /***********************************************************************************************************************

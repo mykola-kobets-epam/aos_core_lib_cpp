@@ -395,6 +395,13 @@
 #endif
 
 /**
+ * Maximum size of session pool in PKCS11 LibraryContext.
+ */
+#ifndef AOS_CONFIG_PKCS11_SESSION_POOL_MAX_SIZE
+#define AOS_CONFIG_PKCS11_SESSION_POOL_MAX_SIZE 2
+#endif
+
+/**
  *  UUID length
  */
 #ifndef AOS_CONFIG_UUID_LEN

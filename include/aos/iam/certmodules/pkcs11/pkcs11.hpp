@@ -172,6 +172,7 @@ private:
     Error GetUserPin(String& pin) const;
 
     RetWithError<SharedPtr<pkcs11::SessionContext>> CreateSession(bool userLogin, const String& pin);
+    void                                            CloseSession();
 
     Error FindObject(pkcs11::SessionContext& session, const SearchObject& filter, Array<SearchObject>& dst);
 
