@@ -43,7 +43,7 @@ TEST(CryptoutilsTest, ParseFileURL)
     ASSERT_NE(ParseFileURL(url2, path), ErrorEnum::eNone);
 }
 
-TEST(CryptoutilsTest, ParsePKCS11URL_AllValues)
+TEST(CryptoutilsTest, ParsePKCS11URLAllValues)
 {
     const char* url1 = "pkcs11:token=aoscore;object=diskencryption;id=2e2769b6-be2c-43ff-b16d-25985a04e6b2?module-path="
                        "/usr/lib/softhsm/libsofthsm2.so&pin-value=42hAGWdIvQr47T8X";
@@ -66,7 +66,7 @@ TEST(CryptoutilsTest, ParsePKCS11URL_AllValues)
     EXPECT_EQ(strID.CStr(), std::string("2e2769b6-be2c-43ff-b16d-25985a04e6b2"));
 }
 
-TEST(CryptoutilsTest, ParsePKCS11URL_RequiredValuesOnly)
+TEST(CryptoutilsTest, ParsePKCS11URLRequiredValuesOnly)
 {
     const char* url1 = "pkcs11:object=diskencryption;id=2e2769b6-be2c-43ff-b16d-25985a04e6b2";
 
