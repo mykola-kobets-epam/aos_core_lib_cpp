@@ -10,11 +10,11 @@
 #include <mbedtls/sha256.h>
 
 #include "aos/common/crypto/mbedtls/cryptoprovider.hpp"
-#include "aos/common/pkcs11/pkcs11.hpp"
 #include "aos/common/pkcs11/privatekey.hpp"
 #include "aos/common/tools/allocator.hpp"
 #include "aos/common/tools/fs.hpp"
 #include "aos/common/tools/uuid.hpp"
+#include "pkcs11/pkcs11testenv.hpp"
 
 #include "log.hpp"
 
@@ -31,115 +31,29 @@ class PKCS11Test : public Test {
 protected:
     void SetUp() override
     {
-        setenv("SOFTHSM2_CONF", SOFTHSM_BASE_DIR "/softhsm2.conf", true);
-
-        Log::SetCallback([](LogModule module, LogLevel level, const String& message) {
-            static std::mutex           sLogMutex;
-            std::lock_guard<std::mutex> lock(sLogMutex);
-
-            std::cout << level.ToString().CStr() << " | " << module.ToString().CStr() << " | " << message.CStr()
-                      << std::endl;
-        });
-
-        mLibrary = mManager.OpenLibrary(SOFTHSM2_LIB);
-        ASSERT_TRUE(mLibrary);
-
         ASSERT_TRUE(mCryptoProvider.Init().IsNone());
+        ASSERT_TRUE(mPKCS11Env.Init(mPIN, mLabel).IsNone());
 
-        InitTestToken();
+        mLibrary = mPKCS11Env.GetLibrary();
+        mSlotID  = mPKCS11Env.GetSlotID();
     }
 
-    void TearDown() override { ASSERT_TRUE(FS::ClearDir(SOFTHSM_BASE_DIR "/tokens").IsNone()); }
+    void TearDown() override { ASSERT_TRUE(mPKCS11Env.Deinit().IsNone()); }
 
     static constexpr auto mLabel = "iam pkcs11 test slot";
     static constexpr auto mPIN   = "admin";
 
-    void                                    InitTestToken();
-    RetWithError<SlotID>                    FindTestToken();
-    RetWithError<SharedPtr<SessionContext>> OpenUserSession(bool login = true);
-
-    SlotID                        mSlotID = 0;
-    PKCS11Manager                 mManager;
-    SharedPtr<LibraryContext>     mLibrary;
     crypto::MbedTLSCryptoProvider mCryptoProvider;
+    PKCS11TestEnv                 mPKCS11Env;
+
+    SlotID                    mSlotID = 0;
+    SharedPtr<LibraryContext> mLibrary;
 
     StaticAllocator<Max(2 * sizeof(pkcs11::PKCS11RSAPrivateKey), sizeof(pkcs11::PKCS11ECDSAPrivateKey),
         2 * sizeof(crypto::x509::Certificate) + sizeof(crypto::x509::CertificateChain)
             + 2 * sizeof(pkcs11::PKCS11RSAPrivateKey))>
         mAllocator;
 };
-
-void PKCS11Test::InitTestToken()
-{
-    Error err = ErrorEnum::eNone;
-
-    Tie(mSlotID, err) = FindTestToken();
-
-    if (err.Is(ErrorEnum::eNotFound)) {
-        constexpr auto cDefaultSlotID = 0;
-
-        ASSERT_TRUE(mLibrary->InitToken(cDefaultSlotID, mPIN, mLabel).IsNone());
-
-        Tie(mSlotID, err) = FindTestToken();
-        ASSERT_TRUE(err.IsNone());
-
-        SharedPtr<SessionContext> session;
-
-        Tie(session, err) = mLibrary->OpenSession(mSlotID, CKF_RW_SESSION | CKF_SERIAL_SESSION);
-        ASSERT_TRUE(err.IsNone());
-
-        ASSERT_TRUE(session->Login(CKU_SO, mPIN).IsNone());
-        ASSERT_TRUE(session->InitPIN(mPIN).IsNone());
-        ASSERT_TRUE(session->Logout().IsNone());
-    }
-}
-
-RetWithError<SlotID> PKCS11Test::FindTestToken()
-{
-    constexpr auto cMaxSlotListSize = 10;
-
-    StaticArray<SlotID, cMaxSlotListSize> slotList;
-
-    auto err = mLibrary->GetSlotList(true, slotList);
-    if (!err.IsNone()) {
-        return {0, err};
-    }
-
-    for (const auto id : slotList) {
-        TokenInfo tokenInfo;
-
-        err = mLibrary->GetTokenInfo(id, tokenInfo);
-        if (!err.IsNone()) {
-            return {0, err};
-        }
-
-        if (tokenInfo.mLabel == mLabel) {
-            return {id, ErrorEnum::eNone};
-        }
-    }
-
-    return {0, ErrorEnum::eNotFound};
-}
-
-RetWithError<SharedPtr<SessionContext>> PKCS11Test::OpenUserSession(bool login)
-{
-    Error                     err = ErrorEnum::eNone;
-    SharedPtr<SessionContext> session;
-
-    Tie(session, err) = mLibrary->OpenSession(mSlotID, CKF_RW_SESSION | CKF_SERIAL_SESSION);
-    if (!err.IsNone() || !session) {
-        return {nullptr, err};
-    }
-
-    if (login) {
-        err = session->Login(CKU_USER, mPIN);
-        if (!err.IsNone()) {
-            return {nullptr, err};
-        }
-    }
-
-    return session;
-}
 
 /***********************************************************************************************************************
  * Static
@@ -274,17 +188,17 @@ static void VerifyECDSASignature(
 TEST_F(PKCS11Test, PrintTestTokenInfo)
 {
     LibInfo libInfo;
-    ASSERT_TRUE(mLibrary->GetLibInfo(libInfo).IsNone());
+    ASSERT_TRUE(mPKCS11Env.GetLibrary()->GetLibInfo(libInfo).IsNone());
     LOG_INF() << "Lib Info: " << libInfo;
 
     SlotInfo slotInfo;
 
-    ASSERT_TRUE(mLibrary->GetSlotInfo(mSlotID, slotInfo).IsNone());
+    ASSERT_TRUE(mPKCS11Env.GetLibrary()->GetSlotInfo(mSlotID, slotInfo).IsNone());
     LOG_INF() << "Test Slot Info: " << slotInfo;
 
     TokenInfo tokenInfo;
 
-    ASSERT_TRUE(mLibrary->GetTokenInfo(mSlotID, tokenInfo).IsNone());
+    ASSERT_TRUE(mPKCS11Env.GetLibrary()->GetTokenInfo(mSlotID, tokenInfo).IsNone());
     LOG_INF() << "Test Token Info: " << tokenInfo;
 }
 
@@ -295,7 +209,7 @@ TEST_F(PKCS11Test, Login)
     Error                     err = ErrorEnum::eNone;
     SharedPtr<SessionContext> session;
 
-    Tie(session, err) = mLibrary->OpenSession(mSlotID, CKF_RW_SESSION | CKF_SERIAL_SESSION);
+    Tie(session, err) = mPKCS11Env.GetLibrary()->OpenSession(mSlotID, CKF_RW_SESSION | CKF_SERIAL_SESSION);
     ASSERT_TRUE(err.IsNone() && session);
 
     // Login OK
@@ -312,7 +226,7 @@ TEST_F(PKCS11Test, SessionInfo)
     SharedPtr<SessionContext> session;
     SessionInfo               sessionInfo;
 
-    Tie(session, err) = OpenUserSession();
+    Tie(session, err) = mPKCS11Env.OpenUserSession(mPIN);
     ASSERT_TRUE(err.IsNone());
 
     ASSERT_TRUE(session->GetSessionInfo(sessionInfo).IsNone());
@@ -328,18 +242,18 @@ TEST_F(PKCS11Test, CreateMultipleSessions)
     Error                     err = ErrorEnum::eNone;
     SharedPtr<SessionContext> session1, session2, session3;
 
-    Tie(session1, err) = OpenUserSession(true);
+    Tie(session1, err) = mPKCS11Env.OpenUserSession(mPIN, true);
     ASSERT_TRUE(err.IsNone());
 
     // double login failed
-    Tie(session2, err) = OpenUserSession(true);
+    Tie(session2, err) = mPKCS11Env.OpenUserSession(mPIN, true);
     ASSERT_FALSE(err.IsNone());
 
     // open remaining sessions, but dont log in
-    Tie(session2, err) = OpenUserSession(false);
+    Tie(session2, err) = mPKCS11Env.OpenUserSession(mPIN, false);
     ASSERT_TRUE(err.IsNone());
 
-    Tie(session3, err) = OpenUserSession(false);
+    Tie(session3, err) = mPKCS11Env.OpenUserSession(mPIN, false);
     ASSERT_TRUE(err.IsNone());
 }
 
@@ -348,7 +262,7 @@ TEST_F(PKCS11Test, GenerateRSAKeyPairWithLabel)
     Error                     err = ErrorEnum::eNone;
     SharedPtr<SessionContext> session1, session2;
 
-    Tie(session1, err) = OpenUserSession(true);
+    Tie(session1, err) = mPKCS11Env.OpenUserSession(mPIN, true);
     ASSERT_TRUE(err.IsNone());
 
     // generate key
@@ -363,7 +277,7 @@ TEST_F(PKCS11Test, GenerateRSAKeyPairWithLabel)
     ASSERT_TRUE(err.IsNone());
 
     // check key exists in a new session
-    Tie(session2, err) = OpenUserSession(false);
+    Tie(session2, err) = mPKCS11Env.OpenUserSession(mPIN, false);
     ASSERT_TRUE(err.IsNone());
 
     StaticArray<ObjectAttribute, cObjectAttributesCount> templ;
@@ -391,7 +305,7 @@ TEST_F(PKCS11Test, GenerateECDSAKeyPairWithLabel)
     Error                     err = ErrorEnum::eNone;
     SharedPtr<SessionContext> session1, session2;
 
-    Tie(session1, err) = OpenUserSession(true);
+    Tie(session1, err) = mPKCS11Env.OpenUserSession(mPIN, true);
     ASSERT_TRUE(err.IsNone());
 
     // generate key
@@ -414,7 +328,7 @@ TEST_F(PKCS11Test, GenerateECDSAKeyPairWithLabel)
     EXPECT_THAT(std::vector<uint8_t>(actualECParams.begin(), actualECParams.end()), ElementsAreArray(expectedECParams));
 
     // check key exists in a new session
-    Tie(session2, err) = OpenUserSession(false);
+    Tie(session2, err) = mPKCS11Env.OpenUserSession(mPIN, false);
     ASSERT_TRUE(err.IsNone());
 
     StaticArray<ObjectAttribute, cObjectAttributesCount> templ;
@@ -442,7 +356,7 @@ TEST_F(PKCS11Test, FindPrivateKey)
     Error                     err = ErrorEnum::eNone;
     SharedPtr<SessionContext> session;
 
-    Tie(session, err) = OpenUserSession(true);
+    Tie(session, err) = mPKCS11Env.OpenUserSession(mPIN, true);
     ASSERT_TRUE(err.IsNone());
 
     // generate key
@@ -479,7 +393,7 @@ TEST_F(PKCS11Test, ImportCertificate)
     Error                     err = ErrorEnum::eNone;
     SharedPtr<SessionContext> session;
 
-    Tie(session, err) = OpenUserSession(true);
+    Tie(session, err) = mPKCS11Env.OpenUserSession(mPIN, true);
     ASSERT_TRUE(err.IsNone());
 
     // import certificate
@@ -545,7 +459,7 @@ TEST_F(PKCS11Test, FindCertificateChain)
     Error                     err = ErrorEnum::eNone;
     SharedPtr<SessionContext> session;
 
-    Tie(session, err) = OpenUserSession(true);
+    Tie(session, err) = mPKCS11Env.OpenUserSession(mPIN, true);
     ASSERT_TRUE(err.IsNone());
 
     // create ids
@@ -591,7 +505,7 @@ TEST_F(PKCS11Test, PKCS11RSAPrivateKeySign)
     Error                     err = ErrorEnum::eNone;
     SharedPtr<SessionContext> session;
 
-    Tie(session, err) = OpenUserSession(true);
+    Tie(session, err) = mPKCS11Env.OpenUserSession(mPIN, true);
     ASSERT_TRUE(err.IsNone());
 
     // generate key
@@ -630,7 +544,7 @@ TEST_F(PKCS11Test, PKCS11ECDSAPrivateKeySign)
     Error                     err = ErrorEnum::eNone;
     SharedPtr<SessionContext> session;
 
-    Tie(session, err) = OpenUserSession(true);
+    Tie(session, err) = mPKCS11Env.OpenUserSession(mPIN, true);
     ASSERT_TRUE(err.IsNone());
 
     // generate key
@@ -668,7 +582,7 @@ TEST_F(PKCS11Test, PKCS11RSAPrivateKeyDecrypt)
     Error                     err = ErrorEnum::eNone;
     SharedPtr<SessionContext> session;
 
-    Tie(session, err) = OpenUserSession(true);
+    Tie(session, err) = mPKCS11Env.OpenUserSession(mPIN, true);
     ASSERT_TRUE(err.IsNone());
 
     // generate key
