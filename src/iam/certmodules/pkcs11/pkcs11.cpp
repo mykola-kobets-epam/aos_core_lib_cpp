@@ -84,7 +84,8 @@ Error PKCS11Module::SetOwner(const String& password)
     }
 
     mPendingKeys.Clear();
-    mSession.Reset();
+
+    CloseSession();
 
     if (!mTeeLoginType.IsEmpty()) {
         err = GetTeeUserPIN(mTeeLoginType, mUserPIN);
@@ -128,7 +129,7 @@ Error PKCS11Module::SetOwner(const String& password)
 
     err = session->InitPIN(mUserPIN);
 
-    mSession.Reset();
+    CloseSession();
 
     return AOS_ERROR_WRAP(err);
 }
@@ -171,7 +172,7 @@ Error PKCS11Module::Clear()
         }
     }
 
-    mSession.Reset();
+    CloseSession();
 
     return err;
 }
@@ -624,6 +625,12 @@ RetWithError<SharedPtr<pkcs11::SessionContext>> PKCS11Module::CreateSession(bool
     }
 
     return {mSession, ErrorEnum::eNone};
+}
+
+void PKCS11Module::CloseSession()
+{
+    mSession.Reset();
+    mPKCS11->ClearSessions();
 }
 
 Error PKCS11Module::FindObject(pkcs11::SessionContext& session, const SearchObject& filter, Array<SearchObject>& dst)
