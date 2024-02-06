@@ -837,7 +837,7 @@ Error SessionContext::FindObjects(Array<ObjectHandle>& objects) const
         if (chunk == 0) {
             objects.Resize(foundObjectsCount);
 
-            return ErrorEnum::eNone;
+            return objects.IsEmpty() ? ErrorEnum::eNotFound : ErrorEnum::eNone;
         }
     }
 
@@ -1157,6 +1157,10 @@ RetWithError<bool> Utils::HasCertificate(const Array<uint8_t>& issuer, const Arr
     // "not enough memory" treat as success and certificate found
     if (err.Is(ErrorEnum::eNoMemory)) {
         return {true, ErrorEnum::eNone};
+    }
+
+    if (err.Is(ErrorEnum::eNotFound)) {
+        return {false, ErrorEnum::eNone};
     }
 
     if (!err.IsNone()) {

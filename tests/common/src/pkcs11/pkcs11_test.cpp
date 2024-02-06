@@ -381,7 +381,7 @@ TEST_F(PKCS11Test, GenerateRSAKeyPairWithLabel)
     ASSERT_TRUE(err.IsNone());
 
     // check key doesn't exist anymore
-    ASSERT_TRUE(session2->FindObjects(templ, objects).IsNone());
+    ASSERT_TRUE(session2->FindObjects(templ, objects).Is(ErrorEnum::eNotFound));
     ASSERT_THAT(std::vector<ObjectHandle>(objects.begin(), objects.end()), Not(Contains(key.GetPrivHandle())));
     ASSERT_THAT(std::vector<ObjectHandle>(objects.begin(), objects.end()), Not(Contains(key.GetPubHandle())));
 }
@@ -432,7 +432,7 @@ TEST_F(PKCS11Test, GenerateECDSAKeyPairWithLabel)
     ASSERT_TRUE(err.IsNone());
 
     // check key doesn't exist anymore
-    ASSERT_TRUE(session2->FindObjects(templ, objects).IsNone());
+    ASSERT_TRUE(session2->FindObjects(templ, objects).Is(ErrorEnum::eNotFound));
     ASSERT_THAT(std::vector<ObjectHandle>(objects.begin(), objects.end()), Not(Contains(key.GetPrivHandle())));
     ASSERT_THAT(std::vector<ObjectHandle>(objects.begin(), objects.end()), Not(Contains(key.GetPubHandle())));
 }
