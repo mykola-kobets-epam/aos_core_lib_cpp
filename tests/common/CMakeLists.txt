@@ -16,6 +16,7 @@ set(SOURCES
     src/crypto_test.cpp
     src/cryptoutils_test.cpp
     src/monitoring_test.cpp
+    src/pkcs11_test.cpp
     src/tools/allocator_test.cpp
     src/tools/array_test.cpp
     src/tools/buffer_test.cpp
@@ -34,16 +35,19 @@ set(SOURCES
 )
 
 # ######################################################################################################################
+# Set PKCS11 test environment
+# ######################################################################################################################
+
+include(src/pkcs11/pkcs11.cmake)
+
+# ######################################################################################################################
 # Definitions
 # ######################################################################################################################
 
-add_definitions(-DAOS_CONFIG_MONITORING_SEND_PERIOD_SEC=2 -DAOS_CONFIG_MONITORING_POLL_PERIOD_SEC=1)
-
-# ######################################################################################################################
-# Add subdirectories
-# ######################################################################################################################
-
-add_subdirectory(src/pkcs11)
+add_definitions(
+    -DAOS_CONFIG_MONITORING_SEND_PERIOD_SEC=2 -DAOS_CONFIG_MONITORING_POLL_PERIOD_SEC=1
+    -DSOFTHSM_BASE_DIR="${SOFTHSM_BASE_DIR}" -DCERTIFICATES_DIR="${CERTIFICATES_DIR}" -DSOFTHSM2_LIB="${SOFTHSM2_LIB}"
+)
 
 # ######################################################################################################################
 # Test
