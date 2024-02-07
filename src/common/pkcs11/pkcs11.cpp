@@ -333,6 +333,8 @@ RetWithError<CK_FUNCTION_LIST_PTR> DynamicLibraryContext::Init()
 
 Error LibraryContext::Init()
 {
+    LockGuard lock(mMutex);
+
     Error err = ErrorEnum::eNone;
 
     Tie(mFunctionList, err) = PKCS11LibraryContext::Init();
@@ -447,6 +449,8 @@ Error LibraryContext::GetLibInfo(LibInfo& libInfo) const
 
 RetWithError<SharedPtr<SessionContext>> LibraryContext::OpenSession(SlotID slotID, Flags flags)
 {
+    LockGuard lock(mMutex);
+
     SessionParams params = {slotID, flags};
 
     for (auto& val : mSessions) {
@@ -481,6 +485,8 @@ RetWithError<SharedPtr<SessionContext>> LibraryContext::OpenSession(SlotID slotI
 
 void LibraryContext::ClearSessions()
 {
+    LockGuard lock(mMutex);
+
     mSessions.Clear();
 }
 
@@ -489,6 +495,8 @@ LibraryContext::~LibraryContext()
     if (!mFunctionList || !mFunctionList->C_Finalize) {
         LOG_ERR() << "Finalize library failed: library is not initialized";
     }
+
+    ClearSessions();
 
     CK_RV rv = mFunctionList->C_Finalize(nullptr);
     if (rv != CKR_OK) {
@@ -856,6 +864,8 @@ Error SessionContext::FindObjectsFinal() const
 
 SharedPtr<LibraryContext> PKCS11Manager::OpenLibrary(const String& library)
 {
+    LockGuard lock(mMutex);
+
     LOG_INF() << "Loading library: path = " << library;
 
     for (auto& lib : mLibraries) {
