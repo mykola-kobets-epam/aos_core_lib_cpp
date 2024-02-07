@@ -612,6 +612,7 @@ private:
 
     StaticArray<Pair<SessionParams, SharedPtr<SessionContext>>, cSessionsMaxCount> mSessions;
     size_t                                                                         mLRUInd = 0;
+    Mutex                                                                          mMutex;
 };
 
 /**
@@ -795,6 +796,7 @@ private:
 
     StaticAllocator<sizeof(LibraryContext) * cLibrariesMaxNum> mAllocator;
     StaticArray<LibraryInfo, cLibrariesMaxNum>                 mLibraries;
+    Mutex                                                      mMutex;
 };
 
 } // namespace pkcs11
