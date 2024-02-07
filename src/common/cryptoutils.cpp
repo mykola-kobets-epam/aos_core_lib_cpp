@@ -150,7 +150,7 @@ RetWithError<SharedPtr<pkcs11::SessionContext>> CertLoader::OpenSession(
         }
     }
 
-    return {Move(session), err};
+    return {Move(session), ErrorEnum::eNone};
 }
 
 RetWithError<pkcs11::SlotID> CertLoader::FindToken(pkcs11::LibraryContext& library, const String& token)
