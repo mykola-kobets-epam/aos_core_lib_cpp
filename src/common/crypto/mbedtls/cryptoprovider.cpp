@@ -90,6 +90,31 @@ static int ASN1EncodeBigInt(const Array<uint8_t>& number, unsigned char** p, uns
     return len;
 }
 
+static Error ASN1RemoveTag(const Array<uint8_t>& src, Array<uint8_t>& dst, int tag)
+{
+    uint8_t* p   = const_cast<uint8_t*>(src.Get());
+    size_t   len = 0;
+
+    int ret = mbedtls_asn1_get_tag(&p, src.end(), &len, tag);
+    if (ret < 0) {
+        return ret;
+    }
+
+    size_t tagAndLenSize = p - src.Get();
+    if (src.Size() - tagAndLenSize != len) {
+        return ErrorEnum::eInvalidArgument;
+    }
+
+    auto err = dst.Resize(len);
+    if (!err.IsNone()) {
+        return err;
+    }
+
+    memmove(dst.Get(), p, len);
+
+    return ErrorEnum::eNone;
+}
+
 /***********************************************************************************************************************
  * Public
  **********************************************************************************************************************/
@@ -365,27 +390,12 @@ Error MbedTLSCryptoProvider::ASN1EncodeDERSequence(const Array<Array<uint8_t>>& 
 
 Error MbedTLSCryptoProvider::ASN1DecodeOctetString(const Array<uint8_t>& src, Array<uint8_t>& dst)
 {
-    uint8_t* p   = const_cast<uint8_t*>(src.Get());
-    size_t   len = 0;
+    return crypto::ASN1RemoveTag(src, dst, MBEDTLS_ASN1_OCTET_STRING);
+}
 
-    int ret = mbedtls_asn1_get_tag(&p, src.end(), &len, MBEDTLS_ASN1_OCTET_STRING);
-    if (ret < 0) {
-        return ret;
-    }
-
-    size_t tagAndLenSize = p - src.Get();
-    if (src.Size() - tagAndLenSize != len) {
-        return ErrorEnum::eInvalidArgument;
-    }
-
-    auto err = dst.Resize(len);
-    if (!err.IsNone()) {
-        return err;
-    }
-
-    memmove(dst.Get(), p, len);
-
-    return ErrorEnum::eNone;
+Error MbedTLSCryptoProvider::ASN1DecodeOID(const Array<uint8_t>& inOID, Array<uint8_t>& dst)
+{
+    return crypto::ASN1RemoveTag(inOID, dst, MBEDTLS_ASN1_OID);
 }
 
 /***********************************************************************************************************************

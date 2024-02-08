@@ -395,6 +395,13 @@ TEST_F(PKCS11Test, GenerateECDSAKeyPairWithLabel)
         = Utils(*session1, mCryptoProvider, mAllocator).GenerateECDSAKeyPairWithLabel(id, mLabel, EllipticCurve::eP384);
     ASSERT_TRUE(err.IsNone());
 
+    // check ECDSA public key params
+    const auto&          pubKey           = static_cast<const crypto::ECDSAPublicKey&>(key.GetPrivKey()->GetPublic());
+    const auto           actualECParams   = pubKey.GetECParamsOID();
+    std::vector<uint8_t> expectedECParams = {0x2b, 0x81, 0x04, 0x00, 0x22};
+
+    EXPECT_THAT(std::vector<uint8_t>(actualECParams.begin(), actualECParams.end()), ElementsAreArray(expectedECParams));
+
     // check key exists in a new session
     Tie(session2, err) = OpenUserSession(false);
     ASSERT_TRUE(err.IsNone());

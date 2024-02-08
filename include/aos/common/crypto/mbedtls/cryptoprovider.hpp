@@ -133,6 +133,15 @@ public:
      */
     Error ASN1DecodeOctetString(const Array<uint8_t>& src, Array<uint8_t>& dst) override;
 
+    /**
+     * Decodes input ASN1 OID value.
+     *
+     * @param inOID input ASN1 OID value.
+     * @param[out] dst decoded value.
+     * @result Error.
+     */
+    Error ASN1DecodeOID(const Array<uint8_t>& inOID, Array<uint8_t>& dst) override;
+
 private:
     static constexpr auto cAllocatorSize
         = AOS_CONFIG_CRYPTOPROVIDER_PUB_KEYS_COUNT * Max(sizeof(RSAPublicKey), sizeof(ECDSAPublicKey));
