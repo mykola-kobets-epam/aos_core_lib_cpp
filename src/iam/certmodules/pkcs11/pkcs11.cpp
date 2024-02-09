@@ -697,6 +697,7 @@ Error PKCS11Module::FindObject(pkcs11::SessionContext& session, const SearchObje
 
         searchObject.mType   = filter.mType;
         searchObject.mHandle = object;
+        searchObject.mID.Resize(searchObject.mID.MaxSize());
 
         StaticArray<Array<uint8_t>, cSearchObjAttrCount> searchAttrValues;
         StaticArray<uint8_t, pkcs11::cLabelLen>          label;
@@ -709,7 +710,9 @@ Error PKCS11Module::FindObject(pkcs11::SessionContext& session, const SearchObje
             return AOS_ERROR_WRAP(err);
         }
 
-        err = pkcs11::Utils::ConvertPKCS11String(label, searchObject.mLabel);
+        searchObject.mID.Resize(searchAttrValues[0].Size());
+
+        err = pkcs11::Utils::ConvertPKCS11String(searchAttrValues[1], searchObject.mLabel);
         if (!err.IsNone()) {
             return AOS_ERROR_WRAP(err);
         }
