@@ -15,7 +15,7 @@
 namespace aos {
 namespace uuid {
 
-TEST(CommonTest, CreateUUID)
+TEST(UUIDTest, CreateUUID)
 {
     static constexpr auto cTestUUIDsCount = 1000;
 
@@ -38,7 +38,7 @@ TEST(CommonTest, CreateUUID)
     }
 }
 
-TEST(CommonTest, UUIDToString)
+TEST(UUIDTest, UUIDToString)
 {
     uint8_t uuidBlob[uuid::cUUIDLen]
         = {0x01, 0x12, 0x23, 0x34, 0x45, 0x56, 0x67, 0x78, 0x89, 0x9A, 0xAB, 0xBC, 0xCD, 0xDE, 0xEF, 0xFF};
@@ -47,7 +47,7 @@ TEST(CommonTest, UUIDToString)
     EXPECT_EQ(UUIDToString(source), "01122334-4556-6778-899A-ABBCCDDEEFFF");
 }
 
-TEST(CommonTest, StringToUUID)
+TEST(UUIDTest, StringToUUID)
 {
     Error   err = ErrorEnum::eNone;
     UUID    destination;
@@ -58,6 +58,23 @@ TEST(CommonTest, StringToUUID)
     ASSERT_TRUE(err.IsNone());
 
     EXPECT_EQ(destination, Array<uint8_t>(expected, uuid::cUUIDLen));
+}
+
+TEST(UUIDTest, TreatEmptyUUIDValid)
+{
+    // empty UUID produces 0... string
+    EXPECT_EQ(UUIDToString(UUID {}), "00000000-0000-0000-0000-000000000000");
+
+    UUID  result;
+    Error err = ErrorEnum::eNone;
+
+    // empty string produces 0... UUID
+    Tie(result, err) = StringToUUID("");
+    ASSERT_TRUE(err.IsNone());
+
+    uint8_t expected[uuid::cUUIDLen] = {};
+
+    EXPECT_EQ(result, Array<uint8_t>(expected, uuid::cUUIDLen));
 }
 
 } // namespace uuid

@@ -14,7 +14,8 @@ namespace aos {
 namespace uuid {
 
 // UUID template assumed to have even number of digits between separators.
-static const String cTemplate = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx";
+static const String cTemplate  = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx";
+static const String cEmptyUUID = "00000000-0000-0000-0000-000000000000";
 
 UUID CreateUUID()
 {
@@ -34,9 +35,12 @@ UUID CreateUUID()
 
 StaticString<cUUIDStrLen> UUIDToString(const UUID& src)
 {
+    if (src.IsEmpty()) {
+        return cEmptyUUID;
+    }
+
     StaticString<cUUIDStrLen> result;
 
-    assert(cTemplate.Size() <= result.MaxSize());
     assert(src.Size() == src.MaxSize());
 
     for (size_t i = 0; i < src.Size(); i++) {
@@ -57,9 +61,15 @@ StaticString<cUUIDStrLen> UUIDToString(const UUID& src)
 
 RetWithError<UUID> StringToUUID(const StaticString<uuid::cUUIDStrLen>& src)
 {
-    assert(cTemplate.Size() == src.Size());
-
     UUID result;
+
+    if (src.IsEmpty()) {
+        result.Resize(result.MaxSize(), 0);
+
+        return {result, ErrorEnum::eNone};
+    }
+
+    assert(cTemplate.Size() == src.Size());
 
     for (size_t i = 0; i < src.Size();) {
         if (src[i] == '-') {
