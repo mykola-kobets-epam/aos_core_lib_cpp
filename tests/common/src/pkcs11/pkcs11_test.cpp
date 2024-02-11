@@ -239,7 +239,7 @@ static bool Encrypt(const crypto::RSAPublicKey& pubKey, const Array<uint8_t>& ms
     return ret == 0;
 }
 
-static bool VerifyECDSASignature(
+static void VerifyECDSASignature(
     const crypto::ECDSAPublicKey& pubKey, const Array<uint8_t>& signature, const StaticArray<uint8_t, 32>& digest)
 {
     mbedtls_pk_context pubKeyCtx;
@@ -249,11 +249,22 @@ static bool VerifyECDSASignature(
     ImportECDSAPublicKey(pubKey, pubKeyCtx);
 
     mbedtls_ecdsa_context* ecdsaCtx = mbedtls_pk_ec(pubKeyCtx);
-    int ret = mbedtls_ecdsa_read_signature(ecdsaCtx, digest.Get(), digest.Size(), signature.Get(), signature.Size());
+
+    mbedtls_mpi r, s;
+    mbedtls_mpi_init(&r);
+    mbedtls_mpi_init(&s);
+
+    size_t rsLen = signature.Size() / 2;
+
+    ASSERT_EQ(mbedtls_mpi_read_binary(&r, signature.Get(), rsLen), 0);
+    ASSERT_EQ(mbedtls_mpi_read_binary(&s, signature.Get() + rsLen, rsLen), 0);
+
+    ASSERT_EQ(
+        mbedtls_ecdsa_verify(&ecdsaCtx->private_grp, digest.Get(), digest.Size(), &ecdsaCtx->private_Q, &r, &s), 0);
 
     mbedtls_pk_free(&pubKeyCtx);
-
-    return ret == 0;
+    mbedtls_mpi_free(&r);
+    mbedtls_mpi_free(&s);
 }
 
 /***********************************************************************************************************************
@@ -649,7 +660,7 @@ TEST_F(PKCS11Test, PKCS11ECDSAPrivateKeySign)
     // verify signature valid
     const auto& pubKey = static_cast<const crypto::ECDSAPublicKey&>(privKey->GetPublic());
 
-    ASSERT_TRUE(VerifyECDSASignature(pubKey, signature, digest));
+    VerifyECDSASignature(pubKey, signature, digest);
 }
 
 TEST_F(PKCS11Test, PKCS11RSAPrivateKeyDecrypt)
