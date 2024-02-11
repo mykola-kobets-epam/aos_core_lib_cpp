@@ -132,11 +132,6 @@ public:
     }
 
 private:
-    Error ParseECDSASignature(const Array<uint8_t>& src, Array<uint8_t>& r, Array<uint8_t>& s) const;
-    Error MarshalECDSASignature(const Array<uint8_t>& r, const Array<uint8_t>& s, Array<uint8_t>& signature) const;
-
-    mutable StaticAllocator<sizeof(StaticArray<uint8_t, crypto::cSignatureSize / 2>) * 4> mAllocator;
-
     SessionContext&            mSession;
     crypto::x509::ProviderItf& mCryptoProvider;
     ObjectHandle               mPrivKeyHandle;

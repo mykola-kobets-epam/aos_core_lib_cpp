@@ -97,64 +97,7 @@ Error PKCS11ECDSAPrivateKey::Sign(
 
     CK_MECHANISM mechanism = {CKM_ECDSA, nullptr, 0};
 
-    auto err = mSession.Sign(&mechanism, mPrivKeyHandle, digest, signature);
-    if (!err.IsNone()) {
-        return err;
-    }
-
-    auto r = MakeUnique<StaticArray<uint8_t, crypto::cSignatureSize / 2>>(&mAllocator);
-    auto s = MakeUnique<StaticArray<uint8_t, crypto::cSignatureSize / 2>>(&mAllocator);
-
-    err = ParseECDSASignature(signature, *r, *s);
-    if (!err.IsNone()) {
-        return err;
-    }
-
-    return MarshalECDSASignature(*r, *s, signature);
-}
-
-Error PKCS11ECDSAPrivateKey::ParseECDSASignature(const Array<uint8_t>& src, Array<uint8_t>& r, Array<uint8_t>& s) const
-{
-    auto size = src.Size();
-    if (size % 2 == 1 || size == 0) {
-        return ErrorEnum::eFailed;
-    }
-
-    size /= 2;
-
-    r.Clear();
-    s.Clear();
-
-    auto err = r.Insert(r.end(), src.begin(), src.begin() + size);
-    if (!err.IsNone()) {
-        return err;
-    }
-
-    return s.Insert(s.end(), src.begin() + size, src.end());
-}
-
-Error PKCS11ECDSAPrivateKey::MarshalECDSASignature(
-    const Array<uint8_t>& r, const Array<uint8_t>& s, Array<uint8_t>& signature) const
-{
-    auto encR = MakeUnique<StaticArray<uint8_t, crypto::cSignatureSize / 2>>(&mAllocator);
-    auto encS = MakeUnique<StaticArray<uint8_t, crypto::cSignatureSize / 2>>(&mAllocator);
-
-    auto err = mCryptoProvider.ASN1EncodeBigInt(r, *encR);
-    if (!err.IsNone()) {
-        return err;
-    }
-
-    err = mCryptoProvider.ASN1EncodeBigInt(s, *encS);
-    if (!err.IsNone()) {
-        return err;
-    }
-
-    StaticArray<Array<uint8_t>, 2> sequence;
-
-    sequence.PushBack(*encR);
-    sequence.PushBack(*encS);
-
-    return mCryptoProvider.ASN1EncodeDERSequence(sequence, signature);
+    return mSession.Sign(&mechanism, mPrivKeyHandle, digest, signature);
 }
 
 } // namespace pkcs11
