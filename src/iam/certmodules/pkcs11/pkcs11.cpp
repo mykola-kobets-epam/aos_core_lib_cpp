@@ -667,7 +667,7 @@ Error PKCS11Module::FindObject(pkcs11::SessionContext& session, const SearchObje
         templ.EmplaceBack(CKA_LABEL, Array<uint8_t>(labelPtr, filter.mLabel.Size()));
     }
 
-    if (!filter.mType.HasValue()) {
+    if (filter.mType.HasValue()) {
         const auto classPtr = reinterpret_cast<const uint8_t*>(&filter.mType.GetValue());
 
         templ.EmplaceBack(CKA_CLASS, Array<uint8_t>(classPtr, sizeof(pkcs11::ObjectClass)));
