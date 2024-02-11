@@ -63,7 +63,7 @@ TEST(CryptoutilsTest, ParsePKCS11URL_AllValues)
 
     auto strID = uuid::UUIDToString(id);
 
-    EXPECT_EQ(strID.CStr(), std::string("2E2769B6-BE2C-43FF-B16D-25985A04E6B2"));
+    EXPECT_EQ(strID.CStr(), std::string("2e2769b6-be2c-43ff-b16d-25985a04e6b2"));
 }
 
 TEST(CryptoutilsTest, ParsePKCS11URL_RequiredValuesOnly)
@@ -85,7 +85,7 @@ TEST(CryptoutilsTest, ParsePKCS11URL_RequiredValuesOnly)
 
     auto strID = uuid::UUIDToString(id);
 
-    EXPECT_EQ(strID.CStr(), std::string("2E2769B6-BE2C-43FF-B16D-25985A04E6B2"));
+    EXPECT_EQ(strID.CStr(), std::string("2e2769b6-be2c-43ff-b16d-25985a04e6b2"));
 }
 
 } // namespace cryptoutils

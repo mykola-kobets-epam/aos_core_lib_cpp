@@ -44,7 +44,7 @@ TEST(UUIDTest, UUIDToString)
         = {0x01, 0x12, 0x23, 0x34, 0x45, 0x56, 0x67, 0x78, 0x89, 0x9A, 0xAB, 0xBC, 0xCD, 0xDE, 0xEF, 0xFF};
     UUID source = Array<uint8_t>(uuidBlob, uuid::cUUIDLen);
 
-    EXPECT_EQ(UUIDToString(source), "01122334-4556-6778-899A-ABBCCDDEEFFF");
+    EXPECT_EQ(UUIDToString(source), "01122334-4556-6778-899a-abbccddeefff");
 }
 
 TEST(UUIDTest, StringToUUID)
@@ -54,7 +54,7 @@ TEST(UUIDTest, StringToUUID)
     uint8_t expected[uuid::cUUIDLen]
         = {0x01, 0x12, 0x23, 0x34, 0x45, 0x56, 0x67, 0x78, 0x89, 0x9A, 0xAB, 0xBC, 0xCD, 0xDE, 0xEF, 0xFF};
 
-    Tie(destination, err) = StringToUUID("01122334-4556-6778-899A-ABBCCDDEEFFF");
+    Tie(destination, err) = StringToUUID("01122334-4556-6778-899A-abbccddeefff");
     ASSERT_TRUE(err.IsNone());
 
     EXPECT_EQ(destination, Array<uint8_t>(expected, uuid::cUUIDLen));
