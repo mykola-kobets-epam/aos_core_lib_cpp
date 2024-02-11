@@ -465,7 +465,7 @@ public:
 private:
     static Pair<char, char> ByteToHex(uint8_t val)
     {
-        constexpr char cDigits[] = "0123456789ABCDEF";
+        constexpr char cDigits[] = "0123456789abcdef";
 
         const auto low  = val & 0xF;
         const auto high = (val >> 4);
