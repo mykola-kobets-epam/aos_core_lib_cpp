@@ -678,6 +678,17 @@ private:
 class Utils {
 public:
     /**
+     * Maximum size of allocator's memory that is supposed to be used by local objects.
+     * It is necessary for some Utils functions like GenerateRSA(ECDSA)KeyPairWithLabel, etc.
+     * Depending on the needs, it might be required to reserve additional space for PKCS11 objects, like
+     * PKCS11ECDSAPrivateKey, PKCS11RSAPrivateKey, crypto::x509::Certificate etc.
+     */
+    static constexpr auto cLocalObjectsMaxSize = Max(sizeof(StaticArray<uint8_t, crypto::cRSAModulusSize>)
+            + sizeof(StaticArray<uint8_t, crypto::cRSAPubExponentSize>) + sizeof(crypto::RSAPublicKey),
+        sizeof(StaticArray<uint8_t, crypto::cECDSAParamsOIDSize>) * 2
+            + sizeof(StaticArray<uint8_t, crypto::cECDSAPointDERSize>) * 2 + sizeof(crypto::ECDSAPublicKey));
+
+    /**
      * Creates an object instance.
      *
      * @param session session context.

@@ -79,6 +79,11 @@ constexpr auto cCertDERSize = AOS_CONFIG_CRYPTO_CERT_DER_SIZE;
 constexpr auto cCSRPEMLen = AOS_CONFIG_CRYPTO_CSR_PEM_LEN;
 
 /**
+ * Maximum length of private key in PEM format.
+ */
+constexpr auto cPrivKeyPEMLen = AOS_CONFIG_CRYPTO_PRIVKEY_PEM_LEN;
+
+/**
  *  Serial number size(in bytes).
  */
 constexpr auto cSerialNumSize = AOS_CONFIG_CRYPTO_SERIAL_NUM_SIZE;

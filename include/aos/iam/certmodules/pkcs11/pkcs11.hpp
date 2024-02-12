@@ -207,8 +207,9 @@ private:
     mutable StaticAllocator<aos::Max(sizeof(crypto::x509::Certificate) + sizeof(DERCert),
         sizeof(StaticArray<SearchObject, cCertsPerModule * 3>) + sizeof(SearchObject) + sizeof(pkcs11::TokenInfo)
             + sizeof(pkcs11::SessionInfo))>
-                                                                  mTmpObjAllocator;
-    StaticAllocator<pkcs11::cPrivateKeyMaxSize * cCertsPerModule> mLocalCacheAllocator;
+        mTmpObjAllocator;
+    StaticAllocator<pkcs11::cPrivateKeyMaxSize * cCertsPerModule + pkcs11::Utils::cLocalObjectsMaxSize>
+        mLocalCacheAllocator;
 
     StaticArray<PendingKey, cCertsPerModule> mPendingKeys;
     SharedPtr<pkcs11::SessionContext>        mSession;
