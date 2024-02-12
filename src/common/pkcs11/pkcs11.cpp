@@ -490,6 +490,20 @@ void LibraryContext::ClearSessions()
     mSessions.Clear();
 }
 
+Error LibraryContext::CloseAllSessions(SlotID slotID)
+{
+    if (!mFunctionList || !mFunctionList->C_CloseAllSessions) {
+        return ErrorEnum::eWrongState;
+    }
+
+    CK_RV rv = mFunctionList->C_CloseAllSessions(slotID);
+    if (rv != CKR_OK) {
+        return static_cast<int>(rv);
+    }
+
+    return ErrorEnum::eNone;
+}
+
 LibraryContext::~LibraryContext()
 {
     if (!mFunctionList || !mFunctionList->C_Finalize) {
