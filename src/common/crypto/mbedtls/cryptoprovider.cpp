@@ -245,16 +245,16 @@ Error MbedTLSCryptoProvider::PEMToX509Certs(const String& pemBlob, Array<x509::C
     mbedtls_x509_crt* currentCrt = &crt;
 
     while (currentCrt != nullptr) {
-        x509::Certificate cert;
-
-        auto err = ParseX509Certs(currentCrt, cert);
+        auto err = resultCerts.EmplaceBack();
         if (!err.IsNone()) {
             mbedtls_x509_crt_free(&crt);
 
             return err;
         }
 
-        err = resultCerts.PushBack(cert);
+        auto& cert = resultCerts.Back().mValue;
+
+        err = ParseX509Certs(currentCrt, cert);
         if (!err.IsNone()) {
             mbedtls_x509_crt_free(&crt);
 
