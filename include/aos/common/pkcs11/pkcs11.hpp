@@ -591,6 +591,14 @@ public:
     void ClearSessions();
 
     /**
+     * Closes all sessions for a given slot id.
+     *
+     * @param slotID slot identifier.
+     * @return Error.
+     */
+    Error CloseAllSessions(SlotID slotID);
+
+    /**
      * Destroys object instance.
      */
     ~LibraryContext();
