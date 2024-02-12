@@ -241,6 +241,13 @@
 #endif
 
 /**
+ * Maximum length of private key in PEM format.
+ */
+#ifndef AOS_CONFIG_CRYPTO_PRIVKEY_PEM_LEN
+#define AOS_CONFIG_CRYPTO_PRIVKEY_PEM_LEN 2048
+#endif
+
+/**
  * Serial number size(in bytes).
  */
 #ifndef AOS_CONFIG_CRYPTO_SERIAL_NUM_SIZE

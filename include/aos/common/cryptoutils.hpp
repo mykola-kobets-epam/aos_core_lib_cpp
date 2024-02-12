@@ -53,7 +53,7 @@ private:
         = AOS_CONFIG_CRYPTOUTILS_CERTIFICATE_CHAINS_COUNT * crypto::cCertChainSize * sizeof(crypto::x509::Certificate)
         + sizeof(PEMCertChainBlob);
     static constexpr auto cKeyAllocatorSize
-        = AOS_CONFIG_CRYPTOUTILS_KEYS_COUNT * pkcs11::cPrivateKeyMaxSize + sizeof(crypto::cCertPEMLen);
+        = AOS_CONFIG_CRYPTOUTILS_KEYS_COUNT * pkcs11::cPrivateKeyMaxSize + sizeof(crypto::cPrivKeyPEMLen);
 
     static constexpr auto cDefaultPKCS11Library = AOS_CONFIG_CRYPTOUTILS_DEFAULT_PKCS11_LIB;
 
@@ -67,8 +67,7 @@ private:
     crypto::x509::ProviderItf* mCryptoProvider = nullptr;
     pkcs11::PKCS11Manager*     mPKCS11         = nullptr;
 
-    StaticAllocator<cCertAllocatorSize> mCertAllocator;
-    StaticAllocator<cKeyAllocatorSize>  mKeyAllocator;
+    StaticAllocator<cCertAllocatorSize + cKeyAllocatorSize + pkcs11::Utils::cLocalObjectsMaxSize> mAllocator;
 };
 
 /**

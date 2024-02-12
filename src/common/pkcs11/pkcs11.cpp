@@ -1263,19 +1263,20 @@ RetWithError<PrivateKey> Utils::ExportPrivateKey(
         attrTypes.PushBack(CKA_MODULUS);
         attrTypes.PushBack(CKA_PUBLIC_EXPONENT);
 
-        StaticArray<uint8_t, crypto::cRSAModulusSize>     n;
-        StaticArray<uint8_t, crypto::cRSAPubExponentSize> e;
+        auto n = MakeUnique<StaticArray<uint8_t, crypto::cRSAModulusSize>>(&mAllocator);
+        auto e = MakeUnique<StaticArray<uint8_t, crypto::cRSAPubExponentSize>>(&mAllocator);
 
-        attrValues.PushBack(n);
-        attrValues.PushBack(e);
+        attrValues.PushBack(*n);
+        attrValues.PushBack(*e);
 
         auto err = mSession->GetAttributeValues(pubKeyHandle, attrTypes, attrValues);
         if (!err.IsNone()) {
             return {{}, err};
         }
 
-        auto cryptoKey = MakeShared<PKCS11RSAPrivateKey>(
-            &mAllocator, mSession, privKeyHandle, crypto::RSAPublicKey(attrValues[0], attrValues[1]));
+        auto pubKey    = MakeUnique<crypto::RSAPublicKey>(&mAllocator, attrValues[0], attrValues[1]);
+        auto cryptoKey = MakeShared<PKCS11RSAPrivateKey>(&mAllocator, mSession, privKeyHandle, *pubKey);
+
         PrivateKey pkcsKey = {privKeyHandle, pubKeyHandle, cryptoKey};
 
         return {pkcsKey, ErrorEnum::eNone};
@@ -1288,32 +1289,34 @@ RetWithError<PrivateKey> Utils::ExportPrivateKey(
         attrTypes.PushBack(CKA_ECDSA_PARAMS);
         attrTypes.PushBack(CKA_EC_POINT);
 
-        StaticArray<uint8_t, crypto::cECDSAParamsOIDSize> derEncodedParams;
-        StaticArray<uint8_t, crypto::cECDSAPointDERSize>  derEcodedPoint;
+        auto derEncodedParams = MakeUnique<StaticArray<uint8_t, crypto::cECDSAParamsOIDSize>>(&mAllocator);
+        auto derEncodedPoint  = MakeUnique<StaticArray<uint8_t, crypto::cECDSAPointDERSize>>(&mAllocator);
 
-        attrValues.PushBack(derEncodedParams);
-        attrValues.PushBack(derEcodedPoint);
+        attrValues.PushBack(*derEncodedParams);
+        attrValues.PushBack(*derEncodedPoint);
 
         auto err = mSession->GetAttributeValues(pubKeyHandle, attrTypes, attrValues);
         if (!err.IsNone()) {
             return {{}, err};
         }
 
-        StaticArray<uint8_t, crypto::cECDSAParamsOIDSize> params;
-        StaticArray<uint8_t, crypto::cECDSAPointDERSize>  point;
+        auto params = MakeUnique<StaticArray<uint8_t, crypto::cECDSAParamsOIDSize>>(&mAllocator);
+        auto point  = MakeUnique<StaticArray<uint8_t, crypto::cECDSAPointDERSize>>(&mAllocator);
 
-        err = mCryptoProvider.ASN1DecodeOID(attrValues[0], params);
+        err = mCryptoProvider.ASN1DecodeOID(attrValues[0], *params);
         if (!err.IsNone()) {
             return {{}, err};
         }
 
-        err = mCryptoProvider.ASN1DecodeOctetString(attrValues[1], point);
+        err = mCryptoProvider.ASN1DecodeOctetString(attrValues[1], *point);
         if (!err.IsNone()) {
             return {{}, err};
         }
 
-        auto cryptoKey = MakeShared<PKCS11ECDSAPrivateKey>(
-            &mAllocator, mSession, mCryptoProvider, privKeyHandle, crypto::ECDSAPublicKey(params, point));
+        auto pubKey = MakeUnique<crypto::ECDSAPublicKey>(&mAllocator, *params, *point);
+        auto cryptoKey
+            = MakeShared<PKCS11ECDSAPrivateKey>(&mAllocator, mSession, mCryptoProvider, privKeyHandle, *pubKey);
+
         PrivateKey pkcsKey = {privKeyHandle, pubKeyHandle, cryptoKey};
 
         return {pkcsKey, ErrorEnum::eNone};

@@ -50,8 +50,9 @@ protected:
     SharedPtr<LibraryContext> mLibrary;
 
     StaticAllocator<Max(2 * sizeof(pkcs11::PKCS11RSAPrivateKey), sizeof(pkcs11::PKCS11ECDSAPrivateKey),
-        2 * sizeof(crypto::x509::Certificate) + sizeof(crypto::x509::CertificateChain)
-            + 2 * sizeof(pkcs11::PKCS11RSAPrivateKey))>
+                        2 * sizeof(crypto::x509::Certificate) + sizeof(crypto::x509::CertificateChain)
+                            + 2 * sizeof(pkcs11::PKCS11RSAPrivateKey))
+        + pkcs11::Utils::cLocalObjectsMaxSize>
         mAllocator;
 };
 
