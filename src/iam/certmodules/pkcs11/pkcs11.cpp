@@ -913,7 +913,7 @@ Error PKCS11Module::GetX509Cert(
         return AOS_ERROR_WRAP(err);
     }
 
-    err = mX509Provider->DERToX509Cert(*certBuffer, cert);
+    err = mX509Provider->DERToX509Cert(values[0], cert);
     if (!err.IsNone()) {
         return AOS_ERROR_WRAP(err);
     }
