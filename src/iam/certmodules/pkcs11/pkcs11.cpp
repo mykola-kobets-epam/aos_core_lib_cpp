@@ -275,7 +275,7 @@ Error PKCS11Module::ApplyCert(const Array<crypto::x509::Certificate>& certChain,
     }
 
     err = CreateURL(mCertType, curKey.GetValue().mUUID, certInfo.mCertURL);
-    if (err.IsNone()) {
+    if (!err.IsNone()) {
         return err;
     }
 
@@ -286,7 +286,7 @@ Error PKCS11Module::ApplyCert(const Array<crypto::x509::Certificate>& certChain,
 
     LOG_DBG() << "Certificate applied: cert = " << certInfo;
 
-    return TokenMemInfo();
+    return ErrorEnum::eNone;
 }
 
 Error PKCS11Module::RemoveCert(const String& certURL, const String& password)
