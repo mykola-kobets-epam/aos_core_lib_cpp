@@ -831,7 +831,7 @@ Error PKCS11Module::GetValidInfo(pkcs11::SessionContext& session, Array<SearchOb
             continue;
         }
 
-        LOG_DBG() << "Public key found: ID = " << uuid::UUIDToString(privKey->mID);
+        LOG_DBG() << "Public key found: ID = " << uuid::UUIDToString(pubKey->mID);
 
         auto cert = FindObjectByID(certs, privKey->mID);
         if (cert == certs.end()) {
@@ -839,7 +839,7 @@ Error PKCS11Module::GetValidInfo(pkcs11::SessionContext& session, Array<SearchOb
             continue;
         }
 
-        LOG_DBG() << "Certificate found: ID = " << uuid::UUIDToString(privKey->mID);
+        LOG_DBG() << "Certificate found: ID = " << uuid::UUIDToString(cert->mID);
 
         // create certInfo
         auto     x509Cert = MakeUnique<crypto::x509::Certificate>(&mTmpObjAllocator);
