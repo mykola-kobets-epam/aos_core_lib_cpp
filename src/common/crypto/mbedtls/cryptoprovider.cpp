@@ -500,7 +500,7 @@ Error MbedTLSCryptoProvider::ParseECKey(const mbedtls_ecp_keypair* eckey, x509::
         return AOS_ERROR_WRAP(err);
     }
 
-    cert.mPublicKey = MakeShared<ECDSAPublicKey>(&mAllocator, paramsOID, ecPoint);
+    cert.mPublicKey.SetValue<ECDSAPublicKey>(paramsOID, ecPoint);
 
     return ErrorEnum::eNone;
 }
@@ -551,7 +551,7 @@ Error MbedTLSCryptoProvider::ParseRSAKey(const mbedtls_rsa_context* rsa, x509::C
         return AOS_ERROR_WRAP(ret);
     }
 
-    cert.mPublicKey = MakeShared<RSAPublicKey>(&mAllocator, n, e);
+    cert.mPublicKey.SetValue<RSAPublicKey>(n, e);
 
     return aos::ErrorEnum::eNone;
 }

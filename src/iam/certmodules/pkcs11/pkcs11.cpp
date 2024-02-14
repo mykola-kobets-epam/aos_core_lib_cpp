@@ -727,7 +727,7 @@ Error PKCS11Module::TokenMemInfo() const
 
 bool PKCS11Module::CheckCertificate(const crypto::x509::Certificate& cert, const crypto::PrivateKeyItf& key) const
 {
-    return cert.mPublicKey->IsEqual(key.GetPublic());
+    return GetBase<crypto::PublicKeyItf>(cert.mPublicKey).IsEqual(key.GetPublic());
 }
 
 Error PKCS11Module::CreateCertificateChain(const SharedPtr<pkcs11::SessionContext>& session, const Array<uint8_t>& id,
