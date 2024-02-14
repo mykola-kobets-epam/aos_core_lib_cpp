@@ -885,14 +885,13 @@ Error PKCS11Module::GetValidInfo(pkcs11::SessionContext& session, Array<SearchOb
 
 PKCS11Module::SearchObject* PKCS11Module::FindObjectByID(Array<SearchObject>& array, const Array<uint8_t>& id)
 {
-    SearchObject* result = array.begin();
-    while (result != array.end()) {
-        if (result->mID == id) {
-            return result;
+    for (SearchObject* cur = array.begin(); cur != array.end(); cur++) {
+        if (cur->mID == id) {
+            return cur;
         }
     }
 
-    return result;
+    return array.end();
 }
 
 Error PKCS11Module::GetX509Cert(
