@@ -161,9 +161,9 @@ private:
         uuid::UUID                      mID;
     };
 
-    String                       GetTokenLabel() const;
-    RetWithError<pkcs11::SlotID> GetSlotID();
-    RetWithError<bool>           IsOwned() const;
+    StaticString<pkcs11::cLabelLen> GetTokenLabel() const;
+    RetWithError<pkcs11::SlotID>    GetSlotID();
+    RetWithError<bool>              IsOwned() const;
 
     Error PrintInfo(pkcs11::SlotID slotID) const;
 
@@ -201,6 +201,7 @@ private:
     crypto::x509::ProviderItf*        mX509Provider {};
 
     uint32_t                         mSlotID = 0;
+    StaticString<pkcs11::cLabelLen>  mTokenLabel;
     StaticString<cTeeLoginTypeLen>   mTeeLoginType;
     StaticString<pkcs11::cPINLength> mUserPIN;
 

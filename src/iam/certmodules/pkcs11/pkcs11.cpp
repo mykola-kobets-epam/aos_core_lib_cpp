@@ -43,7 +43,7 @@ Error PKCS11Module::Init(const String& certType, const PKCS11ModuleConfig& confi
         return AOS_ERROR_WRAP(ErrorEnum::eInvalidArgument);
     }
 
-    mConfig.mTokenLabel = GetTokenLabel();
+    mTokenLabel = GetTokenLabel();
 
     Tie(mSlotID, err) = GetSlotID();
     if (!err.IsNone()) {
@@ -108,9 +108,9 @@ Error PKCS11Module::SetOwner(const String& password)
         }
     }
 
-    LOG_DBG() << "Init token: slotID = " << mSlotID << ", label = " << mConfig.mTokenLabel;
+    LOG_DBG() << "Init token: slotID = " << mSlotID << ", label = " << mTokenLabel;
 
-    err = mPKCS11->InitToken(mSlotID, password, mConfig.mTokenLabel);
+    err = mPKCS11->InitToken(mSlotID, password, mTokenLabel);
     if (!err.IsNone()) {
         return AOS_ERROR_WRAP(err);
     }
@@ -415,7 +415,7 @@ Error PKCS11Module::ValidateCertificates(
  * Private
  **********************************************************************************************************************/
 
-String PKCS11Module::GetTokenLabel() const
+StaticString<pkcs11::cLabelLen> PKCS11Module::GetTokenLabel() const
 {
     return mConfig.mTokenLabel.IsEmpty() ? cDefaultTokenLabel : mConfig.mTokenLabel;
 }
@@ -472,7 +472,7 @@ RetWithError<pkcs11::SlotID> PKCS11Module::GetSlotID()
                 return {0, AOS_ERROR_WRAP(err)};
             }
 
-            if (tokenInfo->mLabel == mConfig.mTokenLabel) {
+            if (tokenInfo->mLabel == mTokenLabel) {
                 return {slotID, ErrorEnum::eNone};
             }
 
@@ -777,7 +777,7 @@ Error PKCS11Module::CreateURL(const String& label, const Array<uint8_t>& id, Str
     StaticString<cURLLen> opaque, query;
 
     // create opaque part of url
-    addParam("token", mConfig.mTokenLabel.CStr(), true, opaque);
+    addParam("token", mTokenLabel.CStr(), true, opaque);
 
     if (!label.IsEmpty()) {
         addParam("object", label.CStr(), true, opaque);
