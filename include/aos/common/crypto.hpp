@@ -13,6 +13,7 @@
 #include "aos/common/tools/memory.hpp"
 #include "aos/common/tools/string.hpp"
 #include "aos/common/tools/time.hpp"
+#include "aos/common/tools/variant.hpp"
 #include "aos/common/types.hpp"
 
 namespace aos {
@@ -429,7 +430,7 @@ struct Certificate {
     /**
      * Public key.
      */
-    SharedPtr<PublicKeyItf> mPublicKey;
+    Variant<ECDSAPublicKey, RSAPublicKey> mPublicKey;
     /**
      * Complete ASN.1 DER content (certificate, signature algorithm and signature).
      */

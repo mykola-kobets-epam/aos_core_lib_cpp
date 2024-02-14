@@ -455,7 +455,7 @@ TEST(CryptoTest, DERToX509Certs)
 
     ASSERT_TRUE(certs.mSubject == certs.mIssuer);
 
-    ASSERT_TRUE(certs.mPublicKey->IsEqual(rsaPublicKey));
+    ASSERT_TRUE(aos::GetBase<aos::crypto::PublicKeyItf>(certs.mPublicKey).IsEqual(rsaPublicKey));
 
     aos::StaticArray<uint8_t, aos::crypto::cCertSubjSize> rawSubject;
     error = crypto.ASN1EncodeDN("C=UA, ST=Some-State, L=Kyiv, O=EPAM", rawSubject);
@@ -524,7 +524,7 @@ TEST(CryptoTest, PEMToX509Certs)
 
     ASSERT_TRUE(certs[0].mSubject == certs[0].mIssuer);
 
-    ASSERT_TRUE(certs[0].mPublicKey->IsEqual(ecdsaPublicKey));
+    ASSERT_TRUE(aos::GetBase<aos::crypto::PublicKeyItf>(certs[0].mPublicKey).IsEqual(ecdsaPublicKey));
 
     aos::StaticArray<uint8_t, aos::crypto::cCertSubjSize> rawSubject;
     error = crypto.ASN1EncodeDN("C=UA, ST=Some-State, L=Kyiv, O=EPAM", rawSubject);
