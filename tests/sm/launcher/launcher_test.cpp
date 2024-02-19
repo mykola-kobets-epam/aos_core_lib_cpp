@@ -16,7 +16,7 @@
 #include "aos/common/tools/fs.hpp"
 #include "aos/common/tools/log.hpp"
 #include "aos/sm/launcher.hpp"
-#include "tests/utils/utils.hpp"
+#include "utils.hpp"
 
 using namespace aos::sm::runner;
 using namespace aos::sm::servicemanager;

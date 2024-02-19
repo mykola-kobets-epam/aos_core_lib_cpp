@@ -11,7 +11,7 @@
 
 #include "aos/sm/servicemanager.hpp"
 
-#include "tests/utils/utils.hpp"
+#include "utils.hpp"
 
 namespace aos {
 namespace sm {

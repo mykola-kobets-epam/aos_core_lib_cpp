@@ -41,6 +41,6 @@ add_definitions(
 # ######################################################################################################################
 
 add_executable(${TARGET} ${SOURCES})
-target_link_libraries(${TARGET} GTest::gtest_main)
+target_link_libraries(${TARGET} GTest::gtest_main testutils)
 
 gtest_discover_tests(${TARGET})

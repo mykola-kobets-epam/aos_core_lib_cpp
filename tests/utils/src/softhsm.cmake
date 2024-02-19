@@ -38,10 +38,8 @@ message("\nGenerating PKCS11 test certificates...")
 
 message("\nCreate a Certificate Authority private key...")
 execute_process(
-    COMMAND
-        openssl req -new -newkey rsa:2048 -nodes -out ${CERTIFICATES_DIR}/ca.csr -keyout ${CERTIFICATES_DIR}/ca.key
-        -nodes -subj "/C=XX/ST=StateName/L=CityName/O=Epam/OU=CompanySectionName/CN=Aos Core" COMMAND_ERROR_IS_FATAL
-        ANY
+    COMMAND openssl req -new -newkey rsa:2048 -nodes -out ${CERTIFICATES_DIR}/ca.csr -keyout ${CERTIFICATES_DIR}/ca.key
+            -nodes -subj "/CN=Aos Cloud" COMMAND_ERROR_IS_FATAL ANY
 )
 
 message("\nCreate a CA self-signed certificate...")
@@ -55,7 +53,7 @@ execute_process(COMMAND openssl genrsa -out ${CERTIFICATES_DIR}/client.key 2048 
 
 execute_process(
     COMMAND openssl req -new -key ${CERTIFICATES_DIR}/client.key -out ${CERTIFICATES_DIR}/client.csr -nodes -subj
-            "/C=XX/ST=StateName/L=CityName/O=Epam/OU=CompanySectionName/CN=MKobets" COMMAND_ERROR_IS_FATAL ANY
+            "/CN=Aos Core" COMMAND_ERROR_IS_FATAL ANY
 )
 
 execute_process(
