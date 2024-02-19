@@ -11,14 +11,13 @@ set(TARGET aosiamcpp_test)
 # Sources
 # ######################################################################################################################
 
-set(SOURCES certhandler/certhandler_test.cpp)
+set(SOURCES iam_test.cpp stubs/storagestub.cpp)
 
 # ######################################################################################################################
 # Target
 # ######################################################################################################################
 
 add_executable(${TARGET} ${SOURCES})
-target_link_libraries(${TARGET} aosiamcpp GTest::gmock_main)
-target_include_directories(${TARGET} PUBLIC ../include)
+target_link_libraries(${TARGET} aosiamcpp aoscommoncpp testutils GTest::gmock_main)
 
 gtest_discover_tests(${TARGET})
