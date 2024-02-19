@@ -108,7 +108,7 @@ Error CertHandler::CreateKey(
     return ErrorEnum::eNone;
 }
 
-Error CertHandler::ApplyCertificate(const String& certType, const String& cert, CertInfo& info)
+Error CertHandler::ApplyCertificate(const String& certType, const String& pemCert, CertInfo& info)
 {
     LockGuard lock(mMutex);
 
@@ -119,7 +119,7 @@ Error CertHandler::ApplyCertificate(const String& certType, const String& cert, 
         return AOS_ERROR_WRAP(ErrorEnum::eNotFound);
     }
 
-    auto err = module->ApplyCert(cert, info);
+    auto err = module->ApplyCert(pemCert, info);
     if (!err.IsNone()) {
         return AOS_ERROR_WRAP(err);
     }
@@ -132,14 +132,21 @@ Error CertHandler::GetCertificate(
 {
     LockGuard lock(mMutex);
 
-    LOG_DBG() << "Get certificate: type = " << certType << ", serial = " << serial;
+    StaticString<crypto::cSerialNumStrLen> serialInHex;
+
+    auto err = serialInHex.ByteArrayToHex(serial);
+    if (!err.IsNone()) {
+        return AOS_ERROR_WRAP(err);
+    }
+
+    LOG_DBG() << "Get certificate: type = " << certType << ", serial = " << serialInHex;
 
     auto* module = FindModule(certType);
     if (module == nullptr) {
         return AOS_ERROR_WRAP(ErrorEnum::eNotFound);
     }
 
-    auto err = module->GetCertificate(issuer, serial, resCert);
+    err = module->GetCertificate(issuer, serial, resCert);
     if (!err.IsNone()) {
         return AOS_ERROR_WRAP(err);
     }
