@@ -410,11 +410,8 @@ Error PKCS11Module::ValidateCertificates(
         return err;
     }
 
-    err = CreateInvalidURLs(privKeys, invalidKeys);
-    if (!err.IsNone()) {
-        return err;
-    }
-
+    // Return either private or public keys, otherwise we will have the same URLs in the list
+    // Currently removing key-pairs is supported only. Priv/Pub keys without pair can't be deleted from the storage.
     return CreateInvalidURLs(pubKeys, invalidKeys);
 }
 
