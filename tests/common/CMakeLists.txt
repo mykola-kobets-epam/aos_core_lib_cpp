@@ -36,26 +36,16 @@ set(SOURCES
 )
 
 # ######################################################################################################################
-# Set PKCS11 test environment
-# ######################################################################################################################
-
-include(src/pkcs11/pkcs11.cmake)
-
-# ######################################################################################################################
 # Definitions
 # ######################################################################################################################
 
-add_definitions(
-    -DAOS_CONFIG_MONITORING_SEND_PERIOD_SEC=2 -DAOS_CONFIG_MONITORING_POLL_PERIOD_SEC=1
-    -DSOFTHSM_BASE_DIR="${SOFTHSM_BASE_DIR}" -DCERTIFICATES_DIR="${CERTIFICATES_DIR}" -DSOFTHSM2_LIB="${SOFTHSM2_LIB}"
-)
+add_definitions(-DAOS_CONFIG_MONITORING_SEND_PERIOD_SEC=2 -DAOS_CONFIG_MONITORING_POLL_PERIOD_SEC=1)
 
 # ######################################################################################################################
 # Test
 # ######################################################################################################################
 
 add_executable(${TARGET} ${SOURCES})
-target_link_libraries(${TARGET} aoscommoncpp GTest::gmock_main)
-target_include_directories(${TARGET} PUBLIC ../include)
+target_link_libraries(${TARGET} aoscommoncpp testutils GTest::gmock_main)
 
 gtest_discover_tests(${TARGET})

@@ -9,7 +9,8 @@
 
 #include "aos/common/crypto/mbedtls/cryptoprovider.hpp"
 #include "aos/common/cryptoutils.hpp"
-#include "pkcs11/pkcs11testenv.hpp"
+#include "log.hpp"
+#include "softhsmenv.hpp"
 
 namespace aos {
 namespace cryptoutils {
@@ -24,23 +25,23 @@ class CryptoutilsTest : public Test {
 protected:
     void SetUp() override
     {
+        InitLogs();
+
         ASSERT_TRUE(mCryptoProvider.Init().IsNone());
-        ASSERT_TRUE(mPKCS11Env.Init(mPIN, mLabel).IsNone());
+        ASSERT_TRUE(mSoftHSMEnv.Init(mPIN, mLabel).IsNone());
 
-        ASSERT_TRUE(mCertLoader.Init(mCryptoProvider, mPKCS11Env.GetManager()).IsNone());
+        ASSERT_TRUE(mCertLoader.Init(mCryptoProvider, mSoftHSMEnv.GetManager()).IsNone());
 
-        mLibrary = mPKCS11Env.GetLibrary();
-        mSlotID  = mPKCS11Env.GetSlotID();
+        mLibrary = mSoftHSMEnv.GetLibrary();
+        mSlotID  = mSoftHSMEnv.GetSlotID();
     }
-
-    void TearDown() override { ASSERT_TRUE(mPKCS11Env.Deinit().IsNone()); }
 
     void ImportCertificateChainToPKCS11(const String& caId, const String& clientId)
     {
         Error                             err = ErrorEnum::eNone;
         SharedPtr<pkcs11::SessionContext> session;
 
-        Tie(session, err) = mPKCS11Env.OpenUserSession(mPIN, true);
+        Tie(session, err) = mSoftHSMEnv.OpenUserSession(mPIN, true);
         ASSERT_TRUE(err.IsNone());
 
         // create ids
@@ -75,7 +76,7 @@ protected:
         Error                             err = ErrorEnum::eNone;
         SharedPtr<pkcs11::SessionContext> session;
 
-        Tie(session, err) = mPKCS11Env.OpenUserSession(mPIN, true);
+        Tie(session, err) = mSoftHSMEnv.OpenUserSession(mPIN, true);
         ASSERT_TRUE(err.IsNone());
 
         // generate key
@@ -95,7 +96,7 @@ protected:
     static constexpr auto mPIN   = "admin";
 
     crypto::MbedTLSCryptoProvider mCryptoProvider;
-    pkcs11::PKCS11TestEnv         mPKCS11Env;
+    test::SoftHSMEnv              mSoftHSMEnv;
 
     pkcs11::SlotID                    mSlotID = 0;
     SharedPtr<pkcs11::LibraryContext> mLibrary;
@@ -208,20 +209,17 @@ TEST_F(CryptoutilsTest, FindPKCS11CertificateChain)
     // check client certificate
     aos::StaticString<aos::crypto::cCertSubjSize> subject;
     ASSERT_TRUE(mCryptoProvider.ASN1DecodeDN((*chain)[0].mSubject, subject).IsNone());
-    EXPECT_EQ(std::string(subject.CStr()),
-        std::string("C=XX, ST=StateName, L=CityName, O=Epam, OU=CompanySectionName, CN=MKobets"));
+    EXPECT_EQ(std::string(subject.CStr()), std::string("CN=Aos Core"));
 
     aos::StaticString<aos::crypto::cCertIssuerSize> issuer;
     ASSERT_TRUE(mCryptoProvider.ASN1DecodeDN((*chain)[0].mIssuer, issuer).IsNone());
-    EXPECT_EQ(std::string(issuer.CStr()),
-        std::string("C=XX, ST=StateName, L=CityName, O=Epam, OU=CompanySectionName, CN=Aos Core"));
+    EXPECT_EQ(std::string(issuer.CStr()), std::string("CN=Aos Cloud"));
 
     // check CA certificate
     EXPECT_EQ((*chain)[1].mSubject, (*chain)[1].mIssuer);
 
     ASSERT_TRUE(mCryptoProvider.ASN1DecodeDN((*chain)[1].mIssuer, issuer).IsNone());
-    EXPECT_EQ(std::string(issuer.CStr()),
-        std::string("C=XX, ST=StateName, L=CityName, O=Epam, OU=CompanySectionName, CN=Aos Core"));
+    EXPECT_EQ(std::string(issuer.CStr()), std::string("CN=Aos Cloud"));
 }
 
 TEST_F(CryptoutilsTest, FindPKCS11CertificateChainBadURL)
@@ -289,20 +287,17 @@ TEST_F(CryptoutilsTest, FindCertificatesFromFile)
     // check client certificate
     aos::StaticString<aos::crypto::cCertSubjSize> subject;
     ASSERT_TRUE(mCryptoProvider.ASN1DecodeDN((*chain)[0].mSubject, subject).IsNone());
-    EXPECT_EQ(std::string(subject.CStr()),
-        std::string("C=XX, ST=StateName, L=CityName, O=Epam, OU=CompanySectionName, CN=MKobets"));
+    EXPECT_EQ(std::string(subject.CStr()), std::string("CN=Aos Core"));
 
     aos::StaticString<aos::crypto::cCertIssuerSize> issuer;
     ASSERT_TRUE(mCryptoProvider.ASN1DecodeDN((*chain)[0].mIssuer, issuer).IsNone());
-    EXPECT_EQ(std::string(issuer.CStr()),
-        std::string("C=XX, ST=StateName, L=CityName, O=Epam, OU=CompanySectionName, CN=Aos Core"));
+    EXPECT_EQ(std::string(issuer.CStr()), std::string("CN=Aos Cloud"));
 
     // check CA certificate
     EXPECT_EQ((*chain)[1].mSubject, (*chain)[1].mIssuer);
 
     ASSERT_TRUE(mCryptoProvider.ASN1DecodeDN((*chain)[1].mIssuer, issuer).IsNone());
-    EXPECT_EQ(std::string(issuer.CStr()),
-        std::string("C=XX, ST=StateName, L=CityName, O=Epam, OU=CompanySectionName, CN=Aos Core"));
+    EXPECT_EQ(std::string(issuer.CStr()), std::string("CN=Aos Cloud"));
 }
 
 } // namespace cryptoutils
