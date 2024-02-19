@@ -638,6 +638,10 @@ Error MbedTLSCryptoProvider::GetX509CertExtensions(x509::Certificate& cert, mbed
         return AOS_ERROR_WRAP(ret);
     }
 
+    if (extns.buf.len == 0) {
+        return ErrorEnum::eNone;
+    }
+
     mbedtls_asn1_sequence* next = &extns;
 
     while (next != nullptr) {
