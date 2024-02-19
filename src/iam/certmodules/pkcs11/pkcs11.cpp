@@ -669,7 +669,7 @@ Error PKCS11Module::FindObject(pkcs11::SessionContext& session, const SearchObje
     StaticArray<pkcs11::ObjectHandle, cCertsPerModule * 3> objects; // certs, privKeys, pubKeys
 
     auto err = session.FindObjects(templ, objects);
-    if (!err.IsNone()) {
+    if (!err.IsNone() && !err.Is(ErrorEnum::eNotFound)) {
         return AOS_ERROR_WRAP(err);
     }
 
