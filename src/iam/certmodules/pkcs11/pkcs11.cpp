@@ -86,7 +86,10 @@ Error PKCS11Module::SetOwner(const String& password)
     mPendingKeys.Clear();
 
     CloseSession();
-    mPKCS11->CloseAllSessions(mSlotID);
+    err = mPKCS11->CloseAllSessions(mSlotID);
+    if (!err.IsNone()) {
+        return AOS_ERROR_WRAP(err);
+    }
 
     if (!mTeeLoginType.IsEmpty()) {
         err = GetTeeUserPIN(mTeeLoginType, mUserPIN);
