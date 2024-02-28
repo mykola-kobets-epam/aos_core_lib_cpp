@@ -1140,7 +1140,9 @@ Error Utils::ImportCertificate(const Array<uint8_t>& id, const String& label, co
     certTempl.PushBack({CKA_SERIAL_NUMBER, serialNum.Get(), serialNum.Size()});
     certTempl.PushBack({CKA_VALUE, const_cast<uint8_t*>(cert.mRaw.Get()), cert.mRaw.Size()});
     certTempl.PushBack({CKA_ID, const_cast<uint8_t*>(id.Get()), id.Size()});
-    certTempl.PushBack({CKA_LABEL, const_cast<char*>(label.Get()), label.Size()});
+    if (!label.IsEmpty()) {
+        certTempl.PushBack({CKA_LABEL, const_cast<char*>(label.Get()), label.Size()});
+    }
 
     ObjectHandle certHandle = CK_INVALID_HANDLE;
 

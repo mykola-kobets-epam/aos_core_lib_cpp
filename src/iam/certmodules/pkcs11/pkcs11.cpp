@@ -359,6 +359,8 @@ Error PKCS11Module::ValidateCertificates(
     bool                              isOwned = false;
     SharedPtr<pkcs11::SessionContext> session;
 
+    LOG_DBG() << "Validate certificates: certType = " << mCertType;
+
     Tie(isOwned, err) = IsOwned();
     if (!err.IsNone() || !isOwned) {
         return err;
@@ -403,6 +405,10 @@ Error PKCS11Module::ValidateCertificates(
     if (!err.IsNone()) {
         return err;
     }
+
+    PrintInvalidObjects("certificate", certificates);
+    PrintInvalidObjects("public key", pubKeys);
+    PrintInvalidObjects("private key", privKeys);
 
     // create urls for invalid objects
     err = CreateInvalidURLs(certificates, invalidCerts);
@@ -739,6 +745,7 @@ Error PKCS11Module::CreateCertificateChain(const SharedPtr<pkcs11::SessionContex
 {
     auto utils = pkcs11::Utils(session, *mX509Provider, mLocalCacheAllocator);
 
+    LOG_DBG() << "Import certificate with id: " << aos::uuid::UUIDToString(id);
     auto err = utils.ImportCertificate(id, label, chain[0]);
     if (!err.IsNone()) {
         return AOS_ERROR_WRAP(err);
@@ -758,7 +765,9 @@ Error PKCS11Module::CreateCertificateChain(const SharedPtr<pkcs11::SessionContex
 
         auto uuid = uuid::CreateUUID();
 
-        err = utils.ImportCertificate(uuid, label, chain[i]);
+        LOG_DBG() << "Import root certificate with id: " << aos::uuid::UUIDToString(uuid);
+
+        err = utils.ImportCertificate(uuid, "", chain[i]);
         if (!err.IsNone()) {
             return AOS_ERROR_WRAP(err);
         }
@@ -961,6 +970,14 @@ Error PKCS11Module::CreateInvalidURLs(const Array<SearchObject>& objects, Array<
     }
 
     return ErrorEnum::eNone;
+}
+
+void PKCS11Module::PrintInvalidObjects(const String& objectType, Array<SearchObject>& objects)
+{
+    for (const auto& object : objects) {
+        LOG_WRN() << "Invalid " << objectType << " found: certType = " << mCertType
+                  << ", id = " << uuid::UUIDToString(object.mID);
+    }
 }
 
 } // namespace certhandler

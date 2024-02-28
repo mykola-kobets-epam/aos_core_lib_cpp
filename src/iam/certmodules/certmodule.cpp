@@ -249,7 +249,7 @@ Error CertModule::CreateSelfSignedCert(const String& password)
 Error CertModule::RemoveInvalidCerts(const String& password)
 {
     for (const auto& url : mInvalidCerts) {
-        LOG_WRN() << "Remove invalid cert: type = " << GetCertType() << ", url = " << url;
+        LOG_DBG() << "Remove invalid cert: type = " << GetCertType() << ", url = " << url;
 
         const auto err = mHSM->RemoveCert(url, password);
         if (!err.IsNone()) {
@@ -265,7 +265,7 @@ Error CertModule::RemoveInvalidCerts(const String& password)
 Error CertModule::RemoveInvalidKeys(const String& password)
 {
     for (const auto& url : mInvalidKeys) {
-        LOG_WRN() << "Remove invalid key: type = " << GetCertType() << ", url = " << url;
+        LOG_DBG() << "Remove invalid key: type = " << GetCertType() << ", url = " << url;
 
         const auto err = mHSM->RemoveKey(url, password);
         if (!err.IsNone()) {

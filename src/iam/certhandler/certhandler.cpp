@@ -18,6 +18,7 @@ namespace certhandler {
 
 CertHandler::CertHandler()
 {
+    srand(time(nullptr));
 }
 
 Error CertHandler::RegisterModule(CertModule& module)
