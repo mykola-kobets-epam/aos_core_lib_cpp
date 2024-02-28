@@ -319,6 +319,35 @@ RetWithError<StaticString<pkcs11::cPINLength>> ReadPIN(const String& file)
     return {pin, err};
 }
 
+void ApplyCertificate(CertHandler& handler, const String& certType, const String& pin)
+{
+    StaticString<crypto::cCSRPEMLen> csr;
+    ASSERT_TRUE(handler.CreateKey(certType, "Aos Core", pin, csr).IsNone());
+
+    // create certificate from CSR, CA priv key, CA cert
+    StaticString<crypto::cPrivKeyPEMLen> caKey;
+    ASSERT_TRUE(FS::ReadFileToString(CERTIFICATES_DIR "/ca.key", caKey).IsNone());
+
+    StaticString<crypto::cCertPEMLen> caCert;
+    ASSERT_TRUE(FS::ReadFileToString(CERTIFICATES_DIR "/ca.pem", caCert).IsNone());
+
+    uint64_t serialNum = 0x333333;
+    auto     serial    = Array<uint8_t>(reinterpret_cast<uint8_t*>(&serialNum), sizeof(serialNum));
+    StaticString<crypto::cCertPEMLen> clientCertChain;
+
+    CreateClientCert(csr, caKey, caCert, serial, clientCertChain);
+
+    // add CA cert to the chain
+    clientCertChain.Append(caCert);
+
+    // apply client certificate
+    CertInfo certInfo;
+
+    // FS::WriteStringToFile(CERTIFICATES_DIR "/client-out.pem", clientCertChain, 0666);
+    ASSERT_TRUE(handler.ApplyCertificate(certType, clientCertChain, certInfo).IsNone());
+    EXPECT_EQ(certInfo.mSerial, serial);
+}
+
 /***********************************************************************************************************************
  * Tests
  **********************************************************************************************************************/
@@ -632,6 +661,41 @@ TEST_F(IAMTest, RemoveInvalidPKCS11Objects)
 
     EXPECT_THAT(
         std::vector<pkcs11::ObjectHandle>(handles.begin(), handles.end()), Not(Contains(AnyOfArray(badObjects))));
+}
+
+TEST_F(IAMTest, RenewCertificate)
+{
+    RegisterPKCS11Module("iam");
+    ASSERT_TRUE(mCertHandler->SetOwner("iam", cPIN).IsNone());
+
+    ApplyCertificate(*mCertHandler, "iam", cPIN);
+
+    RegisterPKCS11Module("sm");
+    ApplyCertificate(*mCertHandler, "sm", cPIN);
+
+    mCertModules.Clear();
+    mPKCS11Modules.Clear();
+    mCertHandler.Reset();
+
+    // check certificate number
+    StaticArray<pkcs11::ObjectHandle, pkcs11::cKeysPerToken> handles;
+
+    ASSERT_TRUE(FindCertificates(mSOFTHSMEnv, handles).IsNone());
+    ASSERT_EQ(handles.Size(), 3); // 1 root certificate + 2 generated
+
+    // reinit certhandler to sync certificates/keys with PKCS11 storage
+    mCertHandler = MakeShared<CertHandler>(&mAllocator);
+    RegisterPKCS11Module("iam");
+    RegisterPKCS11Module("sm");
+
+    // create key, because certmodule updates PKCS11 storage afterwards only
+    StaticString<crypto::cCSRPEMLen> csr;
+
+    ASSERT_TRUE(mCertHandler->CreateKey("iam", "Aos Core", cPIN, csr).IsNone());
+
+    // check certificate number is not changed
+    ASSERT_TRUE(FindCertificates(mSOFTHSMEnv, handles).IsNone());
+    ASSERT_EQ(handles.Size(), 3); // 1 root certificate + 2 generated
 }
 
 } // namespace certhandler

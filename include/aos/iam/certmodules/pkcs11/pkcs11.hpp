@@ -193,6 +193,7 @@ private:
     Error CreateCertInfo(const crypto::x509::Certificate& cert, const Array<uint8_t>& keyID,
         const Array<uint8_t>& certID, CertInfo& certInfo);
     Error CreateInvalidURLs(const Array<SearchObject>& objects, Array<StaticString<cURLLen>>& urls);
+    void  PrintInvalidObjects(const String& objectType, Array<SearchObject>& objects);
 
     StaticString<cCertTypeLen> mCertType;
     PKCS11ModuleConfig         mConfig {};
