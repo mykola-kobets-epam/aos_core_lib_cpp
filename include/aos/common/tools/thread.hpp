@@ -17,6 +17,7 @@
 #include "aos/common/tools/function.hpp"
 #include "aos/common/tools/noncopyable.hpp"
 #include "aos/common/tools/queue.hpp"
+#include "aos/common/tools/time.hpp"
 
 namespace aos {
 
@@ -89,6 +90,8 @@ public:
     Error Join()
     {
         if (mJoinable) {
+            mJoinable = false;
+
             return pthread_join(mPThread, nullptr);
         }
 
@@ -98,7 +101,7 @@ public:
 private:
     alignas(cThreadStackAlign) uint8_t mStack[AlignedSize(cStackSize, cThreadStackAlign)];
     StaticFunction<cFunctionMaxSize> mFunction;
-    pthread_t                        mPThread = {};
+    pthread_t                        mPThread  = {};
     bool                             mJoinable = false;
 
     static void* ThreadFunction(void* arg)
@@ -244,7 +247,14 @@ public:
      *
      * @return Error.
      */
-    Error GetError() { return mError; }
+    Error GetError() const { return mError; }
+
+    /**
+     * Returns reference to holding mutex.
+     *
+     * @return Mutex&.
+     */
+    Mutex& GetMutex() const { return mMutex; }
 
 private:
     Mutex& mMutex;
@@ -259,14 +269,8 @@ class ConditionalVariable : private NonCopyable {
 public:
     /**
      * Creates conditional variable.
-     *
-     * @param mutex conditional variable mutex.
      */
-    explicit ConditionalVariable(Mutex& mutex)
-        : mMutex(mutex)
-    {
-        mError = pthread_cond_init(&mCondVar, nullptr);
-    }
+    ConditionalVariable() { mError = pthread_cond_init(&mCondVar, nullptr); }
 
     /**
      * Destroys conditional variable.
@@ -276,22 +280,70 @@ public:
     /**
      * Blocks the current thread until the condition variable is awakened.
      *
+     * @param lock unique lock.
      * @return Error.
      */
-    Error Wait() { return mError = pthread_cond_wait(&mCondVar, static_cast<pthread_mutex_t*>(mMutex)); }
+    Error Wait(UniqueLock& lock)
+    {
+        return mError = pthread_cond_wait(&mCondVar, static_cast<pthread_mutex_t*>(lock.GetMutex()));
+    }
+
+    /**
+     * Blocks the current thread until the condition variable is awakened or absolute time passed.
+     *
+     * @param lock unique lock.
+     * @param absTime absolute time.
+     * @return Error.
+     */
+    Error Wait(UniqueLock& lock, aos::Time absTime)
+    {
+        auto unixTime = absTime.UnixTime();
+
+        auto ret = pthread_cond_timedwait(&mCondVar, static_cast<pthread_mutex_t*>(lock.GetMutex()), &unixTime);
+
+        if (ret == ETIMEDOUT) {
+            return mError = ErrorEnum::eTimeout;
+        }
+
+        return mError = ret;
+    }
 
     /**
      * Blocks the current thread until the condition variable is awakened and predicate condition is met.
      *
+     * @param lock unique lock.
+     * @param waitCondition wait condition predicate.
      * @return Error.
      */
     template <typename T>
-    Error Wait(T waitCondition)
+    Error Wait(UniqueLock& lock, T waitCondition)
     {
         while (!waitCondition()) {
-            auto err = Wait();
+            auto err = Wait(lock);
             if (!err.IsNone()) {
-                return err;
+                return mError = err;
+            }
+        }
+
+        return ErrorEnum::eNone;
+    }
+
+    /**
+     * Blocks the current thread until the condition variable is awakened and predicate condition is met or absolute
+     * time passed.
+     *
+     * @param lock unique lock.
+     * @param absTime absolute time.
+     * @param waitCondition wait condition predicate.
+     * @return Error.
+     */
+    template <typename T>
+    Error Wait(UniqueLock& lock, aos::Time absTime, T waitCondition)
+    {
+        while (!waitCondition()) {
+            auto err = Wait(lock, absTime);
+            if (!err.IsNone()) {
+                return mError = err;
             }
         }
 
@@ -320,7 +372,6 @@ public:
     Error GetError() { return mError; }
 
 private:
-    Mutex&         mMutex;
     pthread_cond_t mCondVar;
     Error          mError;
 };
@@ -340,13 +391,7 @@ public:
     /**
      * Creates thread pool instance.
      */
-    ThreadPool()
-        : mTaskCondVar(mMutex)
-        , mWaitCondVar(mMutex)
-        , mShutdown(false)
-        , mPendingTaskCount(0)
-    {
-    }
+    ThreadPool() { }
 
     /**
      * Adds task to task queue.
@@ -399,7 +444,7 @@ public:
                 while (true) {
                     UniqueLock lock(mMutex);
 
-                    auto err = mTaskCondVar.Wait([this]() { return mShutdown || !mQueue.IsEmpty(); });
+                    auto err = mTaskCondVar.Wait(lock, [this]() { return mShutdown || !mQueue.IsEmpty(); });
                     assert(err.IsNone());
 
                     if (mShutdown) {
@@ -447,9 +492,9 @@ public:
      */
     Error Wait()
     {
-        LockGuard lock(mMutex);
+        UniqueLock lock(mMutex);
 
-        auto err = mWaitCondVar.Wait([this]() { return mPendingTaskCount == 0; });
+        auto err = mWaitCondVar.Wait(lock, [this]() { return mPendingTaskCount == 0; });
         if (!err.IsNone()) {
             return err;
         }
@@ -490,8 +535,8 @@ private:
     ConditionalVariable                                   mTaskCondVar;
     ConditionalVariable                                   mWaitCondVar;
     StaticQueue<StaticFunction<cMaxTaskSize>, cQueueSize> mQueue;
-    bool                                                  mShutdown;
-    int                                                   mPendingTaskCount;
+    bool                                                  mShutdown         = false;
+    int                                                   mPendingTaskCount = 0;
 };
 
 } // namespace aos

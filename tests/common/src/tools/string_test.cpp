@@ -11,7 +11,7 @@
 
 using namespace aos;
 
-TEST(CommonTest, String)
+TEST(StringTest, Basic)
 {
     StaticString<32> str;
 
@@ -125,7 +125,7 @@ TEST(CommonTest, String)
     EXPECT_EQ(dst, src);
 }
 
-TEST(CommonTest, StringArray)
+TEST(StringTest, StringArray)
 {
     struct TestStruct {
         StaticString<32> str1;
@@ -143,7 +143,7 @@ TEST(CommonTest, StringArray)
     EXPECT_EQ(strArray[0].str2, "test2");
 }
 
-TEST(CommonTest, SplitString)
+TEST(StringTest, Split)
 {
     StaticArray<StaticString<4>, 4> splitArray;
 
@@ -158,51 +158,51 @@ TEST(CommonTest, SplitString)
     EXPECT_EQ(splitArray, resultArray);
 }
 
-TEST(CommonTest, StringToByteArray)
+TEST(StringTest, HexToByteArray)
 {
     const String hex = "abcDEF0123456789";
 
     StaticArray<uint8_t, 8> result;
     uint8_t                 expected[] = {0xAB, 0xCD, 0xEF, 0x01, 0x23, 0x45, 0x67, 0x89};
 
-    ASSERT_TRUE(hex.ToByteArr(result).IsNone());
+    ASSERT_TRUE(hex.HexToByteArray(result).IsNone());
     EXPECT_EQ(result, Array<uint8_t>(expected, sizeof(expected)));
 }
 
-TEST(CommonTest, StringToByteArrayOddSize)
+TEST(StringTest, HexToByteArrayOddSize)
 {
     const String hex = "01234";
 
     StaticArray<uint8_t, 8> result;
     uint8_t                 expected[] = {0x01, 0x23, 0x40};
 
-    ASSERT_TRUE(hex.ToByteArr(result).IsNone());
+    ASSERT_TRUE(hex.HexToByteArray(result).IsNone());
     EXPECT_EQ(result, Array<uint8_t>(expected, sizeof(expected)));
 }
 
-TEST(CommonTest, StringToByteArrayNoMemory)
+TEST(StringTest, HexToByteArrayNoMemory)
 {
     const String hex = "01234";
 
     StaticArray<uint8_t, 2> result;
 
-    ASSERT_EQ(hex.ToByteArr(result), ErrorEnum::eNoMemory);
+    ASSERT_EQ(hex.HexToByteArray(result), ErrorEnum::eNoMemory);
 }
 
-TEST(CommonTest, StringConvertFromByteArray)
+TEST(StringTest, ByteArrayToHex)
 {
-    const char expected[] = "ABCDEF0123456789";
+    const char expected[] = "abcdef0123456789";
 
     const uint8_t sourceArr[] = {0xAB, 0xCD, 0xEF, 0x01, 0x23, 0x45, 0x67, 0x89};
-    const auto    source = Array<uint8_t>(sourceArr, sizeof(sourceArr));
+    const auto    source      = Array<uint8_t>(sourceArr, sizeof(sourceArr));
 
     StaticString<16> dst;
 
-    ASSERT_TRUE(dst.Convert(source).IsNone());
+    ASSERT_TRUE(dst.ByteArrayToHex(source).IsNone());
     ASSERT_EQ(dst, expected);
 }
 
-TEST(CommonTest, StringFormat)
+TEST(StringTest, Format)
 {
     StaticString<20> str;
 
@@ -210,23 +210,69 @@ TEST(CommonTest, StringFormat)
     ASSERT_EQ(str, "id: 10");
 }
 
-TEST(CommonTest, StringSearch)
+TEST(StringTest, Remove)
 {
-    StaticString<40> str = "pkcs11:object=10;id=40";
+    const auto expected = "Thank you, sir";
 
-    StaticString<20> object;
-    StaticString<20> id;
+    StaticString<100> str1 = "Thank you for removing me, sir";
+    ASSERT_TRUE(str1.Remove(str1.begin() + 9, str1.begin() + 25).IsNone());
+    ASSERT_EQ(str1, expected);
 
-    const char* regex = ".*object=([0-9]+).*id=([0-9]+)";
+    StaticString<100> str2 = "Please remove me. Thank you, sir";
+    ASSERT_TRUE(str2.Remove(str2.begin(), str2.begin() + 18).IsNone());
+    ASSERT_EQ(str2, expected);
 
-    ASSERT_TRUE(str.Search<1>(regex, object).IsNone());
-    EXPECT_EQ(object, "10");
+    StaticString<100> str3 = "Thank you, sir(for removing me)";
+    ASSERT_TRUE(str3.Remove(str3.begin() + 14, str3.end()).IsNone());
+    ASSERT_EQ(str3, expected);
+}
 
-    ASSERT_TRUE(str.Search<2>(regex, id).IsNone());
-    EXPECT_EQ(id, "40");
+TEST(StringTest, FindSubstr)
+{
+    StaticString<100> str = "Hello World!";
+    Error             err = ErrorEnum::eNone;
+    size_t            pos = 0;
 
-    ASSERT_EQ(str.Search<3>(regex, id), ErrorEnum::eNotFound);
+    Tie(pos, err) = str.FindSubstr(0, "World");
+    ASSERT_TRUE(err.IsNone());
+    EXPECT_EQ(pos, 6);
 
-    StaticString<1> smallId;
-    ASSERT_EQ(str.Search<2>(regex, smallId), ErrorEnum::eNoMemory);
+    Tie(pos, err) = str.FindSubstr(5, "World");
+    ASSERT_TRUE(err.IsNone());
+    EXPECT_EQ(pos, 6);
+
+    Tie(pos, err) = str.FindSubstr(6, "World");
+    ASSERT_TRUE(err.IsNone());
+    EXPECT_EQ(pos, 6);
+
+    Tie(pos, err) = str.FindSubstr(7, "World");
+    ASSERT_FALSE(err.IsNone());
+    EXPECT_EQ(pos, str.Size());
+}
+
+TEST(StringTest, FindAny)
+{
+    StaticString<100> str = "Hello World!";
+    Error             err = ErrorEnum::eNone;
+    size_t            pos = 0;
+
+    Tie(pos, err) = str.FindAny(0, "!W");
+    ASSERT_TRUE(err.IsNone());
+    EXPECT_EQ(pos, 6);
+
+    Tie(pos, err) = str.FindAny(5, "!W");
+    ASSERT_TRUE(err.IsNone());
+    EXPECT_EQ(pos, 6);
+
+    Tie(pos, err) = str.FindAny(6, "!W");
+    ASSERT_TRUE(err.IsNone());
+    EXPECT_EQ(pos, 6);
+
+    Tie(pos, err) = str.FindAny(7, "!W");
+    ASSERT_TRUE(err.IsNone());
+    EXPECT_EQ(pos, 11);
+
+    Tie(pos, err) = str.FindAny(0, "a");
+    ASSERT_FALSE(err.IsNone());
+    EXPECT_EQ(pos, str.Size());
 }

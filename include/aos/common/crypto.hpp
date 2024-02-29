@@ -9,10 +9,11 @@
 #define AOS_CRYPTO_HPP_
 
 #include "aos/common/tools/array.hpp"
-#include "aos/common/tools/string.hpp"
-
-#include "aos/common/time.hpp"
+#include "aos/common/tools/enum.hpp"
 #include "aos/common/tools/memory.hpp"
+#include "aos/common/tools/string.hpp"
+#include "aos/common/tools/time.hpp"
+#include "aos/common/tools/variant.hpp"
 #include "aos/common/types.hpp"
 
 namespace aos {
@@ -39,6 +40,11 @@ constexpr auto cAltDNSNamesCount = AOS_CONFIG_CRYPTO_ALT_DNS_NAMES_MAX_COUNT;
 constexpr auto cCertSubjSize = AOS_CONFIG_CRYPTO_CERT_ISSUER_SIZE;
 
 /**
+ * Maximum length of distinguished name string representation.
+ */
+constexpr auto cCertDNStringSize = AOS_CONFIG_CRYPTO_DN_STRING_SIZE;
+
+/**
  * Certificate extra extensions max number.
  */
 constexpr auto cCertExtraExtCount = AOS_CONFIG_CRYPTO_EXTRA_EXTENSIONS_COUNT;
@@ -59,14 +65,24 @@ constexpr auto cASN1ExtValueSize = AOS_CONFIG_CRYPTO_ASN1_EXTENSION_VALUE_SIZE;
 constexpr auto cCertKeyIdSize = AOS_CONFIG_CRYPTO_CERT_KEY_ID_SIZE;
 
 /**
- * Maximum size of a PEM certificate.
+ * Maximum length of a PEM certificate.
  */
-constexpr auto cPEMCertSize = AOS_CONFIG_CRYPTO_PEM_CERT_SIZE;
+constexpr auto cCertPEMLen = AOS_CONFIG_CRYPTO_CERT_PEM_LEN;
 
 /**
  * Maximum size of a DER certificate.
  */
-constexpr auto cDERCertSize = AOS_CONFIG_CRYPTO_DER_CERT_SIZE;
+constexpr auto cCertDERSize = AOS_CONFIG_CRYPTO_CERT_DER_SIZE;
+
+/**
+ * Maximum length of CSR in PEM format.
+ */
+constexpr auto cCSRPEMLen = AOS_CONFIG_CRYPTO_CSR_PEM_LEN;
+
+/**
+ * Maximum length of private key in PEM format.
+ */
+constexpr auto cPrivKeyPEMLen = AOS_CONFIG_CRYPTO_PRIVKEY_PEM_LEN;
 
 /**
  *  Serial number size(in bytes).
@@ -76,7 +92,17 @@ constexpr auto cSerialNumSize = AOS_CONFIG_CRYPTO_SERIAL_NUM_SIZE;
 /**
  *  Length of serial number in string representation.
  */
-constexpr auto cSerialNumStrLen = AOS_CONFIG_CRYPTO_SERIAL_NUM_STR_LEN;
+constexpr auto cSerialNumStrLen = cSerialNumSize * 2;
+
+/**
+ *  Maximum size of serial number encoded in DER format.
+ */
+constexpr auto cSerialNumDERSize = AOS_CONFIG_CRYPTO_SERIAL_NUM_DER_SIZE;
+
+/**
+ * Subject common name length.
+ */
+constexpr auto cSubjectCommonNameLen = AOS_CONFIG_CRYPTO_SUBJECT_COMMON_NAME_LEN;
 
 /**
  * RSA modulus size.
@@ -99,9 +125,36 @@ constexpr auto cECDSAParamsOIDSize = AOS_CONFIG_CRYPTO_ECDSA_PARAMS_OID_SIZE;
 constexpr auto cECDSAPointDERSize = AOS_CONFIG_CRYPTO_ECDSA_POINT_DER_SIZE;
 
 /**
+ * Max expected number of certificates in a chain stored in PEM file.
+ */
+constexpr auto cCertChainSize = AOS_CONFIG_CRYPTO_CERTS_CHAIN_SIZE;
+
+/**
+ * Maximum size of SHA2 digest.
+ */
+constexpr auto cSHA2DigestSize = AOS_CONFIG_CRYPTO_SHA2_DIGEST_SIZE;
+
+/**
+ * Maximum signature size.
+ */
+constexpr auto cSignatureSize = AOS_CONFIG_CRYPTO_SIGNATURE_SIZE;
+
+/**
  * Supported key types.
  */
-enum class KeyType { eRSA, eECDSA };
+class KeyAlgorithm {
+public:
+    enum class Enum { eRSA, eECDSA };
+
+    static const Array<const char* const> GetStrings()
+    {
+        static const char* const sContentTypeStrings[] = {"RSA", "ECDSA"};
+        return Array<const char* const>(sContentTypeStrings, ArraySize(sContentTypeStrings));
+    };
+};
+
+using KeyTypeEnum = KeyAlgorithm::Enum;
+using KeyType     = EnumStringer<KeyAlgorithm>;
 
 /**
  * Public key interface.
@@ -130,6 +183,33 @@ public:
 };
 
 /**
+ * Supported hash functions.
+ */
+class HashType {
+public:
+    enum class Enum { eSHA1, eSHA224, eSHA256, eSHA384, eSHA512, eNone };
+
+    static const Array<const char* const> GetStrings()
+    {
+        static const char* const sContentTypeStrings[] = {"NONE", "SHA1", "SHA224", "SHA256", "SHA384", "SHA512"};
+        return Array<const char* const>(sContentTypeStrings, ArraySize(sContentTypeStrings));
+    };
+};
+
+using HashEnum = HashType::Enum;
+using Hash     = EnumStringer<HashType>;
+
+/**
+ * Options being used while signing.
+ */
+struct SignOptions {
+    /**
+     * Hash function to be used when signing.
+     */
+    Hash mHash;
+};
+
+/**
  * Private key interface.
  */
 class PrivateKeyItf {
@@ -140,6 +220,25 @@ public:
      * @return const PublicKeyItf&.
      */
     virtual const PublicKeyItf& GetPublic() const = 0;
+
+    /**
+     * Calculates a signature of a given digest.
+     *
+     * @param digest input hash digest.
+     * @param options signing options.
+     * @param[out] signature result signature.
+     * @return Error.
+     */
+    virtual Error Sign(const Array<uint8_t>& digest, const SignOptions& options, Array<uint8_t>& signature) const = 0;
+
+    /**
+     * Decrypts a cipher message.
+     *
+     * @param cipher encrypted message.
+     * @param[out] result decoded message.
+     * @return Error.
+     */
+    virtual Error Decrypt(const Array<uint8_t>& cipher, Array<uint8_t>& result) const = 0;
 
     /**
      * Destroys object instance.
@@ -169,7 +268,7 @@ public:
      *
      * @return KeyType,
      */
-    KeyType GetKeyType() const override { return KeyType::eRSA; }
+    KeyType GetKeyType() const override { return KeyTypeEnum::eRSA; }
 
     /**
      * Tests whether current key is equal to the provided one.
@@ -179,7 +278,7 @@ public:
      */
     bool IsEqual(const PublicKeyItf& pubKey) const override
     {
-        if (pubKey.GetKeyType() != KeyType::eRSA) {
+        if (pubKey.GetKeyType() != KeyTypeEnum::eRSA) {
             return false;
         }
 
@@ -188,35 +287,23 @@ public:
         return otherKey.mN == mN && otherKey.mE == mE;
     }
 
+    /**
+     * Returns RSA public modulus.
+     *
+     * @return const Array<uint8_t>&.
+     */
+    const Array<uint8_t>& GetN() const { return mN; }
+
+    /**
+     * Returns RSA public exponent.
+     *
+     * @return const Array<uint8_t>&.
+     */
+    const Array<uint8_t>& GetE() const { return mE; }
+
 private:
     StaticArray<uint8_t, cRSAModulusSize>     mN;
     StaticArray<uint8_t, cRSAPubExponentSize> mE;
-};
-
-/**
- * RSA private key.
- */
-class RSAPrivateKey : public PrivateKeyItf {
-public:
-    /**
-     * Constructs object instance.
-     *
-     * @param pubKey public key component of a private key.
-     */
-    RSAPrivateKey(const RSAPublicKey& pubKey)
-        : mPubKey(pubKey)
-    {
-    }
-
-    /**
-     * Returns public part of a private key.
-     *
-     * @return const PublicKeyItf&.
-     */
-    const PublicKeyItf& GetPublic() const override { return mPubKey; }
-
-private:
-    RSAPublicKey mPubKey;
 };
 
 /**
@@ -241,7 +328,7 @@ public:
      *
      * @return KeyType,
      */
-    KeyType GetKeyType() const override { return KeyType::eECDSA; }
+    KeyType GetKeyType() const override { return KeyTypeEnum::eECDSA; }
 
     /**
      * Tests whether current key is equal to the provided one.
@@ -251,7 +338,7 @@ public:
      */
     bool IsEqual(const PublicKeyItf& pubKey) const override
     {
-        if (pubKey.GetKeyType() != KeyType::eECDSA) {
+        if (pubKey.GetKeyType() != KeyTypeEnum::eECDSA) {
             return false;
         }
 
@@ -260,35 +347,23 @@ public:
         return otherKey.mECParamsOID == mECParamsOID && otherKey.mECPoint == mECPoint;
     }
 
+    /**
+     * Returns ECDSA params OID.
+     *
+     * @return const Array<uint8_t>&.
+     */
+    const Array<uint8_t>& GetECParamsOID() const { return mECParamsOID; }
+
+    /**
+     * Returns ECDSA point.
+     *
+     * @return const Array<uint8_t>&.
+     */
+    const Array<uint8_t>& GetECPoint() const { return mECPoint; }
+
 private:
     StaticArray<uint8_t, cECDSAParamsOIDSize> mECParamsOID;
     StaticArray<uint8_t, cECDSAPointDERSize>  mECPoint;
-};
-
-/**
- * ECDSA private key.
- */
-class ECDSAPrivateKey : public PrivateKeyItf {
-public:
-    /**
-     * Constructs object instance.
-     *
-     * @param pubKey public key component of a private key.
-     */
-    ECDSAPrivateKey(const ECDSAPublicKey& pubKey)
-        : mPubKey(pubKey)
-    {
-    }
-
-    /**
-     * Returns public part of a private key.
-     *
-     * @return const PublicKeyItf&.
-     */
-    const PublicKeyItf& GetPublic() const override { return mPubKey; }
-
-private:
-    ECDSAPublicKey mPubKey;
 };
 
 namespace asn1 {
@@ -301,7 +376,7 @@ using ObjectIdentifier = StaticString<cASN1ObjIdLen>;
  * ASN.1 structure extension. RFC 580, section 4.2
  */
 struct Extension {
-    ObjectIdentifier                        mId;
+    ObjectIdentifier                        mID;
     StaticArray<uint8_t, cASN1ExtValueSize> mValue;
 
     /**
@@ -310,7 +385,7 @@ struct Extension {
      * @param extension object to compare with.
      * @return bool.
      */
-    bool operator==(const Extension& extension) const { return extension.mId == mId && extension.mValue == mValue; }
+    bool operator==(const Extension& extension) const { return extension.mID == mID && extension.mValue == mValue; }
     /**
      * Checks whether current object is not equal the the given one.
      *
@@ -319,19 +394,6 @@ struct Extension {
      */
     bool operator!=(const Extension& extension) const { return !operator==(extension); }
 };
-
-/**
- * Encodes array of object identifiers into ASN1 value.
- *
- * @param src array of object identifiers.
- * @param asn1Value result ASN1 value.
- */
-
-inline void Encode(const Array<ObjectIdentifier>& src, Array<uint8_t>& asn1Value)
-{
-    (void)src;
-    (void)asn1Value;
-}
 
 } // namespace asn1
 
@@ -358,17 +420,21 @@ struct Certificate {
      */
     StaticArray<uint8_t, cCertIssuerSize> mIssuer;
     /**
-     * DER encoded certificate serial number.
+     * Certificate serial number.
      */
     StaticArray<uint8_t, cSerialNumSize> mSerial;
     /**
      * Certificate validity period.
      */
-    time::Time mNotBefore, mNotAfter;
+    Time mNotBefore, mNotAfter;
     /**
      * Public key.
      */
-    SharedPtr<PublicKeyItf> mPublicKey;
+    Variant<ECDSAPublicKey, RSAPublicKey> mPublicKey;
+    /**
+     * Complete ASN.1 DER content (certificate, signature algorithm and signature).
+     */
+    StaticArray<uint8_t, cCertDERSize> mRaw;
 };
 
 /**
@@ -401,11 +467,11 @@ public:
      * @param parent a parent certificate in a certificate chain.
      * @param pubKey public key.
      * @param privKey private key.
-     * @param[out] resultCert result certificate in PEM format.
+     * @param[out] pemCert result certificate in PEM format.
      * @result Error.
      */
     virtual Error CreateCertificate(
-        const Certificate& templ, const Certificate& parent, const PrivateKeyItf& privKey, Array<uint8_t>& pemCert)
+        const Certificate& templ, const Certificate& parent, const PrivateKeyItf& privKey, String& pemCert)
         = 0;
 
     /**
@@ -415,7 +481,15 @@ public:
      * @param[out] resultCerts result certificate chain.
      * @result Error.
      */
-    virtual Error PEMToX509Certs(const Array<uint8_t>& pemBlob, Array<Certificate>& resultCerts) = 0;
+    virtual Error PEMToX509Certs(const String& pemBlob, Array<Certificate>& resultCerts) = 0;
+
+    /**
+     * Reads private key from a PEM blob.
+     *
+     * @param pemBlob raw certificates in a PEM format.
+     * @result RetWithError<SharedPtr<PrivateKeyItf>>.
+     */
+    virtual RetWithError<SharedPtr<PrivateKeyItf>> PEMToX509PrivKey(const String& pemBlob) = 0;
 
     /**
      * Reads certificate from a DER blob.
@@ -434,7 +508,7 @@ public:
      * @param[out] pemCSR result CSR in PEM format.
      * @result Error.
      */
-    virtual Error CreateCSR(const CSR& templ, const PrivateKeyItf& privKey, Array<uint8_t>& pemCSR) = 0;
+    virtual Error CreateCSR(const CSR& templ, const PrivateKeyItf& privKey, String& pemCSR) = 0;
 
     /**
      * Constructs x509 distinguished name(DN) from the argument list.
@@ -443,7 +517,7 @@ public:
      * @param[out] result result DN.
      * @result Error.
      */
-    virtual Error CreateDN(const String& commonName, Array<uint8_t>& result) = 0;
+    virtual Error ASN1EncodeDN(const String& commonName, Array<uint8_t>& result) = 0;
 
     /**
      * Returns text representation of x509 distinguished name(DN).
@@ -452,13 +526,62 @@ public:
      * @param[out] result DN text representation.
      * @result Error.
      */
-    virtual Error DNToString(const Array<uint8_t>& dn, String& result) = 0;
+    virtual Error ASN1DecodeDN(const Array<uint8_t>& dn, String& result) = 0;
+
+    /**
+     * Encodes array of object identifiers into ASN1 value.
+     *
+     * @param src array of object identifiers.
+     * @param asn1Value result ASN1 value.
+     */
+    virtual Error ASN1EncodeObjectIds(const Array<asn1::ObjectIdentifier>& src, Array<uint8_t>& asn1Value) = 0;
+
+    /**
+     * Encodes big integer in ASN1 format.
+     *
+     * @param number big integer.
+     * @param[out] asn1Value result ASN1 value.
+     * @result Error.
+     */
+    virtual Error ASN1EncodeBigInt(const Array<uint8_t>& number, Array<uint8_t>& asn1Value) = 0;
+
+    /**
+     * Creates ASN1 sequence from already encoded DER items.
+     *
+     * @param items DER encoded items.
+     * @param[out] asn1Value result ASN1 value.
+     * @result Error.
+     */
+    virtual Error ASN1EncodeDERSequence(const Array<Array<uint8_t>>& items, Array<uint8_t>& asn1Value) = 0;
+
+    /**
+     * Returns value of the input ASN1 OCTETSTRING.
+     *
+     * @param src DER encoded OCTETSTRING value.
+     * @param[out] dst decoded value.
+     * @result Error.
+     */
+    virtual Error ASN1DecodeOctetString(const Array<uint8_t>& src, Array<uint8_t>& dst) = 0;
+
+    /**
+     * Decodes input ASN1 OID value.
+     *
+     * @param inOID input ASN1 OID value.
+     * @param[out] dst decoded value.
+     * @result Error.
+     */
+    virtual Error ASN1DecodeOID(const Array<uint8_t>& inOID, Array<uint8_t>& dst) = 0;
 
     /**
      * Destroys object instance.
      */
     virtual ~ProviderItf() = default;
 };
+
+/**
+ * A chain of certificates.
+ */
+using CertificateChain = StaticArray<Certificate, cCertChainSize>;
 
 } // namespace x509
 } // namespace crypto

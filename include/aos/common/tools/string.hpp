@@ -12,7 +12,6 @@
 
 #include <ctype.h>
 #include <inttypes.h>
-#include <regex.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -111,7 +110,7 @@ public:
     String& Append(const String& str)
     {
         auto err = Array::Insert(end(), str.begin(), str.end());
-        *end() = 0;
+        *end()   = 0;
         assert(err.IsNone());
 
         return *this;
@@ -128,9 +127,40 @@ public:
     Error Insert(char* pos, const char* from, const char* till)
     {
         auto err = Array::Insert(pos, from, till);
-        *end() = 0;
+        *end()   = 0;
 
         return err;
+    }
+
+    /**
+     * Removes range of characters from a string.
+     *
+     * @param from pointer to the first character to be removed from a string.
+     * @param to past the end pointer of the input range to be removed.
+     * @return Error.
+     */
+    Error Remove(char* from, char* to)
+    {
+        if (from < begin() || from > end()) {
+            return ErrorEnum::eInvalidArgument;
+        }
+
+        if (to < begin() || to > end()) {
+            return ErrorEnum::eInvalidArgument;
+        }
+
+        if (from > to) {
+            return ErrorEnum::eInvalidArgument;
+        }
+
+        while (to != end()) {
+            *from = *to;
+
+            from++;
+            to++;
+        }
+
+        return Resize(from - begin());
     }
 
     /**
@@ -140,29 +170,6 @@ public:
      * @return String&.
      */
     String& operator+=(const String& str) { return Append(str); }
-
-    /**
-     * Checks if str equals to C string.
-     *
-     * @param cStr C string to compare with.
-     * @return bool.
-     */
-    bool operator==(const char* cStr) const
-    {
-        if (strlen(cStr) != Size()) {
-            return false;
-        }
-
-        return memcmp(Get(), cStr, Size()) == 0;
-    };
-
-    /**
-     * Checks if str doesn't equal to C string.
-     *
-     * @param cStr C string to compare with.
-     * @return bool.
-     */
-    bool operator!=(const char* cStr) const { return !operator==(cStr); };
 
     /**
      * Checks if str equals to another string.
@@ -187,7 +194,7 @@ public:
      * @param srt string to compare with.
      * @return bool.
      */
-    friend bool operator==(const char* cStr, const String& str) { return str.operator==(cStr); };
+    friend bool operator==(const char* cStr, const String& str) { return str == String(cStr); };
 
     /**
      * Checks if C string doesn't equal to string.
@@ -222,49 +229,39 @@ public:
     /**
      * Converts hex string to byte array.
      *
+     * @param dst result byte array.
      * @return Error.
      */
-    Error ToByteArr(Array<uint8_t>& arr) const
+    Error HexToByteArray(Array<uint8_t>& dst) const
     {
-        if (arr.MaxSize() * 2 < Size()) {
+        if (dst.MaxSize() * 2 < Size()) {
             return ErrorEnum::eNoMemory;
         }
 
-        static const auto parseHex = [](char ch) {
-            if (ch >= '0' && ch <= '9') {
-                return static_cast<uint8_t>(ch - '0');
-            }
-
-            if (ch >= 'a' && ch <= 'f') {
-                return static_cast<uint8_t>(ch - 'a' + 10);
-            }
-
-            if (ch >= 'A' && ch <= 'F') {
-                return static_cast<uint8_t>(ch - 'A' + 10);
-            }
-
-            return static_cast<uint8_t>(255);
-        };
-
-        arr.Clear();
+        dst.Clear();
 
         for (size_t i = 0; i < Size(); i += 2) {
-            uint8_t high = parseHex(Get()[i]);
-            if (high > 0xFU) {
-                return ErrorEnum::eInvalidArgument;
+            Error   err = ErrorEnum::eNone;
+            uint8_t high;
+
+            Tie(high, err) = HexToByte((*this)[i]);
+            if (!err.IsNone()) {
+                return err;
             }
 
             if (i + 1 >= Size()) {
-                arr.PushBack(high << 4);
+                dst.PushBack(high << 4);
                 break;
             }
 
-            uint8_t low = parseHex(Get()[i + 1]);
-            if (low > 0xFU) {
-                return ErrorEnum::eInvalidArgument;
+            uint8_t low;
+
+            Tie(low, err) = HexToByte((*this)[i + 1]);
+            if (!err.IsNone()) {
+                return err;
             }
 
-            arr.PushBack((high << 4) | low);
+            dst.PushBack((high << 4) | low);
         }
 
         return ErrorEnum::eNone;
@@ -295,28 +292,27 @@ public:
     Error Convert(int64_t value) { return ConvertValue(value, "%" PRIi64); }
 
     /**
-     * Converts a byte array to a hex string.
+     * Converts byte array to a hex string.
      *
-     * @param arr array.
+     * @param src source byte array.
      * @return Error.
      */
-    Error Convert(const Array<uint8_t>& arr)
+    Error ByteArrayToHex(const Array<uint8_t>& src)
     {
-        if (MaxSize() < arr.Size() * 2) {
+        if (MaxSize() < src.Size() * 2) {
             return ErrorEnum::eNoMemory;
         }
 
         Clear();
 
-        constexpr char cDigits[] = "0123456789ABCDEF";
+        for (const auto val : src) {
+            const auto digits = ByteToHex(val);
 
-        for (const auto val : arr) {
-            const auto low = val & 0xF;
-            const auto high = (val >> 4);
-
-            PushBack(cDigits[high]);
-            PushBack(cDigits[low]);
+            PushBack(digits.mFirst);
+            PushBack(digits.mSecond);
         }
+
+        *end() = 0;
 
         return ErrorEnum::eNone;
     }
@@ -359,7 +355,7 @@ public:
     {
         list.Clear();
 
-        auto it = begin();
+        auto it     = begin();
         auto prevIt = it;
 
         while (it != end()) {
@@ -408,7 +404,7 @@ public:
      * @param ...args additional arguments
      * @return Error.
      */
-    template <class... Args>
+    template <typename... Args>
     Error Format(const char* format, Args... args)
     {
         Clear();
@@ -425,43 +421,73 @@ public:
     }
 
     /**
-     * Executes search by specified regex string and returns match by its number.
+     * Looks for a substring in the current string and returns its starting position.
+     * If substring is not found returns an error and index to the end of the string.
      *
-     * @tparam cMatchInd specifies index of the match to be returned.
-     * @param regex POSIX extended regular expression.
-     * @param[out] match result match.
-     * @return Error.
+     * @param startPos starting position for search.
+     * @param substr substring to search.
+     * @return RetWithError<size_t>.
      */
-    template <int cMatchInd>
-    Error Search(const char* regex, String& match) const
+    RetWithError<size_t> FindSubstr(size_t startPos, const String& substr) const
     {
-        regex_t    r;
-        regmatch_t matches[cMatchInd + 1];
+        for (size_t i = startPos; i < Size() - substr.Size(); i++) {
+            const auto chunk = Array<char>(CStr() + i, substr.Size());
 
-        int ret = regcomp(&r, regex, REG_EXTENDED);
-        if (ret != 0) {
-            return ErrorEnum::eInvalidArgument;
+            if (chunk == substr) {
+                return {i, ErrorEnum::eNone};
+            }
         }
 
-        ret = regexec(&r, CStr(), cMatchInd + 1, matches, 0);
-        if (ret != 0) {
-            return ErrorEnum::eNotFound;
+        return {Size(), ErrorEnum::eNotFound};
+    }
+
+    /**
+     * Looks for any character from the symbol list and returns its position.
+     * If character is not found returns an error and index to the end of the string.
+     *
+     * @param startPos starting position for search.
+     * @param symbols symbols to search.
+     * @return RetWithError<size_t>.
+     */
+    RetWithError<size_t> FindAny(size_t startPos, const String& symbols) const
+    {
+        for (size_t i = startPos; i < Size(); i++) {
+            for (const auto ch : symbols) {
+                if (ch == (*this)[i]) {
+                    return {i, ErrorEnum::eNone};
+                }
+            }
         }
 
-        if (matches[cMatchInd].rm_so == -1) {
-            return ErrorEnum::eNotFound;
+        return {Size(), ErrorEnum::eNotFound};
+    }
+
+private:
+    static Pair<char, char> ByteToHex(uint8_t val)
+    {
+        constexpr char cDigits[] = "0123456789abcdef";
+
+        const auto low  = val & 0xF;
+        const auto high = (val >> 4);
+
+        return {cDigits[high], cDigits[low]};
+    }
+
+    static RetWithError<uint8_t> HexToByte(char ch)
+    {
+        if (ch >= '0' && ch <= '9') {
+            return static_cast<uint8_t>(ch - '0');
         }
 
-        match.Clear();
-
-        Error err = match.Insert(match.end(), CStr() + matches[cMatchInd].rm_so, CStr() + matches[cMatchInd].rm_eo);
-        if (!err.IsNone()) {
-            return err;
+        if (ch >= 'a' && ch <= 'f') {
+            return static_cast<uint8_t>(ch - 'a' + 10);
         }
 
-        *match.end() = 0;
+        if (ch >= 'A' && ch <= 'F') {
+            return static_cast<uint8_t>(ch - 'A' + 10);
+        }
 
-        return ErrorEnum::eNone;
+        return {static_cast<uint8_t>(255), ErrorEnum::eInvalidArgument};
     }
 };
 
@@ -478,7 +504,7 @@ public:
      */
     StaticString()
     {
-        *(static_cast<char*>(mBuffer.Get())) = 0;
+        *(static_cast<char*>(mBuffer.Get()))            = 0;
         *(static_cast<char*>(mBuffer.Get()) + cMaxSize) = 0;
         String::SetBuffer(mBuffer, cMaxSize);
     }
@@ -563,7 +589,7 @@ public:
     DynamicString()
         : mBuffer(cMaxSize * +1)
     {
-        *(static_cast<char*>(mBuffer.Get())) = 0;
+        *(static_cast<char*>(mBuffer.Get()))            = 0;
         *(static_cast<char*>(mBuffer.Get()) + cMaxSize) = 0;
         String::SetBuffer(mBuffer, cMaxSize);
     }

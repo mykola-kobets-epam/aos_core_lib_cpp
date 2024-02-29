@@ -21,7 +21,7 @@ Error failedFunction()
     return ErrorEnum::eFailed;
 }
 
-TEST(CommonTest, Error)
+TEST(ErrorTest, Basic)
 {
     // Compare errors
 
@@ -78,20 +78,23 @@ TEST(CommonTest, Error)
     EXPECT_EQ(strcmp(errnoErr.Message(), "Resource temporarily unavailable"), 0);
 }
 
-TEST(CommonTest, ErrorMessages)
+TEST(ErrorTest, Messages)
 {
-    EXPECT_EQ(Error(ErrorEnum::eNone).Message(), "none");
-    EXPECT_EQ(Error(ErrorEnum::eFailed).Message(), "failed");
-    EXPECT_EQ(Error(ErrorEnum::eRuntime).Message(), "runtime error");
-    EXPECT_EQ(Error(ErrorEnum::eNoMemory).Message(), "not enough memory");
-    EXPECT_EQ(Error(ErrorEnum::eOutOfRange).Message(), "out of range");
-    EXPECT_EQ(Error(ErrorEnum::eInvalidArgument).Message(), "invalid argument");
-    EXPECT_EQ(Error(ErrorEnum::eNotFound).Message(), "not found");
-    EXPECT_EQ(Error(ErrorEnum::eAlreadyExist).Message(), "already exist");
-    EXPECT_EQ(Error(ErrorEnum::eWrongState).Message(), "wrong state");
+    EXPECT_EQ(strcmp(Error(ErrorEnum::eNone).Message(), "none"), 0);
+    EXPECT_EQ(strcmp(Error(ErrorEnum::eFailed).Message(), "failed"), 0);
+    EXPECT_EQ(strcmp(Error(ErrorEnum::eRuntime).Message(), "runtime error"), 0);
+    EXPECT_EQ(strcmp(Error(ErrorEnum::eNoMemory).Message(), "not enough memory"), 0);
+    EXPECT_EQ(strcmp(Error(ErrorEnum::eOutOfRange).Message(), "out of range"), 0);
+    EXPECT_EQ(strcmp(Error(ErrorEnum::eInvalidArgument).Message(), "invalid argument"), 0);
+    EXPECT_EQ(strcmp(Error(ErrorEnum::eNotFound).Message(), "not found"), 0);
+    EXPECT_EQ(strcmp(Error(ErrorEnum::eAlreadyExist).Message(), "already exist"), 0);
+    EXPECT_EQ(strcmp(Error(ErrorEnum::eWrongState).Message(), "wrong state"), 0);
+    EXPECT_EQ(strcmp(Error(ErrorEnum::eInvalidChecksum).Message(), "invalid checksum"), 0);
+    EXPECT_EQ(strcmp(Error(ErrorEnum::eAlreadyLoggedIn).Message(), "already logged in"), 0);
+    EXPECT_EQ(strcmp(Error(ErrorEnum::eNotSupported).Message(), "not supported"), 0);
 }
 
-TEST(CommonTest, ErrorTie)
+TEST(ErrorTest, Tie)
 {
     Error err = ErrorEnum::eNone;
     bool  val = false;

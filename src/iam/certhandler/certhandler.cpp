@@ -18,6 +18,7 @@ namespace certhandler {
 
 CertHandler::CertHandler()
 {
+    srand(time(nullptr));
 }
 
 Error CertHandler::RegisterModule(CertModule& module)
@@ -56,7 +57,12 @@ Error CertHandler::SetOwner(const String& certType, const String& password)
         return AOS_ERROR_WRAP(ErrorEnum::eNotFound);
     }
 
-    return module->SetOwner(password);
+    auto err = module->SetOwner(password);
+    if (!err.IsNone()) {
+        return AOS_ERROR_WRAP(err);
+    }
+
+    return ErrorEnum::eNone;
 }
 
 Error CertHandler::Clear(const String& certType)
@@ -70,15 +76,20 @@ Error CertHandler::Clear(const String& certType)
         return AOS_ERROR_WRAP(ErrorEnum::eNotFound);
     }
 
-    return module->Clear();
+    auto err = module->Clear();
+    if (!err.IsNone()) {
+        return AOS_ERROR_WRAP(err);
+    }
+
+    return ErrorEnum::eNone;
 }
 
 Error CertHandler::CreateKey(
-    const String& certType, const Array<uint8_t>& subject, const String& password, Array<uint8_t>& pemCSR)
+    const String& certType, const String& subjectCommonName, const String& password, String& pemCSR)
 {
     LockGuard lock(mMutex);
 
-    LOG_DBG() << "Create key: type = " << certType << ", subject = " << subject;
+    LOG_DBG() << "Create key: type = " << certType << ", subject = " << subjectCommonName;
 
     auto* module = FindModule(certType);
     if (module == nullptr) {
@@ -90,21 +101,31 @@ Error CertHandler::CreateKey(
         return key.mError;
     }
 
-    return module->CreateCSR(subject, *key.mValue, pemCSR);
+    auto err = module->CreateCSR(subjectCommonName, *key.mValue, pemCSR);
+    if (!err.IsNone()) {
+        return AOS_ERROR_WRAP(err);
+    }
+
+    return ErrorEnum::eNone;
 }
 
-Error CertHandler::ApplyCertificate(const String& certType, const Array<uint8_t>& cert, CertInfo& info)
+Error CertHandler::ApplyCertificate(const String& certType, const String& pemCert, CertInfo& info)
 {
     LockGuard lock(mMutex);
 
-    LOG_DBG() << "Apply cert: type = " << certType << ", url = " << info.mCertURL;
+    LOG_DBG() << "Apply cert: type = " << certType;
 
     auto* module = FindModule(certType);
     if (module == nullptr) {
         return AOS_ERROR_WRAP(ErrorEnum::eNotFound);
     }
 
-    return module->ApplyCert(cert, info);
+    auto err = module->ApplyCert(pemCert, info);
+    if (!err.IsNone()) {
+        return AOS_ERROR_WRAP(err);
+    }
+
+    return ErrorEnum::eNone;
 }
 
 Error CertHandler::GetCertificate(
@@ -112,14 +133,26 @@ Error CertHandler::GetCertificate(
 {
     LockGuard lock(mMutex);
 
-    LOG_DBG() << "Get certificate: type = " << certType << ", serial = " << serial;
+    StaticString<crypto::cSerialNumStrLen> serialInHex;
+
+    auto err = serialInHex.ByteArrayToHex(serial);
+    if (!err.IsNone()) {
+        return AOS_ERROR_WRAP(err);
+    }
+
+    LOG_DBG() << "Get certificate: type = " << certType << ", serial = " << serialInHex;
 
     auto* module = FindModule(certType);
     if (module == nullptr) {
         return AOS_ERROR_WRAP(ErrorEnum::eNotFound);
     }
 
-    return module->GetCertificate(issuer, serial, resCert);
+    err = module->GetCertificate(issuer, serial, resCert);
+    if (!err.IsNone()) {
+        return AOS_ERROR_WRAP(err);
+    }
+
+    return ErrorEnum::eNone;
 }
 
 Error CertHandler::CreateSelfSignedCert(const String& certType, const String& password)
@@ -133,7 +166,12 @@ Error CertHandler::CreateSelfSignedCert(const String& certType, const String& pa
         return AOS_ERROR_WRAP(ErrorEnum::eNotFound);
     }
 
-    return module->CreateSelfSignedCert(password);
+    auto err = module->CreateSelfSignedCert(password);
+    if (!err.IsNone()) {
+        return AOS_ERROR_WRAP(err);
+    }
+
+    return ErrorEnum::eNone;
 }
 
 CertHandler::~CertHandler()

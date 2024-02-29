@@ -9,7 +9,7 @@
 #define AOS_COMMON_CONFIG_HPP_
 
 /**
- * Service/layer description len.
+ * Service provider ID len.
  */
 #ifndef AOS_CONFIG_TYPES_PROVIDER_ID_LEN
 #define AOS_CONFIG_TYPES_PROVIDER_ID_LEN 40
@@ -142,34 +142,39 @@
 #endif
 
 /**
- * Monitoring period send.
+ * Node type len.
+ */
+#ifndef AOS_CONFIG_TYPES_NODE_TYPE_LEN
+#define AOS_CONFIG_TYPES_NODE_TYPE_LEN 64
+#endif
+
+/**
+ * Monitoring send period.
  */
 #ifndef AOS_CONFIG_MONITORING_SEND_PERIOD_SEC
 #define AOS_CONFIG_MONITORING_SEND_PERIOD_SEC 60
 #endif
 
 /**
- * Monitoring period poll.
+ * Monitoring poll period.
  */
 #ifndef AOS_CONFIG_MONITORING_POLL_PERIOD_SEC
 #define AOS_CONFIG_MONITORING_POLL_PERIOD_SEC 10
 #endif
 
 /**
- * Certificate public key size(in bytes).
+ * Certificate issuer max size is not specified in general.
+ * (RelativeDistinguishedName ::= SET SIZE (1..MAX) OF AttributeTypeAndValue)
  */
-#ifndef AOS_CONFIG_CRYPTO_CERT_PUB_KEY_SIZE
-#define AOS_CONFIG_CRYPTO_CERT_PUB_KEY_SIZE 2048
+#ifndef AOS_CONFIG_CRYPTO_CERT_ISSUER_SIZE
+#define AOS_CONFIG_CRYPTO_CERT_ISSUER_SIZE 256
 #endif
 
 /**
- * Certificate issuer max size is not specified in general.
- * (RelativeDistinguishedName ::= SET SIZE (1..MAX) OF AttributeTypeAndValue)
- *
- * https://datatracker.ietf.org/doc/html/rfc5280#section-4.1.2.4
+ * Maximum length of distinguished name string representation.
  */
-#ifndef AOS_CONFIG_CRYPTO_CERT_ISSUER_SIZE
-#define AOS_CONFIG_CRYPTO_CERT_ISSUER_SIZE 128
+#ifndef AOS_CONFIG_CRYPTO_DN_STRING_SIZE
+#define AOS_CONFIG_CRYPTO_DN_STRING_SIZE 128
 #endif
 
 /**
@@ -204,7 +209,7 @@
  * Maximum size of a certificate ASN.1 Extension Value.
  */
 #ifndef AOS_CONFIG_CRYPTO_ASN1_EXTENSION_VALUE_SIZE
-#define AOS_CONFIG_CRYPTO_ASN1_EXTENSION_VALUE_SIZE 16
+#define AOS_CONFIG_CRYPTO_ASN1_EXTENSION_VALUE_SIZE 24
 #endif
 
 /**
@@ -215,17 +220,31 @@
 #endif
 
 /**
- * Maximum size of a PEM certificate.
+ * Maximum length of a PEM certificate.
  */
-#ifndef AOS_CONFIG_CRYPTO_PEM_CERT_SIZE
-#define AOS_CONFIG_CRYPTO_PEM_CERT_SIZE 4096
+#ifndef AOS_CONFIG_CRYPTO_CERT_PEM_LEN
+#define AOS_CONFIG_CRYPTO_CERT_PEM_LEN 4096
 #endif
 
 /**
  * Maximum size of a DER certificate.
  */
-#ifndef AOS_CONFIG_CRYPTO_DER_CERT_SIZE
-#define AOS_CONFIG_CRYPTO_DER_CERT_SIZE 2048
+#ifndef AOS_CONFIG_CRYPTO_CERT_DER_SIZE
+#define AOS_CONFIG_CRYPTO_CERT_DER_SIZE 2048
+#endif
+
+/**
+ * Maximum length of CSR in PEM format.
+ */
+#ifndef AOS_CONFIG_CRYPTO_CSR_PEM_LEN
+#define AOS_CONFIG_CRYPTO_CSR_PEM_LEN 4096
+#endif
+
+/**
+ * Maximum length of private key in PEM format.
+ */
+#ifndef AOS_CONFIG_CRYPTO_PRIVKEY_PEM_LEN
+#define AOS_CONFIG_CRYPTO_PRIVKEY_PEM_LEN 2048
 #endif
 
 /**
@@ -236,16 +255,28 @@
 #endif
 
 /**
+ * Maximum size of serial number encoded in DER format(in bytes).
+ */
+#ifndef AOS_CONFIG_CRYPTO_SERIAL_NUM_DER_SIZE
+#define AOS_CONFIG_CRYPTO_SERIAL_NUM_DER_SIZE AOS_CONFIG_CRYPTO_SERIAL_NUM_SIZE + 3;
+#endif
+
+/**
+ * Subject common name length.
+ */
+#ifndef AOS_CONFIG_CRYPTO_SUBJECT_COMMON_NAME_LEN
+#define AOS_CONFIG_CRYPTO_SUBJECT_COMMON_NAME_LEN 32
+#endif
+
+/**
  * Usual RSA modulus size is 512, 1024, 2048 or 4096 bit length.
- * https://www.jensign.com/dotnet/CSPPrimes/index.html
  */
 #ifndef AOS_CONFIG_CRYPTO_RSA_MODULUS_SIZE
-#define AOS_CONFIG_CRYPTO_RSA_MODULUS_SIZE 256
+#define AOS_CONFIG_CRYPTO_RSA_MODULUS_SIZE 512
 #endif
 
 /**
  * In general field length of a public exponent (e) is typically 1, 3, or 64 - 512 bytes.
- * https://www.ibm.com/docs/en/linux-on-z?topic=formats-rsa-public-key-token
  */
 #ifndef AOS_CONFIG_CRYPTO_RSA_PUB_EXPONENT_SIZE
 #define AOS_CONFIG_CRYPTO_RSA_PUB_EXPONENT_SIZE 3
@@ -266,10 +297,24 @@
 #endif
 
 /**
- * Length of serial number in string representation.
+ * Maximum size of SHA2 digest.
  */
-#ifndef AOS_CONFIG_CRYPTO_SERIAL_NUM_STR_LEN
-#define AOS_CONFIG_CRYPTO_SERIAL_NUM_STR_LEN 40
+#ifndef AOS_CONFIG_CRYPTO_SHA2_DIGEST_SIZE
+#define AOS_CONFIG_CRYPTO_SHA2_DIGEST_SIZE 512
+#endif
+
+/**
+ * Maximum size of signature.
+ */
+#ifndef AOS_CONFIG_CRYPTO_SIGNATURE_SIZE
+#define AOS_CONFIG_CRYPTO_SIGNATURE_SIZE 512
+#endif
+
+/**
+ * Max expected number of certificates in a chain stored in PEM file.
+ */
+#ifndef AOS_CONFIG_CRYPTO_CERTS_CHAIN_SIZE
+#define AOS_CONFIG_CRYPTO_CERTS_CHAIN_SIZE 4
 #endif
 
 /**
@@ -315,6 +360,55 @@
 #endif
 
 /**
+ * Maximum number of open sessions per PKCS11 library.
+ */
+#ifndef AOS_CONFIG_PKCS11_SESSIONS_PER_LIB
+#define AOS_CONFIG_PKCS11_SESSIONS_PER_LIB 3
+#endif
+
+/**
+ * Maximum number of attributes for object.
+ */
+#ifndef AOS_CONFIG_PKCS11_OBJECT_ATTRIBUTES_COUNT
+#define AOS_CONFIG_PKCS11_OBJECT_ATTRIBUTES_COUNT 10
+#endif
+
+/**
+ * Maximum number of keys per token.
+ */
+#ifndef AOS_CONFIG_PKCS11_TOKEN_KEYS_COUNT
+#define AOS_CONFIG_PKCS11_TOKEN_KEYS_COUNT 20
+#endif
+
+/**
+ * Maximum number of PKCS11 libraries.
+ */
+#ifndef AOS_CONFIG_PKCS11_MAX_NUM_LIBRARIES
+#define AOS_CONFIG_PKCS11_MAX_NUM_LIBRARIES 1
+#endif
+
+/**
+ * Maximum size of slot list.
+ */
+#ifndef AOS_CONFIG_PKCS11_SLOT_LIST_SIZE
+#define AOS_CONFIG_PKCS11_SLOT_LIST_SIZE 5
+#endif
+
+/**
+ * Flag to choose between static/dynamic pkcs11 library.
+ */
+#ifndef AOS_CONFIG_PKCS11_USE_STATIC_LIB
+#define AOS_CONFIG_PKCS11_USE_STATIC_LIB 0
+#endif
+
+/**
+ * Maximum size of session pool in PKCS11 LibraryContext.
+ */
+#ifndef AOS_CONFIG_PKCS11_SESSION_POOL_MAX_SIZE
+#define AOS_CONFIG_PKCS11_SESSION_POOL_MAX_SIZE 2
+#endif
+
+/**
  *  UUID length
  */
 #ifndef AOS_CONFIG_UUID_LEN
@@ -326,6 +420,31 @@
  */
 #ifndef AOS_CONFIG_UUID_STR_LEN
 #define AOS_CONFIG_UUID_STR_LEN AOS_CONFIG_UUID_LEN * 2 + 4 + 1 // 32 hex digits + 4 '-' symbols + '\0'
+#endif
+
+/**
+ * Number of certificate chains to be stored in cryptoutils::CertLoader.
+ */
+#ifndef AOS_CONFIG_CRYPTOUTILS_CERTIFICATE_CHAINS_COUNT
+#define AOS_CONFIG_CRYPTOUTILS_CERTIFICATE_CHAINS_COUNT 5
+#endif
+
+/**
+ * Number of private keys to be stored in cryptoutils::CertLoader.
+ */
+#ifndef AOS_CONFIG_CRYPTOUTILS_KEYS_COUNT
+#define AOS_CONFIG_CRYPTOUTILS_KEYS_COUNT 5
+#endif
+
+/**
+ * Default PKCS11 library.
+ */
+#ifndef AOS_CONFIG_CRYPTOUTILS_DEFAULT_PKCS11_LIB
+#define AOS_CONFIG_CRYPTOUTILS_DEFAULT_PKCS11_LIB "/usr/lib/softhsm/libsofthsm2.so"
+#endif
+
+#ifndef AOS_CONFIG_CRYPTOPROVIDER_PUB_KEYS_COUNT
+#define AOS_CONFIG_CRYPTOPROVIDER_PUB_KEYS_COUNT 5
 #endif
 
 #endif

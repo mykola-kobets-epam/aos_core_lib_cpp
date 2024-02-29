@@ -67,7 +67,7 @@ public:
 };
 
 using LogLevelEnum = LogLevelType::Enum;
-using LogLevel = EnumStringer<LogLevelType>;
+using LogLevel     = EnumStringer<LogLevelType>;
 
 /**
  * Log module types.
@@ -80,25 +80,22 @@ public:
         eSMServiceManager,
         eIAMCertHandler,
         eCommonMonitoring,
+        eCommonPKCS11,
+        eCommonCrypto,
         eNumModules,
     };
 
     static const Array<const char* const> GetStrings()
     {
-        static const char* const sLogModuleTypeStrings[] = {
-            "default",
-            "launcher",
-            "servicemanager",
-            "certhandler",
-            "resourcemonitor",
-        };
+        static const char* const sLogModuleTypeStrings[]
+            = {"default", "launcher", "servicemanager", "certhandler", "resourcemonitor", "pkcs11"};
 
         return Array<const char* const>(sLogModuleTypeStrings, ArraySize(sLogModuleTypeStrings));
     };
 };
 
 using LogModuleEnum = LogModuleType::Enum;
-using LogModule = EnumStringer<LogModuleType>;
+using LogModule     = EnumStringer<LogModuleType>;
 
 /**
  * Log line callback. Should be set in application to display log using application logging mechanism.
@@ -195,6 +192,10 @@ public:
     Log& operator<<(const Error& err)
     {
         *this << err.Message();
+
+        if (err.Errno() != 0) {
+            *this << " [" << err.Errno() << "]";
+        }
 
         if (err.FileName() != nullptr) {
             *this << " (" << err.FileName() << ":" << err.LineNumber() << ")";

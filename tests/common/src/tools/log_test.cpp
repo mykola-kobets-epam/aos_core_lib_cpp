@@ -19,8 +19,8 @@ public:
     {
         auto& instance = GetInstance();
 
-        instance.mLogModule = module;
-        instance.mLogLevel = level;
+        instance.mLogModule  = module;
+        instance.mLogLevel   = level;
         instance.mLogMessage = message;
     }
 
@@ -78,7 +78,7 @@ private:
 #define LOG_WRN() LOG_MODULE_WRN(LogModuleEnum::eDefault)
 #define LOG_ERR() LOG_MODULE_ERR(LogModuleEnum::eDefault)
 
-TEST(CommonTest, Log)
+TEST(LogTest, Basic)
 {
     Log::SetCallback(TestLog::LogCallback);
 

@@ -48,6 +48,8 @@ public:
         eAlreadyExist,
         eWrongState,
         eInvalidChecksum,
+        eAlreadyLoggedIn,
+        eNotSupported,
         eNumErrors
     };
 
@@ -83,8 +85,8 @@ public:
         , mFileName(fileName)
         , mLineNumber(lineNumber)
     {
-        if (!mFileName) {
-            mFileName = err.mFileName;
+        if (err.mFileName) {
+            mFileName   = err.mFileName;
             mLineNumber = err.mLineNumber;
         }
     }
@@ -96,13 +98,11 @@ public:
      */
     Error& operator=(const Error& err)
     {
-        mErr = err.mErr;
+        mErr   = err.mErr;
         mErrno = err.mErrno;
 
-        if (!mFileName) {
-            mFileName = err.mFileName;
-            mLineNumber = err.mLineNumber;
-        }
+        mFileName   = err.mFileName;
+        mLineNumber = err.mLineNumber;
 
         return *this;
     }
@@ -250,6 +250,8 @@ private:
             "already exist",
             "wrong state",
             "invalid checksum",
+            "already logged in",
+            "not supported",
         };
 
         return Pair<const char* const*, size_t>(sErrorTypeStrings, ArraySize(sErrorTypeStrings));

@@ -11,7 +11,7 @@
 
 #include "aos/sm/servicemanager.hpp"
 
-#include "tests/utils/utils.hpp"
+#include "utils.hpp"
 
 namespace aos {
 namespace sm {
@@ -46,8 +46,8 @@ public:
     {
         (void)path;
 
-        manifest.mSchemaVersion = 1;
-        manifest.mConfig.mDigest = "sha256:11111111";
+        manifest.mSchemaVersion       = 1;
+        manifest.mConfig.mDigest      = "sha256:11111111";
         manifest.mAosService->mDigest = "sha256:22222222";
         manifest.mLayers.PushBack({"", "sha256:33333333", 1234});
 

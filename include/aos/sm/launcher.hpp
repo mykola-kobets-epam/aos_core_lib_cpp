@@ -10,10 +10,10 @@
 
 #include <assert.h>
 
+#include "aos/common/connectionsubsc.hpp"
+#include "aos/common/monitoring.hpp"
 #include "aos/common/ocispec.hpp"
-#include "aos/common/resourcemonitor.hpp"
 #include "aos/common/tools/array.hpp"
-#include "aos/common/tools/memory.hpp"
 #include "aos/common/tools/noncopyable.hpp"
 #include "aos/common/types.hpp"
 #include "aos/sm/config.hpp"
@@ -45,13 +45,6 @@ public:
     virtual Error RunInstances(const Array<ServiceInfo>& services, const Array<LayerInfo>& layers,
         const Array<InstanceInfo>& instances, bool forceRestart)
         = 0;
-
-    /**
-     * Runs last instances.
-     *
-     * @return Error.
-     */
-    virtual Error RunLastInstances() = 0;
 };
 
 /**
@@ -122,7 +115,10 @@ public:
 /**
  * Launches service instances.
  */
-class Launcher : public LauncherItf, public runner::RunStatusReceiverItf, private NonCopyable {
+class Launcher : public LauncherItf,
+                 public runner::RunStatusReceiverItf,
+                 private ConnectionSubscriberItf,
+                 private NonCopyable {
 public:
     /**
      * Creates launcher instance.
@@ -132,7 +128,11 @@ public:
     /**
      * Destroys launcher instance.
      */
-    ~Launcher() { mThread.Join(); }
+    ~Launcher()
+    {
+        mConnectionPublisher->Unsubscribes(*this);
+        mThread.Join();
+    }
 
     /**
      * Initializes launcher.
@@ -143,8 +143,8 @@ public:
      * @return Error.
      */
     Error Init(servicemanager::ServiceManagerItf& serviceManager, runner::RunnerItf& runner, OCISpecItf& ociManager,
-        InstanceStatusReceiverItf& statusReceiver, StorageItf& storage,
-        monitoring::ResourceMonitorItf& resourceMonitor);
+        InstanceStatusReceiverItf& statusReceiver, StorageItf& storage, monitoring::ResourceMonitorItf& resourceMonitor,
+        ConnectionPublisherItf& connectionPublisher);
 
     /**
      * Runs specified instances.
@@ -159,13 +159,6 @@ public:
         const Array<InstanceInfo>& instances, bool forceRestart = false) override;
 
     /**
-     * Runs previously  instances.
-     *
-     * @return Error.
-     */
-    Error RunLastInstances() override;
-
-    /**
      * Updates run instances status.
      *
      * @param instances instances state.
@@ -173,20 +166,30 @@ public:
      */
     Error UpdateRunStatus(const Array<runner::RunStatus>& instances) override;
 
+    /**
+     * Notifies publisher is connected.
+     */
+    void OnConnect() override;
+
+    /**
+     * Notifies publisher is disconnected.
+     */
+    void OnDisconnect() override;
+
 private:
     static constexpr auto cNumLaunchThreads = AOS_CONFIG_LAUNCHER_NUM_COOPERATE_LAUNCHES;
-    static constexpr auto cThreadTaskSize = 256;
-    static constexpr auto cThreadStackSize = 16384;
+    static constexpr auto cThreadTaskSize   = 256;
+    static constexpr auto cThreadStackSize  = 16384;
 
-    void  ProcessInstances(SharedPtr<const Array<InstanceInfo>> instances, bool forceRestart = false);
-    void  ProcessServices(SharedPtr<const Array<ServiceInfo>> services);
-    void  ProcessLayers(SharedPtr<const Array<LayerInfo>> layers);
+    void  ProcessInstances(const Array<InstanceInfo>& instances, bool forceRestart = false);
+    void  ProcessServices(const Array<ServiceInfo>& services);
+    void  ProcessLayers(const Array<LayerInfo>& layers);
     void  SendRunStatus();
-    void  StopInstances(SharedPtr<const Array<InstanceInfo>> instances, bool forceRestart);
-    void  StartInstances(SharedPtr<const Array<InstanceInfo>> instances);
-    void  CacheServices(SharedPtr<const Array<InstanceInfo>> instances);
+    void  StopInstances(const Array<InstanceInfo>& instances, bool forceRestart);
+    void  StartInstances(const Array<InstanceInfo>& instances);
+    void  CacheServices(const Array<InstanceInfo>& instances);
     void  UpdateInstanceServices();
-    Error UpdateStorage(SharedPtr<const Array<InstanceInfo>> instances);
+    Error UpdateStorage(const Array<InstanceInfo>& instances);
 
     RetWithError<const Service*> GetService(const String& serviceID) const
     {
@@ -202,7 +205,9 @@ private:
 
     Error StartInstance(const InstanceInfo& info);
     Error StopInstance(const InstanceIdent& ident);
+    Error RunLastInstances();
 
+    ConnectionPublisherItf*            mConnectionPublisher {};
     servicemanager::ServiceManagerItf* mServiceManager {};
     runner::RunnerItf*                 mRunner {};
     InstanceStatusReceiverItf*         mStatusReceiver {};

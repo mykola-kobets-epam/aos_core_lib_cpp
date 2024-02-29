@@ -402,6 +402,8 @@ public:
     {
         auto err = Insert(end(), array.begin(), array.end());
         assert(err.IsNone());
+
+        return *this;
     }
 
     /**
@@ -511,9 +513,9 @@ public:
         for (size_t i = 0; i < mSize - 1; i++) {
             for (size_t j = 0; j < mSize - i - 1; j++) {
                 if (sortFunc(mItems[j], mItems[j + 1])) {
-                    auto tmp = mItems[j + 1];
+                    auto tmp      = mItems[j + 1];
                     mItems[j + 1] = mItems[j];
-                    mItems[j] = tmp;
+                    mItems[j]     = tmp;
                 }
             }
         }
@@ -550,8 +552,8 @@ protected:
     void SetSize(size_t size) { mSize = size; }
 
 private:
-    T*     mItems = nullptr;
-    size_t mSize = 0;
+    T*     mItems   = nullptr;
+    size_t mSize    = 0;
     size_t mMaxSize = 0;
 };
 
@@ -616,13 +618,17 @@ public:
     }
 
     /**
+     * Destroys static array.
+     */
+    ~StaticArray() { Array<T>::Clear(); }
+
+    /**
      * Assigns static array from another static array.
      *
      * @param array array to create from.
      */
     StaticArray& operator=(const StaticArray& array)
     {
-        Array<T>::SetBuffer(mBuffer);
         Array<T>::operator=(array);
 
         return *this;
@@ -638,6 +644,18 @@ public:
     {
         Array<T>::SetBuffer(mBuffer);
         Array<T>::operator=(array);
+    }
+
+    /**
+     * Assigns static array from another  array.
+     *
+     * @param array array to assign from.
+     */
+    StaticArray& operator=(const Array<T>& array)
+    {
+        Array<T>::operator=(array);
+
+        return *this;
     }
 
 private:

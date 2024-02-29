@@ -46,6 +46,20 @@ public:
     EnumType GetValue() const { return mValue; };
 
     /**
+     * Casts to EnumType.
+     *
+     * @return EnumType.
+     */
+    operator EnumType() const { return mValue; }
+
+    /**
+     * Casts to int.
+     *
+     * @return int.
+     */
+    operator int() const { return static_cast<int>(mValue); }
+
+    /**
      * Compares if EnumStringer equals to another EnumStringer.
      *
      * @param stringer EnumStringer to compare with.
@@ -110,6 +124,29 @@ public:
 
         return "unknown";
     }
+
+    /**
+     * Converts string to enum value.
+     *
+     * @param str string to convert.
+     * @return Error.
+     */
+    Error FromString(const String& str)
+    {
+        auto strings = T::GetStrings();
+
+        for (size_t i = 0; i < strings.Size(); i++) {
+            if (str == strings[i]) {
+                mValue = static_cast<EnumType>(i);
+
+                return ErrorEnum::eNone;
+            }
+        }
+
+        mValue = static_cast<EnumType>(strings.Size());
+
+        return ErrorEnum::eNotFound;
+    };
 
 private:
     EnumType mValue;

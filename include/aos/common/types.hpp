@@ -80,6 +80,16 @@ constexpr auto cMaxNumServices = AOS_CONFIG_TYPES_MAX_NUM_SERVICES;
 constexpr auto cMaxNumLayers = AOS_CONFIG_TYPES_MAX_NUM_LAYERS;
 
 /**
+ * Node ID len.
+ */
+constexpr auto cNodeIDLen = AOS_CONFIG_TYPES_NODE_ID_LEN;
+
+/**
+ * Node type len.
+ */
+constexpr auto cNodeTypeLen = AOS_CONFIG_TYPES_NODE_ID_LEN;
+
+/**
  * SHA256 size.
  */
 constexpr auto cSHA256Size = 32;
@@ -194,7 +204,7 @@ public:
 };
 
 using InstanceRunStateEnum = InstanceRunStateType::Enum;
-using InstanceRunState = EnumStringer<InstanceRunStateType>;
+using InstanceRunState     = EnumStringer<InstanceRunStateType>;
 
 /**
  * Instance status.
@@ -264,14 +274,35 @@ struct VersionInfo {
  */
 
 struct ServiceInfo {
-    VersionInfo                  mVersionInfo;
-    StaticString<cServiceIDLen>  mServiceID;
-    StaticString<cProviderIDLen> mProviderID;
-    uint32_t                     mGID;
-    StaticString<cURLLen>        mURL;
-    uint8_t                      mSHA256[cSHA256Size];
-    uint8_t                      mSHA512[cSHA512Size];
-    size_t                       mSize;
+    VersionInfo                            mVersionInfo;
+    StaticString<cServiceIDLen>            mServiceID;
+    StaticString<cProviderIDLen>           mProviderID;
+    uint32_t                               mGID;
+    StaticString<cURLLen>                  mURL;
+    aos::StaticArray<uint8_t, cSHA256Size> mSHA256;
+    aos::StaticArray<uint8_t, cSHA512Size> mSHA512;
+    size_t                                 mSize;
+
+    /**
+     * Compares service info.
+     *
+     * @param info info to compare.
+     * @return bool.
+     */
+    bool operator==(const ServiceInfo& info) const
+    {
+        return mVersionInfo == info.mVersionInfo && mServiceID == info.mServiceID && mProviderID == info.mProviderID
+            && mGID == info.mGID && mURL == info.mURL && mSHA256 == info.mSHA256 && mSHA512 == info.mSHA512
+            && mSize == info.mSize;
+    }
+
+    /**
+     * Compares service info.
+     *
+     * @param info info to compare.
+     * @return bool.
+     */
+    bool operator!=(const ServiceInfo& info) const { return !operator==(info); }
 };
 
 /**
@@ -285,13 +316,33 @@ using ServiceInfoStaticArray = StaticArray<ServiceInfo, cMaxNumServices>;
 
 // LayerInfo layer info.
 struct LayerInfo {
-    VersionInfo                   mVersionInfo;
-    StaticString<cLayerIDLen>     mLayerID;
-    StaticString<cLayerDigestLen> mLayerDigest;
-    StaticString<cURLLen>         mURL;
-    uint8_t                       mSHA256[cSHA256Size];
-    uint8_t                       mSHA512[cSHA512Size];
-    size_t                        mSize;
+    VersionInfo                            mVersionInfo;
+    StaticString<cLayerIDLen>              mLayerID;
+    StaticString<cLayerDigestLen>          mLayerDigest;
+    StaticString<cURLLen>                  mURL;
+    aos::StaticArray<uint8_t, cSHA256Size> mSHA256;
+    aos::StaticArray<uint8_t, cSHA512Size> mSHA512;
+    size_t                                 mSize;
+
+    /**
+     * Compares layer info.
+     *
+     * @param info info to compare.
+     * @return bool.
+     */
+    bool operator==(const LayerInfo& info) const
+    {
+        return mVersionInfo == info.mVersionInfo && mLayerID == info.mLayerID && mLayerDigest == info.mLayerDigest
+            && mURL == info.mURL && mSHA256 == info.mSHA256 && mSHA512 == info.mSHA512 && mSize == info.mSize;
+    }
+
+    /**
+     * Compares layer info.
+     *
+     * @param info info to compare.
+     * @return bool.
+     */
+    bool operator!=(const LayerInfo& info) const { return !operator==(info); }
 };
 
 /**

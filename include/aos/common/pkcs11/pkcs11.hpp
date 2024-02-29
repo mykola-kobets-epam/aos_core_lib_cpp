@@ -8,13 +8,12 @@
 #ifndef AOS_PKCS11_HPP_
 #define AOS_PKCS11_HPP_
 
-#include "aos/common/pkcs11/cryptoki/pkcs11.h"
-
 #include "aos/common/crypto.hpp"
-
+#include "aos/common/pkcs11/cryptoki/pkcs11.h"
 #include "aos/common/tools/log.hpp"
 #include "aos/common/tools/memory.hpp"
 #include "aos/common/tools/utils.hpp"
+#include "aos/common/tools/uuid.hpp"
 
 namespace aos {
 namespace pkcs11 {
@@ -48,6 +47,31 @@ constexpr auto cModelLen = AOS_CONFIG_PKCS11_MODEL_LEN;
  * Maximum length of user PIN (password).
  */
 constexpr auto cPINLength = AOS_CONFIG_PKCS11_PIN_LEN;
+
+/**
+ * Maximum number of open sessions per PKCS11 library.
+ */
+constexpr auto cSessionsPerLib = AOS_CONFIG_PKCS11_SESSIONS_PER_LIB;
+
+/**
+ * Maximum number of PKCS11 libraries.
+ */
+constexpr auto cLibrariesMaxNum = AOS_CONFIG_PKCS11_MAX_NUM_LIBRARIES;
+
+/**
+ * Maximum number of attributes for object.
+ */
+constexpr auto cObjectAttributesCount = AOS_CONFIG_PKCS11_OBJECT_ATTRIBUTES_COUNT;
+
+/**
+ * Maximum number of keys per token.
+ */
+constexpr auto cKeysPerToken = AOS_CONFIG_PKCS11_TOKEN_KEYS_COUNT;
+
+/**
+ * Maximum number of slots per PKCS11 library.
+ */
+constexpr auto cSlotListSize = AOS_CONFIG_PKCS11_SLOT_LIST_SIZE;
 
 /**
  * The types of Cryptoki users.
@@ -95,12 +119,7 @@ using SlotID = CK_SLOT_ID;
  * @param[out] pin result pin.
  * @return Error.
  */
-inline Error GenPIN(String& pin)
-{
-    (void)pin;
-
-    return ErrorEnum::eNone;
-}
+Error GenPIN(String& pin);
 
 /**
  * Any version information related to PKCS11 library.
@@ -307,17 +326,20 @@ struct ObjectAttribute {
 class SessionContext {
 public:
     /**
+     * Constructs object instance.
+     *
+     * @param handle session handle.
+     * @param funcList function list.
+     */
+    SessionContext(SessionHandle handle, CK_FUNCTION_LIST_PTR funcList);
+
+    /**
      * Returns session information.
      *
      * @param[out] info result information.
      * @return Error.
      */
-    Error GetSessionInfo(SessionInfo& info) const
-    {
-        (void)info;
-
-        return {};
-    }
+    Error GetSessionInfo(SessionInfo& info) const;
 
     /**
      * Logs a user into a token.
@@ -326,20 +348,14 @@ public:
      * @param pin user’s PIN.
      * @return Error.
      */
-    Error Login(UserType userType, const String& pin)
-    {
-        (void)userType;
-        (void)pin;
-
-        return {};
-    }
+    Error Login(UserType userType, const String& pin);
 
     /**
      * Logs a user out from a token.
      *
      * @return Error.
      */
-    Error Logout() { return {}; }
+    Error Logout();
 
     /**
      * Initializes the normal user's PIN.
@@ -347,12 +363,7 @@ public:
      * @param pin user pin.
      * @return Error.
      */
-    Error InitPIN(const String& pin)
-    {
-        (void)pin;
-
-        return {};
-    }
+    Error InitPIN(const String& pin);
 
     /**
      * Obtains an attribute values of the specified object.
@@ -362,14 +373,8 @@ public:
      * @param[out] values result attribute values.
      * @return Error.
      */
-    Error GetAttributeValues(ObjectHandle handle, const Array<AttributeType>& types, Array<Array<uint8_t>>& values)
-    {
-        (void)handle;
-        (void)types;
-        (void)values;
-
-        return {};
-    }
+    Error GetAttributeValues(
+        ObjectHandle handle, const Array<AttributeType>& types, Array<Array<uint8_t>>& values) const;
 
     /**
      * Searches for token and session objects that match a template.
@@ -378,13 +383,7 @@ public:
      * @param[out] objects result object handles.
      * @return Error.
      */
-    Error FindObjects(const Array<ObjectAttribute>& templ, Array<ObjectHandle>& objects)
-    {
-        (void)templ;
-        (void)objects;
-
-        return {};
-    }
+    Error FindObjects(const Array<ObjectAttribute>& templ, Array<ObjectHandle>& objects) const;
 
     /**
      * Creates a new object.
@@ -392,44 +391,145 @@ public:
      * @param templ object’s template.
      * @return RetWithError<ObjectHandle>.
      */
-    RetWithError<ObjectHandle> CreateObject(const Array<ObjectAttribute>& templ)
-    {
-        (void)templ;
-
-        return {0, ErrorEnum::eNone};
-    }
+    RetWithError<ObjectHandle> CreateObject(const Array<ObjectAttribute>& templ);
 
     /**
      * Destroys object by its handle.
      *
-     * @param handle handle of the object to be destroyed.
+     * @param object handle of the object to be destroyed.
      * @return Error.
      */
-    Error DestroyObject(ObjectHandle handle)
-    {
-        (void)handle;
+    Error DestroyObject(ObjectHandle object);
 
-        return {};
-    }
+    /**
+     * Signs data.
+     *
+     * @param mechanism mechanism used to sign.
+     * @param privKey the handle of the private key.
+     * @param data data to be signed(may require hashing before being signed).
+     * @param signature result signature.
+     * @return Error.
+     */
+    Error Sign(
+        CK_MECHANISM_PTR mechanism, ObjectHandle privKey, const Array<uint8_t>& data, Array<uint8_t>& signature) const;
+
+    /**
+     * Decrypts input data.
+     *
+     * @param mechanism mechanism used to sign.
+     * @param privKey the handle of the private key.
+     * @param data encrypted data.
+     * @param result decrypted data.
+     * @return Error.
+     */
+    Error Decrypt(
+        CK_MECHANISM_PTR mechanism, ObjectHandle privKey, const Array<uint8_t>& data, Array<uint8_t>& result) const;
 
     /**
      * Returns session handle.
      *
      * @return session handle.
      */
-    SessionHandle GetHandle() const { return {}; }
+    SessionHandle GetHandle() const;
+
+    /**
+     * Returns function list.
+     *
+     * @return CK_FUNCTION_LIST_PTR.
+     */
+    CK_FUNCTION_LIST_PTR GetFunctionList() const;
+
+    /**
+     * Destroy object instance.
+     */
+    ~SessionContext();
+
+private:
+    Error SignInit(CK_MECHANISM_PTR mechanism, ObjectHandle privKey) const;
+    Error Sign(const Array<uint8_t>& data, CK_BYTE_PTR signature, CK_ULONG_PTR signSize) const;
+
+    Error DecryptInit(CK_MECHANISM_PTR mechanism, ObjectHandle privKey) const;
+    Error Decrypt(const Array<uint8_t>& data, CK_BYTE_PTR result, CK_ULONG_PTR resultSize) const;
+
+    Error FindObjectsInit(const Array<ObjectAttribute>& templ) const;
+    Error FindObjects(Array<ObjectHandle>& objects) const;
+    Error FindObjectsFinal() const;
+
+    SessionHandle        mHandle;
+    CK_FUNCTION_LIST_PTR mFunctionList;
+};
+
+#if AOS_CONFIG_PKCS11_USE_STATIC_LIB
+
+/**
+ * Static PKCS11 library context.
+ */
+class StaticLibraryContext {
+protected:
+    /**
+     * Initializes object instance.
+     *
+     * @return Error.
+     */
+    RetWithError<CK_FUNCTION_LIST_PTR> Init();
+};
+
+/**
+ * An alias for the concrete PKCS11 library context.
+ */
+using PKCS11LibraryContext = StaticLibraryContext;
+
+#else
+
+/**
+ * Dynamic PKCS11 library context.
+ */
+class DynamicLibraryContext {
+public:
+    /**
+     * Sets dynamic library handle.
+     *
+     * @param handle dynamic library handle.
+     */
+    void SetHandle(void* handle);
 
     /**
      * Destroys object instance.
      */
-    ~SessionContext() = default;
+    ~DynamicLibraryContext();
+
+protected:
+    /**
+     * Initializes object instance.
+     *
+     * @param functionList PKCS11 function list.
+     * @return Error.
+     */
+    RetWithError<CK_FUNCTION_LIST_PTR> Init();
+
+private:
+    void* mHandle = nullptr;
 };
+
+/**
+ * An alias for the concrete PKCS11 library context.
+ */
+using PKCS11LibraryContext = DynamicLibraryContext;
+
+#endif
 
 /**
  * PKCS11 Context instance.
  */
-class LibraryContext {
+class LibraryContext : public PKCS11LibraryContext {
 public:
+    /**
+     * Initializes object instance.
+     *
+     * @return Error.
+     */
+    virtual Error Init();
+
     /**
      * Initializes a token.
      *
@@ -438,29 +538,17 @@ public:
      * @param label token label.
      * @return Error.
      */
-    Error InitToken(pkcs11::SlotID slotID, const String& pin, const String& label)
-    {
-        (void)slotID;
-        (void)pin;
-        (void)label;
-
-        return {};
-    }
+    Error InitToken(SlotID slotID, const String& pin, const String& label);
 
     /**
      * Returns list of slots in the system.
      *
-     * @param tokenPresent
+     * @param tokenPresent indicates whether the list obtained includes only those slots with a token present (CK_TRUE),
+     * or all slots (CK_FALSE);
      * @param[out] slotList result slot list.
      * @return Error.
      */
-    Error GetSlotList(bool tokenPresent, Array<pkcs11::SlotID>& slotList) const
-    {
-        (void)tokenPresent;
-        (void)slotList;
-
-        return {};
-    }
+    Error GetSlotList(bool tokenPresent, Array<SlotID>& slotList) const;
 
     /**
      * Returns information about slot.
@@ -469,13 +557,7 @@ public:
      * @param[out] slotInfo result slot information.
      * @return Error.
      */
-    Error GetSlotInfo(pkcs11::SlotID slotID, SlotInfo& slotInfo) const
-    {
-        (void)slotID;
-        (void)slotInfo;
-
-        return {};
-    }
+    Error GetSlotInfo(SlotID slotID, SlotInfo& slotInfo) const;
 
     /**
      * Returns token information for the specified slot id.
@@ -484,13 +566,7 @@ public:
      * @param[out] tokenInfo token information for the slot.
      * @return Error.
      */
-    Error GetTokenInfo(pkcs11::SlotID slotID, TokenInfo& tokenInfo) const
-    {
-        (void)slotID;
-        (void)tokenInfo;
-
-        return {};
-    }
+    Error GetTokenInfo(SlotID slotID, TokenInfo& tokenInfo) const;
 
     /**
      * Returns general information about Cryptoki library.
@@ -498,32 +574,53 @@ public:
      * @param[out] libInfo result information.
      * @return Error.
      */
-    Error GetLibInfo(LibInfo& libInfo) const
-    {
-        (void)libInfo;
-
-        return {};
-    }
+    Error GetLibInfo(LibInfo& libInfo) const;
 
     /**
-     * Opens a session between an application and a token in a particular slot.
+     * Opens a session between an application and a token in a particular slot or returns one from the pool.
      *
      * @param slotID slot identifier.
-     * @param flags  indicates the type of session.
+     * @param flags indicates the type of session.
+     * @return RetWithError<SharedPtr<SessionContext>>.
+     */
+    RetWithError<SharedPtr<SessionContext>> OpenSession(SlotID slotID, Flags flags);
+
+    /**
+     * Clears internal session pool.
+     */
+    void ClearSessions();
+
+    /**
+     * Closes all sessions for a given slot id.
+     *
+     * @param slotID slot identifier.
      * @return Error.
      */
-    RetWithError<UniquePtr<SessionContext>> OpenSession(pkcs11::SlotID slotID, uint32_t flags)
-    {
-        (void)slotID;
-        (void)flags;
-
-        return {nullptr, ErrorEnum::eNone};
-    }
+    Error CloseAllSessions(SlotID slotID);
 
     /**
      * Destroys object instance.
      */
-    ~LibraryContext() = default;
+    ~LibraryContext();
+
+private:
+    static constexpr auto cSessionsMaxCount = AOS_CONFIG_PKCS11_SESSION_POOL_MAX_SIZE;
+
+    struct SessionParams {
+        SlotID mSlotID;
+        Flags  mFlags;
+
+        bool operator==(const SessionParams& other) const { return mSlotID == other.mSlotID && mFlags == other.mFlags; }
+    };
+
+    RetWithError<SharedPtr<SessionContext>> PKCS11OpenSession(SlotID slotID, Flags flags);
+
+    CK_FUNCTION_LIST_PTR                                      mFunctionList;
+    StaticAllocator<sizeof(SessionContext) * cSessionsPerLib> mAllocator;
+
+    StaticArray<Pair<SessionParams, SharedPtr<SessionContext>>, cSessionsMaxCount> mSessions;
+    size_t                                                                         mLRUInd = 0;
+    Mutex                                                                          mMutex;
 };
 
 /**
@@ -566,7 +663,7 @@ public:
     ObjectHandle GetPubHandle() const { return mPubHandle; }
 
     /**
-     * PKCS11 priv key handle.
+     * Returns pointer to the crypto private key interface.
      */
     SharedPtr<crypto::PrivateKeyItf> GetPrivKey() { return mPrivKey; }
 
@@ -581,16 +678,24 @@ private:
 class Utils {
 public:
     /**
+     * Maximum size of allocator's memory that is supposed to be used by local objects.
+     * It is necessary for some Utils functions like GenerateRSA(ECDSA)KeyPairWithLabel, etc.
+     * Depending on the needs, it might be required to reserve additional space for PKCS11 objects, like
+     * PKCS11ECDSAPrivateKey, PKCS11RSAPrivateKey, crypto::x509::Certificate etc.
+     */
+    static constexpr auto cLocalObjectsMaxSize = Max(sizeof(StaticArray<uint8_t, crypto::cRSAModulusSize>)
+            + sizeof(StaticArray<uint8_t, crypto::cRSAPubExponentSize>) + sizeof(crypto::RSAPublicKey),
+        sizeof(StaticArray<uint8_t, crypto::cECDSAParamsOIDSize>) * 2
+            + sizeof(StaticArray<uint8_t, crypto::cECDSAPointDERSize>) * 2 + sizeof(crypto::ECDSAPublicKey));
+
+    /**
      * Creates an object instance.
      *
      * @param session session context.
+     * @param cryptoProvider provider to x509 crypto provider.
      * @param allocator allocator for token/session objects.
      */
-    Utils(pkcs11::SessionContext& session, Allocator& allocator)
-    {
-        (void)session;
-        (void)allocator;
-    }
+    Utils(const SharedPtr<SessionContext>& session, crypto::x509::ProviderItf& cryptoProvider, Allocator& allocator);
 
     /**
      * Creates an RSA key pair on the token.
@@ -601,14 +706,7 @@ public:
      * @return RetWithError<PrivateKey>.
      */
     RetWithError<PrivateKey> GenerateRSAKeyPairWithLabel(
-        const Array<uint8_t>& id, const String& label, size_t bitsCount)
-    {
-        (void)id;
-        (void)label;
-        (void)bitsCount;
-
-        return {PrivateKey()};
-    }
+        const Array<uint8_t>& id, const String& label, size_t bitsCount);
 
     /**
      * Creates a ECDSA key pair on the token using curve.
@@ -619,14 +717,7 @@ public:
      * @return RetWithError<PrivateKey>.
      */
     RetWithError<PrivateKey> GenerateECDSAKeyPairWithLabel(
-        const Array<uint8_t>& id, const String& label, EllipticCurve curve)
-    {
-        (void)id;
-        (void)label;
-        (void)curve;
-
-        return {PrivateKey()};
-    }
+        const Array<uint8_t>& id, const String& label, EllipticCurve curve);
 
     /**
      * Retrieves a previously created asymmetric key pair.
@@ -635,13 +726,7 @@ public:
      * @param label key label.
      * @return RetWithError<PrivateKey>.
      */
-    RetWithError<PrivateKey> FindPrivateKey(const Array<uint8_t>& id, const String& label)
-    {
-        (void)id;
-        (void)label;
-
-        return {PrivateKey()};
-    }
+    RetWithError<PrivateKey> FindPrivateKey(const Array<uint8_t>& id, const String& label);
 
     /**
      * Deletes private key for the token.
@@ -649,12 +734,7 @@ public:
      * @param key private key to be deleted.
      * @return Error.
      */
-    Error DeletePrivateKey(const PrivateKey& key)
-    {
-        (void)key;
-
-        return {};
-    }
+    Error DeletePrivateKey(const PrivateKey& key);
 
     /**
      * Imports a certificate onto the token.
@@ -664,14 +744,7 @@ public:
      * @param cert certificate.
      * @return Error.
      */
-    Error ImportCertificate(const Array<uint8_t>& id, const String& label, const crypto::x509::Certificate& cert)
-    {
-        (void)id;
-        (void)label;
-        (void)cert;
-
-        return {};
-    }
+    Error ImportCertificate(const Array<uint8_t>& id, const String& label, const crypto::x509::Certificate& cert);
 
     /**
      * Checks whether certificate with specified attributes has been imported.
@@ -680,13 +753,17 @@ public:
      * @param serialNumber certificate serialNumber.
      * @return Error.
      */
-    RetWithError<bool> HasCertificate(const Array<uint8_t>& issuer, const Array<uint8_t>& serialNumber)
-    {
-        (void)issuer;
-        (void)serialNumber;
+    RetWithError<bool> HasCertificate(const Array<uint8_t>& issuer, const Array<uint8_t>& serialNumber);
 
-        return {false};
-    }
+    /**
+     * Finds certificate chain with a given attributes.
+     *
+     * @param id certificate identifier.
+     * @param label certificate label.
+     * @return RetWithError<SharedPtr<CertificateChain>>.
+     */
+    RetWithError<SharedPtr<crypto::x509::CertificateChain>> FindCertificateChain(
+        const Array<uint8_t>& id, const String& label);
 
     /**
      * Deletes a previously imported certificate.
@@ -695,28 +772,29 @@ public:
      * @param label certificate label.
      * @return Error.
      */
-    Error DeleteCertificate(const Array<uint8_t>& id, const String& label)
-    {
-        (void)id;
-        (void)label;
-
-        return {};
-    }
+    Error DeleteCertificate(const Array<uint8_t>& id, const String& label);
 
     /**
-     * Converts PKCS11 UTF8 byte array to aos string.
+     * Converts PKCS11 byte array to string.
      *
-     * @param src source UTF8 byte array.
-     * @param dst destination string.
+     * @param src source byte array.
+     * @param[out] dst destination string.
      * @return Error.
      */
-    static Error ConvertPKCS11String(const Array<uint8_t>& src, String& dst)
-    {
-        (void)src;
-        (void)dst;
+    static Error ConvertPKCS11String(const Array<uint8_t>& src, String& dst);
 
-        return {};
-    }
+private:
+    RetWithError<PrivateKey> ExportPrivateKey(ObjectHandle privKey, ObjectHandle pubKey, CK_KEY_TYPE keyType);
+
+    Error FindCertificates(const Array<uint8_t>& id, const String& label, Array<ObjectHandle>& handles);
+    Error FindCertificateChain(const crypto::x509::Certificate& certificate, crypto::x509::CertificateChain& chain);
+    RetWithError<SharedPtr<crypto::x509::Certificate>> FindCertificateByKeyID(const Array<uint8_t>& keyID);
+
+    RetWithError<SharedPtr<crypto::x509::Certificate>> GetCertificate(ObjectHandle handle);
+
+    SharedPtr<SessionContext>  mSession;
+    crypto::x509::ProviderItf& mCryptoProvider;
+    Allocator&                 mAllocator;
 };
 
 /**
@@ -727,15 +805,17 @@ public:
     /**
      * Opens PKCS11 library.
      *
-     * @param library path to pkcs11 shared library.
+     * @param library path to pkcs11 library.
      * @return SharedPtr<LibraryContext>
      */
-    SharedPtr<LibraryContext> OpenLibrary(const String& library)
-    {
-        (void)library;
+    SharedPtr<LibraryContext> OpenLibrary(const String& library);
 
-        return {};
-    }
+private:
+    using LibraryInfo = Pair<StaticString<cFilePathLen>, SharedPtr<LibraryContext>>;
+
+    StaticAllocator<sizeof(LibraryContext) * cLibrariesMaxNum> mAllocator;
+    StaticArray<LibraryInfo, cLibrariesMaxNum>                 mLibraries;
+    Mutex                                                      mMutex;
 };
 
 } // namespace pkcs11

@@ -9,7 +9,7 @@
 #ifndef AOS_INSTANCE_HPP_
 #define AOS_INSTANCE_HPP_
 
-#include "aos/common/resourcemonitor.hpp"
+#include "aos/common/monitoring.hpp"
 #include "aos/common/tools/allocator.hpp"
 #include "aos/sm/config.hpp"
 #include "aos/sm/runner.hpp"
@@ -139,10 +139,10 @@ public:
     friend Log& operator<<(Log& log, const Instance& instance) { return log << instance.mInstanceID; }
 
 private:
-    static constexpr auto cRuntimeDir = AOS_CONFIG_LAUNCHER_RUNTIME_DIR;
-    static constexpr auto cInstanceIDLen = 16;
+    static constexpr auto cRuntimeDir        = AOS_CONFIG_LAUNCHER_RUNTIME_DIR;
+    static constexpr auto cInstanceIDLen     = 16;
     static constexpr auto cSpecAllocatorSize = sizeof(oci::RuntimeSpec) + sizeof(oci::VM);
-    static constexpr auto cRuntimeSpecFile = "config.json";
+    static constexpr auto cRuntimeSpecFile   = "config.json";
 
     Error CreateRuntimeSpec(const String& path);
 

@@ -45,7 +45,7 @@ static void* calcDec(void* arg)
     return nullptr;
 }
 
-TEST(CommonTest, Thread)
+TEST(ThreadTest, Basic)
 {
     // Test thread, mutex, lock guard, lambda
 
@@ -95,11 +95,11 @@ TEST(CommonTest, Thread)
     EXPECT_EQ(calc.GetResult(), 0);
 }
 
-TEST(CommonTest, CondVar)
+TEST(ThreadTest, CondVar)
 {
     Mutex               mutex;
-    ConditionalVariable condVar(mutex);
-    auto                ready = false;
+    ConditionalVariable condVar;
+    auto                ready     = false;
     auto                processed = false;
 
     Thread<> worker;
@@ -109,7 +109,7 @@ TEST(CommonTest, CondVar)
                         UniqueLock lock(mutex);
                         EXPECT_TRUE(lock.GetError().IsNone());
 
-                        EXPECT_TRUE(condVar.Wait([&] { return ready; }).IsNone());
+                        EXPECT_TRUE(condVar.Wait(lock, [&] { return ready; }).IsNone());
 
                         processed = true;
 
@@ -129,10 +129,10 @@ TEST(CommonTest, CondVar)
     EXPECT_TRUE(condVar.NotifyOne().IsNone());
 
     {
-        LockGuard lock(mutex);
+        UniqueLock lock(mutex);
         EXPECT_TRUE(lock.GetError().IsNone());
 
-        EXPECT_TRUE(condVar.Wait([&] { return processed; }).IsNone());
+        EXPECT_TRUE(condVar.Wait(lock, [&] { return processed; }).IsNone());
     }
 
     EXPECT_TRUE(ready);
@@ -140,7 +140,81 @@ TEST(CommonTest, CondVar)
     EXPECT_TRUE(worker.Join().IsNone());
 }
 
-TEST(CommonTest, ThreadPool)
+TEST(ThreadTest, CondVarTimeout)
+{
+    Mutex               mutex;
+    ConditionalVariable condVar;
+    Thread<>            worker;
+    bool                ready = false;
+
+    // Check normal
+
+    EXPECT_TRUE(worker
+                    .Run([&](void*) {
+                        UniqueLock lock(mutex);
+                        EXPECT_TRUE(lock.GetError().IsNone());
+
+                        EXPECT_TRUE(condVar.Wait(lock, aos::Time::Now().Add(1 * Time::cSeconds)).IsNone());
+                    })
+                    .IsNone());
+    usleep(500000);
+    EXPECT_TRUE(condVar.NotifyOne().IsNone());
+    EXPECT_TRUE(worker.Join().IsNone());
+
+    // Check timeout
+
+    EXPECT_TRUE(worker
+                    .Run([&](void*) {
+                        UniqueLock lock(mutex);
+                        EXPECT_TRUE(lock.GetError().IsNone());
+
+                        EXPECT_EQ(condVar.Wait(lock, aos::Time::Now().Add(100 * Time::cMilliseconds)),
+                            aos::ErrorEnum::eTimeout);
+                    })
+                    .IsNone());
+
+    EXPECT_TRUE(worker.Join().IsNone());
+
+    // Check normal with predicate
+
+    EXPECT_TRUE(
+        worker
+            .Run([&](void*) {
+                UniqueLock lock(mutex);
+                EXPECT_TRUE(lock.GetError().IsNone());
+
+                EXPECT_TRUE(
+                    condVar.Wait(lock, aos::Time::Now().Add(1 * Time::cSeconds), [&] { return ready; }).IsNone());
+                ready = false;
+            })
+            .IsNone());
+    {
+        LockGuard lock(mutex);
+        EXPECT_TRUE(lock.GetError().IsNone());
+
+        ready = true;
+    }
+
+    EXPECT_TRUE(condVar.NotifyOne().IsNone());
+    EXPECT_TRUE(worker.Join().IsNone());
+
+    // Check timeout with predicate
+
+    EXPECT_TRUE(worker
+                    .Run([&](void*) {
+                        UniqueLock lock(mutex);
+                        EXPECT_TRUE(lock.GetError().IsNone());
+
+                        EXPECT_EQ(
+                            condVar.Wait(lock, aos::Time::Now().Add(100 * Time::cMilliseconds), [&] { return ready; }),
+                            aos::ErrorEnum::eTimeout);
+                    })
+                    .IsNone());
+
+    EXPECT_TRUE(worker.Join().IsNone());
+}
+
+TEST(ThreadTest, ThreadPool)
 {
     ThreadPool<3, 32 * 32 * 3> threadPool;
     Mutex                      mutex;

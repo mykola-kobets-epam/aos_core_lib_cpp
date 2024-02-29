@@ -21,7 +21,7 @@ static void TakeSharedPtr(SharedPtr<uint32_t> shPtr)
     EXPECT_TRUE(shPtr);
 }
 
-TEST(CommonTest, UniquePtr)
+TEST(MemoryTest, UniquePtr)
 {
     StaticAllocator<256> allocator;
 
@@ -65,7 +65,7 @@ TEST(CommonTest, UniquePtr)
     EXPECT_EQ(allocator.FreeSize(), allocator.MaxSize());
 }
 
-TEST(CommonTest, SharedPtr)
+TEST(MemoryTest, SharedPtr)
 {
     StaticAllocator<256> allocator;
 
@@ -111,18 +111,18 @@ TEST(CommonTest, SharedPtr)
     EXPECT_EQ(allocator.FreeSize(), allocator.MaxSize());
 }
 
-TEST(CommonTest, SharedPtrDerivedClass)
+TEST(MemoryTest, SharedPtrDerivedClass)
 {
     class BaseClass {
     public:
-        BaseClass() { std::cout << "Create BaseClass" << std::endl; };
-        ~BaseClass() { std::cout << "Delete BaseClass" << std::endl; };
+        BaseClass() {};
+        virtual ~BaseClass() {};
     };
 
     class NewClass : public BaseClass {
     public:
-        NewClass() { std::cout << "Create NewClass" << std::endl; };
-        ~NewClass() { std::cout << "Delete NewClass" << std::endl; };
+        NewClass() {};
+        virtual ~NewClass() {};
     };
 
     StaticAllocator<256> allocator;

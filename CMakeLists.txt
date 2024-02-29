@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.19)
 
 # Check compiler using static library instead of applicion
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
@@ -86,9 +86,7 @@ add_subdirectory(src/sm)
 add_subdirectory(src/iam)
 
 if(WITH_TEST)
-    add_subdirectory(tests/common)
-    add_subdirectory(tests/sm)
-    add_subdirectory(tests/iam)
+    add_subdirectory(tests)
 endif()
 
 # ######################################################################################################################

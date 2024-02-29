@@ -9,6 +9,7 @@
 #define AOS_FS_HPP_
 
 #include <dirent.h>
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -88,19 +89,19 @@ public:
      */
     static StaticString<cFilePathLen> Dir(const String& path)
     {
-        StaticString<cFilePathLen> dir = path;
+        StaticString<cFilePathLen> dir;
 
-        auto it = dir.end();
+        auto it = path.end();
 
-        while (it != dir.begin()) {
+        while (it != path.begin()) {
             it--;
 
             if (*it == '/') {
-                *it = 0;
-
                 break;
             }
         }
+
+        dir.Insert(dir.end(), path.begin(), it);
 
         return dir;
     }
@@ -350,6 +351,59 @@ public:
     }
 
     /**
+     * Reads content of the file named by fileName into the buffer.
+     *
+     * @param fileName file name.
+     * @param[out] buff destination buffer.
+     * @return Error.
+     */
+    static Error ReadFile(const String& fileName, Array<uint8_t>& buff)
+    {
+        auto fd = open(fileName.CStr(), O_RDONLY);
+        if (fd < 0) {
+            return Error(errno);
+        }
+
+        auto OnError = [fd]() {
+            auto err = errno;
+
+            close(fd);
+
+            return Error(err);
+        };
+
+        auto size = lseek(fd, 0, SEEK_END);
+        if (size < 0) {
+            return OnError();
+        }
+
+        auto pos = lseek(fd, 0, SEEK_SET);
+        if (pos < 0) {
+            return OnError();
+        }
+
+        auto err = buff.Resize(size);
+        if (!err.IsNone()) {
+            return err;
+        }
+
+        while (pos < size) {
+            auto count = read(fd, buff.Get() + pos, buff.Size() - pos);
+            if (count < 0) {
+                return OnError();
+            }
+
+            pos += count;
+        }
+
+        if (close(fd) != 0) {
+            return Error(errno);
+        }
+
+        return ErrorEnum::eNone;
+    }
+
+    /**
      * Reads content of the file named by fileName into the given string.
      *
      * @param fileName file name.
@@ -358,8 +412,56 @@ public:
      */
     static Error ReadFileToString(const String& fileName, String& text)
     {
-        (void)fileName;
-        (void)text;
+        text.Resize(text.MaxSize());
+
+        auto buff = Array<uint8_t>(reinterpret_cast<uint8_t*>(text.Get()), text.Size());
+
+        auto err = ReadFile(fileName, buff);
+        if (!err.IsNone()) {
+            return err;
+        }
+
+        return text.Resize(buff.Size());
+    }
+
+    /**
+     * Overwrites file with a specified data.
+     *
+     * @param fileName file name.
+     * @param data input data.
+     * @param perm permissions.
+     * @return Error.
+     */
+    static Error WriteFile(const String& fileName, const Array<uint8_t>& data, uint32_t perm)
+    {
+        // zephyr doesn't support O_TRUNC flag. This is WA to trunc file if it exists.
+        auto err = Remove(fileName);
+        if (!err.IsNone()) {
+            return err;
+        }
+
+        auto fd = open(fileName.CStr(), O_CREAT | O_WRONLY, perm);
+        if (fd < 0) {
+            return Error(errno);
+        }
+
+        size_t pos = 0;
+        while (pos < data.Size()) {
+            auto chunkSize = write(fd, data.Get() + pos, data.Size() - pos);
+            if (chunkSize < 0) {
+                err = errno;
+
+                close(fd);
+
+                return Error(err);
+            }
+
+            pos += chunkSize;
+        }
+
+        if (close(fd) != 0) {
+            return Error(errno);
+        }
 
         return ErrorEnum::eNone;
     }
@@ -374,11 +476,9 @@ public:
      */
     static Error WriteStringToFile(const String& fileName, const String& text, uint32_t perm)
     {
-        (void)fileName;
-        (void)text;
-        (void)perm;
+        const auto buff = Array<uint8_t>(reinterpret_cast<const uint8_t*>(text.Get()), text.Size());
 
-        return ErrorEnum::eNone;
+        return WriteFile(fileName, buff, perm);
     }
 };
 
