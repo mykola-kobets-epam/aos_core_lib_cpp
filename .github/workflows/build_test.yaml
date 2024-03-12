@@ -25,13 +25,12 @@ jobs:
       - name: Prepare
         run: |
           sudo apt install lcov libsofthsm2 -y
+          pip install conan
       - name: Build and test
         run: |
-          mkdir build
+          ./host_build.sh
           cd build
-          cmake ../
-          cmake ../ -DWITH_TEST=ON -DWITH_COVERAGE=ON -DCMAKE_BUILD_TYPE=Debug
-          make; make tests; make coverage
+          make tests; make coverage
 
       - name: Upload codecov report
         uses: codecov/codecov-action@v3

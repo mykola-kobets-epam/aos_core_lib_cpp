@@ -37,42 +37,6 @@ execute_process(
 include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/crypto/mbedtls/drivers)
 
 # ######################################################################################################################
-# Fetch and setup MbedTLS
-# ######################################################################################################################
-
-if(WITH_MBEDTLS)
-    include(FetchContent)
-
-    set(FETCHCONTENT_QUIET FALSE)
-
-    FetchContent_Declare(
-        mbedtls
-        GIT_REPOSITORY https://github.com/Mbed-TLS/mbedtls.git
-        GIT_TAG v3.5.0
-        GIT_PROGRESS TRUE
-        GIT_SHALLOW TRUE
-        PATCH_COMMAND
-            cp ${CMAKE_CURRENT_SOURCE_DIR}/crypto/mbedtls/drivers/psa_crypto_driver_wrappers_no_static.c
-            ${CMAKE_BINARY_DIR}/_deps/mbedtls-src/library/psa_crypto_driver_wrappers_no_static.c && cp
-            ${CMAKE_CURRENT_SOURCE_DIR}/crypto/mbedtls/drivers/psa_crypto_driver_wrappers.h
-            ${CMAKE_BINARY_DIR}/_deps/mbedtls-src/library/psa_crypto_driver_wrappers.h && cp
-            ${CMAKE_SOURCE_DIR}/include/aos/common/crypto/mbedtls/mbedtls_config.h
-            ${CMAKE_BINARY_DIR}/_deps/mbedtls-src/include/mbedtls/mbedtls_config.h
-    )
-
-    set(ENABLE_TESTING
-        OFF
-        CACHE BOOL "" FORCE
-    )
-    set(ENABLE_PROGRAMS
-        OFF
-        CACHE BOOL "" FORCE
-    )
-
-    FetchContent_MakeAvailable(mbedtls)
-endif()
-
-# ######################################################################################################################
 # Target
 # ######################################################################################################################
 
@@ -90,7 +54,8 @@ add_library(
 target_sources(${TARGET} PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/version.hpp)
 
 if(WITH_MBEDTLS)
-    target_link_libraries(${TARGET} PUBLIC mbedcrypto mbedx509 mbedtls)
+    find_package(MbedTLS REQUIRED)
+    target_link_libraries(${TARGET} PUBLIC MbedTLS::mbedcrypto MbedTLS::mbedx509 MbedTLS::mbedtls)
 endif()
 
 # ######################################################################################################################
