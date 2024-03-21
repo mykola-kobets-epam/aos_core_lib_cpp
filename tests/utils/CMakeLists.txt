@@ -12,6 +12,7 @@ set(TARGET testutils)
 # ######################################################################################################################
 
 include(src/softhsm.cmake)
+include(src/gencertificates.cmake)
 
 # ######################################################################################################################
 # Sources
@@ -25,9 +26,25 @@ set(SOURCES src/softhsmenv.cpp)
 
 add_library(${TARGET} ${SOURCES})
 
-target_compile_definitions(
-    ${TARGET} PUBLIC SOFTHSM_BASE_DIR="${SOFTHSM_BASE_DIR}" CERTIFICATES_DIR="${CERTIFICATES_DIR}"
-                     SOFTHSM2_LIB="${SOFTHSM2_LIB}"
-)
+createsofthsmtestenv(${TARGET} "${CMAKE_CURRENT_BINARY_DIR}/certificates")
+gencertificates(${TARGET} "${CMAKE_CURRENT_BINARY_DIR}/softhsm")
 
 target_include_directories(${TARGET} PUBLIC include)
+
+# ######################################################################################################################
+# Install
+# ######################################################################################################################
+
+install(TARGETS ${TARGET} ARCHIVE DESTINATION lib)
+
+install(
+    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
+    DESTINATION include/test/utils
+    FILES_MATCHING
+    PATTERN "*.hpp"
+    PATTERN "*.h"
+)
+
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/gencertificates.cmake ${CMAKE_CURRENT_SOURCE_DIR}/src/softhsm.cmake
+              ${CMAKE_CURRENT_SOURCE_DIR}/src/softhsm2.conf DESTINATION lib/cmake/test/utils
+)
