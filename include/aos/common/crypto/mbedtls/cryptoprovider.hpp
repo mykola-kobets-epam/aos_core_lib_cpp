@@ -46,6 +46,19 @@ public:
         const PrivateKeyItf& privKey, String& pemCert) override;
 
     /**
+     * Creates certificate chain using client CSR & CA key/certificate as input.
+     *
+     * @param pemCSR client certificate request.
+     * @param pemCAKey CA private key in PEM.
+     * @param pemCACert CA certificate in PEM.
+     * @param serial serial number of certificate.
+     * @param[out] pemClientCert result certificate.
+     * @result Error.
+     */
+    Error CreateClientCert(const String& pemCSR, const String& pemCAKey, const String& pemCACert,
+        const Array<uint8_t>& serial, String& pemClientCert) override;
+
+    /**
      * Reads certificates from a PEM blob.
      *
      * @param pemBlob raw certificates in a PEM format.
