@@ -989,40 +989,20 @@ Error MbedTLSCryptoProvider::SetCertificateValidityPeriod(mbedtls_x509write_cert
         return ErrorEnum::eInvalidArgument;
     }
 
-    auto formatTime = [](char* buffer, size_t size, const Time& time) -> Error {
-        int day = 0, month = 0, year = 0, hour = 0, min = 0, sec = 0;
+    StaticString<cTimeStrLen> notBefore, notAfter;
+    Error                     err = ErrorEnum::eNone;
 
-        auto err = time.GetDate(&day, &month, &year);
-        if (!err.IsNone()) {
-            return err;
-        }
-
-        err = time.GetTime(&hour, &min, &sec);
-        if (!err.IsNone()) {
-            return err;
-        }
-
-        if (snprintf(buffer, size, "%04d%02d%02d%02d%02d%02d", year, month, day, hour, min, sec) < 0) {
-            return ErrorEnum::eInvalidArgument;
-        }
-
-        return ErrorEnum::eNone;
-    };
-
-    char timeBufferBefore[cTimeBufferSize] {};
-    char timeBufferAfter[cTimeBufferSize] {};
-
-    auto err = formatTime(timeBufferBefore, sizeof(timeBufferBefore), templ.mNotBefore);
+    Tie(notBefore, err) = templ.mNotBefore.ToString();
     if (!err.IsNone()) {
         return AOS_ERROR_WRAP(err);
     }
 
-    err = formatTime(timeBufferAfter, sizeof(timeBufferAfter), templ.mNotAfter);
+    Tie(notAfter, err) = templ.mNotAfter.ToString();
     if (!err.IsNone()) {
         return AOS_ERROR_WRAP(err);
     }
 
-    return AOS_ERROR_WRAP(mbedtls_x509write_crt_set_validity(&cert, timeBufferBefore, timeBufferAfter));
+    return AOS_ERROR_WRAP(mbedtls_x509write_crt_set_validity(&cert, notBefore.Get(), notAfter.Get()));
 }
 
 } // namespace crypto
