@@ -379,7 +379,7 @@ public:
             return ErrorEnum::eInvalidArgument;
         }
 
-        for (auto i = 0; i < end() - pos; i++) {
+        for (auto i = end() - pos - 1; i >= 0; i--) {
             new (pos + size + i) T(*(pos + i));
         }
 
