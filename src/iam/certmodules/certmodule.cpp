@@ -351,7 +351,8 @@ Error CertModule::CheckCertChain(const Array<crypto::x509::Certificate>& chain)
             }
 
             if (chain[currentCert].mIssuer == chain[i].mSubject
-                || chain[currentCert].mAuthorityKeyId == chain[i].mSubjectKeyId) {
+                || (!chain[currentCert].mAuthorityKeyId.IsEmpty()
+                    && chain[currentCert].mAuthorityKeyId == chain[i].mSubjectKeyId)) {
                 parentCert  = i;
                 parentFound = true;
 
