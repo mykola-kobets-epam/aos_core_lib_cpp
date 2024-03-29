@@ -472,7 +472,11 @@ Error MbedTLSCryptoProvider::X509CertToPEM(const x509::Certificate& certificate,
         return AOS_ERROR_WRAP(ret);
     }
 
-    dst.Resize(olen);
+    if (olen <= 0) {
+        return AOS_ERROR_WRAP(ErrorEnum::eFailed);
+    }
+
+    dst.Resize(olen - 1);
 
     return ErrorEnum::eNone;
 }
