@@ -470,7 +470,7 @@ RetWithError<pkcs11::SlotID> PKCS11Module::GetSlotID()
 
     for (const auto slotID : slotList) {
         err = mPKCS11->GetSlotInfo(slotID, slotInfo);
-        if (err.IsNone()) {
+        if (!err.IsNone()) {
             return {0, AOS_ERROR_WRAP(err)};
         }
 
