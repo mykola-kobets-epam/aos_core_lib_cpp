@@ -449,6 +449,10 @@ RetWithError<pkcs11::SlotID> PKCS11Module::GetSlotID()
     StaticArray<pkcs11::SlotID, pkcs11::cSlotListSize> slotList;
 
     auto err = mPKCS11->GetSlotList(false, slotList);
+
+    LOG_DBG() << "slot list size: " << slotList.Size() << ", slotlist maxsize: " << slotList.MaxSize(); 
+
+
     if (!err.IsNone()) {
         return {0, AOS_ERROR_WRAP(err)};
     }
