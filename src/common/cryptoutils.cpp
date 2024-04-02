@@ -8,6 +8,14 @@
 #include "aos/common/cryptoutils.hpp"
 #include "aos/common/tools/fs.hpp"
 
+#include "aos/common/tools/log.hpp"
+
+#define LOG_DBG() LOG_MODULE_DBG(aos::LogModuleEnum::eCommonCrypto)
+#define LOG_INF() LOG_MODULE_INF(aos::LogModuleEnum::eCommonCrypto)
+#define LOG_WRN() LOG_MODULE_WRN(aos::LogModuleEnum::eCommonCrypto)
+#define LOG_ERR() LOG_MODULE_ERR(aos::LogModuleEnum::eCommonCrypto)
+
+
 namespace aos {
 namespace cryptoutils {
 
@@ -273,6 +281,8 @@ Error ParseFileURL(const String& url, String& path)
 
 Error EncodePKCS11ID(const Array<uint8_t>& id, String& idStr)
 {
+    LOG_INF() << "Encode ID, id: " << idStr.CStr();
+
     for (auto byte : id) {
         auto err = idStr.PushBack('%');
         if (!err.IsNone()) {
@@ -281,13 +291,18 @@ Error EncodePKCS11ID(const Array<uint8_t>& id, String& idStr)
 
         StaticString<2> byteStr;
 
-        byteStr.ByteToHex(byte, true);
+        byteStr.ByteToHex(byte, false);
 
+        LOG_INF() << "Encode ID, bytestr: " << byteStr.CStr() << ", byteStr.size() =" << byteStr.Size() << ", till-from=" << byteStr.end()-byteStr.begin();
         err = idStr.Insert(idStr.end(), byteStr.begin(), byteStr.end());
+
+        LOG_INF() << "Encode ID, id: " << idStr.CStr() << ", size= " << idStr.Size();
         if (!err.IsNone()) {
             return err;
         }
     }
+
+    LOG_INF() << "Encode ID, id: " << idStr.CStr();
 
     return ErrorEnum::eNone;
 }

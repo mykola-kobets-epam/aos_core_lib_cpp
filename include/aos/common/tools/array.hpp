@@ -379,7 +379,8 @@ public:
             return ErrorEnum::eInvalidArgument;
         }
 
-        for (auto i = end() - pos - 1; i >= 0; i--) {
+
+        for (int i = static_cast<int>(end() - pos) - 1; i >= 0; i--) {
             new (pos + size + i) T(*(pos + i));
         }
 
