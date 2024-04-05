@@ -589,6 +589,8 @@ Error PKCS11Module::GetUserPin(String& pin) const
         return AOS_ERROR_WRAP(err);
     }
 
+    LOG_DBG() << "pin: " << pin;
+
     return ErrorEnum::eNone;
 }
 
