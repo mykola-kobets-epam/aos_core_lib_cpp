@@ -85,4 +85,11 @@
 #define AOS_CONFIG_FS_FILE_PATH_LEN 256
 #endif
 
+/**
+ * Size of a time in string representation.
+ */
+#ifndef AOS_CONFIG_TIME_STR_LEN
+#define AOS_CONFIG_TIME_STR_LEN 68
+#endif
+
 #endif

@@ -79,6 +79,8 @@ public:
         eSMLauncher,
         eSMServiceManager,
         eIAMCertHandler,
+        eIAMIdentHandler,
+        eIAMPermHandler,
         eCommonMonitoring,
         eCommonPKCS11,
         eCommonCrypto,
@@ -87,8 +89,8 @@ public:
 
     static const Array<const char* const> GetStrings()
     {
-        static const char* const sLogModuleTypeStrings[]
-            = {"default", "launcher", "servicemanager", "certhandler", "resourcemonitor", "pkcs11"};
+        static const char* const sLogModuleTypeStrings[] = {"default", "launcher", "servicemanager", "certhandler",
+            "identhandler", "permhandler", "resourcemonitor", "pkcs11", "crypto"};
 
         return Array<const char* const>(sLogModuleTypeStrings, ArraySize(sLogModuleTypeStrings));
     };
@@ -153,7 +155,7 @@ public:
         auto freeSize = mLogLine.MaxSize() - mLogLine.Size();
 
         if (str.Size() > freeSize) {
-            auto err = mLogLine.Insert(mLogLine.end(), str.begin(), str.begin() + freeSize);
+            [[maybe_unused]] auto err = mLogLine.Insert(mLogLine.end(), str.begin(), str.begin() + freeSize);
             assert(err.IsNone());
 
             AddPeriods();

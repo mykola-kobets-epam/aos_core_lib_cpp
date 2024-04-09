@@ -470,7 +470,7 @@ RetWithError<pkcs11::SlotID> PKCS11Module::GetSlotID()
 
     for (const auto slotID : slotList) {
         err = mPKCS11->GetSlotInfo(slotID, slotInfo);
-        if (err.IsNone()) {
+        if (!err.IsNone()) {
             return {0, AOS_ERROR_WRAP(err)};
         }
 
@@ -778,10 +778,9 @@ Error PKCS11Module::CreateCertificateChain(const SharedPtr<pkcs11::SessionContex
 
 Error PKCS11Module::CreateURL(const String& label, const Array<uint8_t>& id, String& url)
 {
-    const auto addParam = [](const char* name, const char* param, bool opaque, String& paramList) {
+    const auto AddParam = [](const aos::String name, const aos::String param, bool opaque, String& paramList) {
         if (!paramList.IsEmpty()) {
-            const char* delim = opaque ? ";" : "&";
-            paramList.Append(delim);
+            paramList.Append(opaque ? ";" : "&");
         }
 
         paramList.Append(name).Append("=").Append(param);
@@ -790,24 +789,29 @@ Error PKCS11Module::CreateURL(const String& label, const Array<uint8_t>& id, Str
     StaticString<cURLLen> opaque, query;
 
     // create opaque part of url
-    addParam("token", mTokenLabel.CStr(), true, opaque);
+    AddParam("token", mTokenLabel.CStr(), true, opaque);
 
     if (!label.IsEmpty()) {
-        addParam("object", label.CStr(), true, opaque);
+        AddParam("object", label.CStr(), true, opaque);
     }
 
     if (!id.IsEmpty()) {
-        auto uuid = uuid::UUIDToString(id);
+        StaticString<pkcs11::cIDStrLen> idStr;
 
-        addParam("id", uuid.CStr(), true, opaque);
+        auto err = cryptoutils::EncodePKCS11ID(id, idStr);
+        if (!err.IsNone()) {
+            return AOS_ERROR_WRAP(err);
+        }
+
+        AddParam("id", idStr, true, opaque);
     }
 
     // create query part of url
     if (mConfig.mModulePathInURL) {
-        addParam("module-path", mConfig.mLibrary.CStr(), false, query);
+        AddParam("module-path", mConfig.mLibrary.CStr(), false, query);
     }
 
-    addParam("pin-value", mUserPIN.CStr(), false, query);
+    AddParam("pin-value", mUserPIN.CStr(), false, query);
 
     // combine opaque & query parts of url
     auto err = url.Format("%s:%s?%s", cPKCS11Scheme, opaque.CStr(), query.CStr());
@@ -820,9 +824,9 @@ Error PKCS11Module::CreateURL(const String& label, const Array<uint8_t>& id, Str
 
 Error PKCS11Module::ParseURL(const String& url, String& label, Array<uint8_t>& id)
 {
-    StaticString<cFilePathLen>       library;
-    StaticString<pkcs11::cLabelLen>  token;
-    StaticString<pkcs11::cPINLength> userPIN;
+    StaticString<cFilePathLen>      library;
+    StaticString<pkcs11::cLabelLen> token;
+    StaticString<pkcs11::cPINLen>   userPIN;
 
     auto err = cryptoutils::ParsePKCS11URL(url, library, token, label, id, userPIN);
     if (!err.IsNone()) {

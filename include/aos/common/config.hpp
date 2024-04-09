@@ -30,6 +30,20 @@
 #endif
 
 /**
+ * Max expected number of subject ids.
+ */
+#ifndef AOS_CONFIG_TYPES_MAX_SUBJECTS_SIZE
+#define AOS_CONFIG_TYPES_MAX_SUBJECTS_SIZE 4
+#endif
+
+/**
+ * System ID len.
+ */
+#ifndef AOS_CONFIG_TYPES_SYSTEM_ID_LEN
+#define AOS_CONFIG_TYPES_SYSTEM_ID_LEN 40
+#endif
+
+/**
  * Layer ID len.
  */
 #ifndef AOS_CONFIG_TYPES_LAYER_ID_LEN
@@ -48,6 +62,13 @@
  */
 #ifndef AOS_CONFIG_TYPES_INSTANCE_ID_LEN
 #define AOS_CONFIG_TYPES_INSTANCE_ID_LEN 40
+#endif
+
+/**
+ * Unit model len.
+ */
+#ifndef AOS_CONFIG_TYPES_UNIT_MODEL_LEN
+#define AOS_CONFIG_TYPES_UNIT_MODEL_LEN 40
 #endif
 
 /**
@@ -132,6 +153,13 @@
  */
 #ifndef AOS_CONFIG_TYPES_PARTITION_TYPES_LEN
 #define AOS_CONFIG_TYPES_PARTITION_TYPES_LEN 32
+#endif
+
+/**
+ * Max number of nodes.
+ */
+#ifndef AOS_CONFIG_TYPES_MAX_NUM_NODES
+#define AOS_CONFIG_TYPES_MAX_NUM_NODES 4
 #endif
 
 /**
@@ -356,7 +384,14 @@
  * Maximum length of user PIN (password).
  */
 #ifndef AOS_CONFIG_PKCS11_PIN_LEN
-#define AOS_CONFIG_PKCS11_PIN_LEN 42
+#define AOS_CONFIG_PKCS11_PIN_LEN 30
+#endif
+
+/**
+ * Maximum size of PKCS11 ID.
+ */
+#ifndef AOS_CONFIG_PKCS11_ID_SIZE
+#define AOS_CONFIG_PKCS11_ID_SIZE 32
 #endif
 
 /**
@@ -443,6 +478,9 @@
 #define AOS_CONFIG_CRYPTOUTILS_DEFAULT_PKCS11_LIB "/usr/lib/softhsm/libsofthsm2.so"
 #endif
 
+/**
+ * Maximum number of public keys to be allocated by cryptoprovider simultaneously.
+ */
 #ifndef AOS_CONFIG_CRYPTOPROVIDER_PUB_KEYS_COUNT
 #define AOS_CONFIG_CRYPTOPROVIDER_PUB_KEYS_COUNT 5
 #endif
