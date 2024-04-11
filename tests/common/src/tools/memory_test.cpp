@@ -28,7 +28,7 @@ TEST(MemoryTest, UniquePtr)
     // Basic test
 
     {
-        UniquePtr<uint32_t> uPtr(&allocator, new (&allocator) uint32_t());
+        UniquePtr<uint32_t> uPtr = MakeUnique<uint32_t>(&allocator, 0);
         EXPECT_EQ(allocator.FreeSize(), allocator.MaxSize() - sizeof(uint32_t));
     }
 
@@ -43,7 +43,7 @@ TEST(MemoryTest, UniquePtr)
     EXPECT_TRUE(nullptr == uPtr);
 
     {
-        uPtr = UniquePtr<uint32_t>(&allocator, new (&allocator) uint32_t());
+        uPtr = MakeUnique<uint32_t>(&allocator);
     }
 
     EXPECT_EQ(allocator.FreeSize(), allocator.MaxSize() - sizeof(uint32_t));
