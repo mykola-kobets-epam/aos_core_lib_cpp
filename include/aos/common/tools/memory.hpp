@@ -442,6 +442,21 @@ inline UniquePtr<T> MakeUnique(Allocator* allocator, Args&&... args)
 }
 
 /**
+ * Defers object destruction till the end of the current scope.
+ *
+ * @tparam T type of the object to be destroyed.
+ * @tparam Deleter type of the deleter.
+ * @param ptr pointer to the object to be destroyed.
+ * @param deleter functor object to be deferred.
+ * @return UniquePtr<T, Deleter>.
+ */
+template <typename T, typename Deleter>
+inline UniquePtr<T, Deleter> DeferRelease(T* ptr, Deleter&& deleter)
+{
+    return UniquePtr<T, Deleter>(ptr, Move(deleter));
+}
+
+/**
  * Constructs shared pointer.
  *
  * @tparam T holding object type.

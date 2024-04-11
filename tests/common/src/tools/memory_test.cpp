@@ -5,7 +5,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <gtest/gtest.h>
+#include <gmock/gmock.h>
 
 #include "aos/common/tools/memory.hpp"
 
@@ -142,4 +142,25 @@ TEST(MemoryTest, SharedPtrDerivedClass)
     }
 
     EXPECT_EQ(allocator.FreeSize(), allocator.MaxSize());
+}
+
+TEST(MemoryTest, DeferRelease)
+{
+    int                               dummy = 0x42;
+    testing::MockFunction<void(int*)> deleter;
+
+    EXPECT_CALL(deleter, Call(&dummy)).Times(1);
+    {
+        auto defer = DeferRelease(&dummy, deleter.AsStdFunction());
+    }
+}
+
+TEST(MemoryTest, DeferReleaseNoOpForNull)
+{
+    testing::MockFunction<void(int*)> deleter;
+
+    EXPECT_CALL(deleter, Call(testing::_)).Times(0);
+    {
+        auto defer = DeferRelease(static_cast<int*>(nullptr), deleter.AsStdFunction());
+    }
 }
