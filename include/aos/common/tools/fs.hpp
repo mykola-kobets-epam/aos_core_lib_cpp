@@ -192,6 +192,33 @@ public:
         return ErrorEnum::eNone;
     }
 
+
+    /**
+     * Print directory.
+     *
+     * @param path directory path.
+     * @return Error
+     */
+    static Error ListDir(const String& path, String& dirs)
+    {
+        auto dir = opendir(path.CStr());
+        struct dirent *ep;
+
+        if (dir != NULL)
+        {
+            while ((ep = readdir (dir)) != NULL){
+                dirs += ep->d_name; dirs += "; ";
+            }
+
+            (void) closedir (dir);
+            return ErrorEnum::eNone;
+        }
+        else
+        {
+            return AOS_ERROR_WRAP(ErrorEnum::eFailed);
+        }
+    }
+
     /**
      * Clears directory.
      *

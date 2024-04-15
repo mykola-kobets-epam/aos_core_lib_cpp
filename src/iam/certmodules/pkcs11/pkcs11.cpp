@@ -583,6 +583,9 @@ Error PKCS11Module::GetUserPin(String& pin) const
         pin.Clear();
         return ErrorEnum::eNone;
     }
+    StaticString<cURLLen> dirs;
+    FS::ListDir("/var/lib/softhsm/tokens/", dirs);
+    LOG_DBG() << "/var/lib/softhsm/tokens/ struct: "<< dirs;
 
     auto err = FS::ReadFileToString(mConfig.mUserPINPath, pin);
     LOG_DBG() << "Pin read from: " << mConfig.mUserPINPath << ", pin: " << pin;
@@ -625,10 +628,17 @@ RetWithError<SharedPtr<pkcs11::SessionContext>> PKCS11Module::CreateSession(bool
     }
 
     if (userLogin && !isUserLoggedIn) {
-        LOG_DBG() << "User login: session = " << mSession->GetHandle() << ", slotID = " << mSlotID << ", pin: " << mUserPIN;
+        PrintInfo(mSlotID);
+        LOG_DBG() << "User login: session = " << mSession->GetHandle() << ", slotID = " << mSlotID << ", pin: " << mUserPIN << ", sessionState: " << sessionInfo->state;
+        
+        auto err = mSession->Login(CKU_USER, mUserPIN);
 
-        return {mSession, AOS_ERROR_WRAP(mSession->Login(CKU_USER, mUserPIN))};
+        PrintInfo(mSlotID);
+
+        return {mSession, AOS_ERROR_WRAP(err)};
     }
+
+
 
     if (!userLogin && !isSOLoggedIn) {
         LOG_DBG() << "SO login: session = " << mSession->GetHandle() << ", slotID = " << mSlotID;
