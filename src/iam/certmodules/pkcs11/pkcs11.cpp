@@ -585,6 +585,7 @@ Error PKCS11Module::GetUserPin(String& pin) const
     }
 
     auto err = FS::ReadFileToString(mConfig.mUserPINPath, pin);
+    LOG_DBG() << "Pin read from: " << mConfig.mUserPINPath << ", pin: " << pin;
     if (!err.IsNone()) {
         return AOS_ERROR_WRAP(err);
     }
@@ -624,7 +625,7 @@ RetWithError<SharedPtr<pkcs11::SessionContext>> PKCS11Module::CreateSession(bool
     }
 
     if (userLogin && !isUserLoggedIn) {
-        LOG_DBG() << "User login: session = " << mSession->GetHandle() << ", slotID = " << mSlotID;
+        LOG_DBG() << "User login: session = " << mSession->GetHandle() << ", slotID = " << mSlotID << ", pin: " << mUserPIN;
 
         return {mSession, AOS_ERROR_WRAP(mSession->Login(CKU_USER, mUserPIN))};
     }
