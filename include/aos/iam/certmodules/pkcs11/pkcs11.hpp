@@ -168,7 +168,7 @@ private:
     Error PrintInfo(pkcs11::SlotID slotID) const;
 
     Error GetTeeUserPIN(const String& loginType, String& userPIN);
-    Error GeneratePIN(const String& loginType, String& userPIN);
+    Error GenTeeUserPIN(const String& loginType, String& userPIN);
     Error GetUserPin(String& pin) const;
 
     RetWithError<SharedPtr<pkcs11::SessionContext>> CreateSession(bool userLogin, const String& pin);

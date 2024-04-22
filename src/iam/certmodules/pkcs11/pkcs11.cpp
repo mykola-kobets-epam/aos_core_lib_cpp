@@ -553,11 +553,11 @@ Error PKCS11Module::GetTeeUserPIN(const String& loginType, String& userPIN)
     }
 
     if (loginType == cLoginTypeUser) {
-        return GeneratePIN(cLoginTypeUser, userPIN);
+        return GenTeeUserPIN(cLoginTypeUser, userPIN);
     }
 
     if (loginType == cLoginTypeGroup) {
-        return GeneratePIN(cLoginTypeGroup, userPIN);
+        return GenTeeUserPIN(cLoginTypeGroup, userPIN);
     }
 
     LOG_ERR() << "Wrong TEE login: type = " << loginType;
@@ -565,7 +565,7 @@ Error PKCS11Module::GetTeeUserPIN(const String& loginType, String& userPIN)
     return AOS_ERROR_WRAP(ErrorEnum::eInvalidArgument);
 }
 
-Error PKCS11Module::GeneratePIN(const String& loginType, String& userPIN)
+Error PKCS11Module::GenTeeUserPIN(const String& loginType, String& userPIN)
 {
     auto pinStr = uuid::UUIDToString(uuid::CreateUUID());
 
