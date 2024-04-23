@@ -165,6 +165,15 @@ public:
      */
     Error ASN1DecodeOID(const Array<uint8_t>& inOID, Array<uint8_t>& dst) override;
 
+    /**
+     * Creates SHA1 hash based on a given name space and data.
+     *
+     * @param space name space.
+     * @param data input data.
+     * @result RetWithError<UUID>.
+     */
+    RetWithError<uuid::UUID> CreateSHA1(const uuid::UUID& space, const String& data) override;
+
 private:
     static constexpr auto cAllocatorSize
         = AOS_CONFIG_CRYPTOPROVIDER_PUB_KEYS_COUNT * Max(sizeof(RSAPublicKey), sizeof(ECDSAPublicKey));

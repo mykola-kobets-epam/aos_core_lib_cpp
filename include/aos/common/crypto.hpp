@@ -13,6 +13,7 @@
 #include "aos/common/tools/memory.hpp"
 #include "aos/common/tools/string.hpp"
 #include "aos/common/tools/time.hpp"
+#include "aos/common/tools/uuid.hpp"
 #include "aos/common/tools/variant.hpp"
 #include "aos/common/types.hpp"
 
@@ -133,6 +134,16 @@ constexpr auto cCertChainSize = AOS_CONFIG_CRYPTO_CERTS_CHAIN_SIZE;
  * Maximum size of SHA2 digest.
  */
 constexpr auto cSHA2DigestSize = AOS_CONFIG_CRYPTO_SHA2_DIGEST_SIZE;
+
+/**
+ * Maximum size of SHA1 digest.
+ */
+constexpr auto cSHA1DigestSize = AOS_CONFIG_CRYPTO_SHA1_DIGEST_SIZE;
+
+/**
+ * Maximum size of input data for SHA1 hash calculation.
+ */
+constexpr auto cSHA1InputDataSize = AOS_CONFIG_CRYPTO_SHA1_INPUT_SIZE;
 
 /**
  * Maximum signature size.
@@ -594,6 +605,15 @@ public:
      * @result Error.
      */
     virtual Error ASN1DecodeOID(const Array<uint8_t>& inOID, Array<uint8_t>& dst) = 0;
+
+    /**
+     * Creates SHA1 UUID(version 5) based on a given name space and data.
+     *
+     * @param space name space.
+     * @param data input data.
+     * @result RetWithError<UUID>.
+     */
+    virtual RetWithError<uuid::UUID> CreateSHA1(const uuid::UUID& space, const String& data) = 0;
 
     /**
      * Destroys object instance.
