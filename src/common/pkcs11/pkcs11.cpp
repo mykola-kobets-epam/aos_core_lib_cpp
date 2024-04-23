@@ -238,27 +238,27 @@ Array<uint8_t> ConvertToAttributeValue(T& val)
 
 Error GenPIN(String& pin)
 {
-    const auto PinLength = Min<size_t>(cGenPINLen, pin.MaxSize());
+    // const auto PinLength = Min<size_t>(cGenPINLen, pin.MaxSize());
 
     pin.Clear();
 
-    srand(::time(nullptr)); // use current time as seed for random generator
+    // srand(::time(nullptr)); // use current time as seed for random generator
 
-    StaticString<sizeof(unsigned) * 2> chunk;
+    // StaticString<sizeof(unsigned) * 2> chunk;
 
-    while (pin.Size() < PinLength) {
-        unsigned value     = rand();
-        auto     byteArray = Array<uint8_t>(reinterpret_cast<uint8_t*>(&value), sizeof(value));
+    // while (pin.Size() < PinLength) {
+    //     unsigned value     = rand();
+    //     auto     byteArray = Array<uint8_t>(reinterpret_cast<uint8_t*>(&value), sizeof(value));
 
-        auto err = chunk.ByteArrayToHex(byteArray);
-        if (!err.IsNone()) {
-            return err;
-        }
+    //     auto err = chunk.ByteArrayToHex(byteArray);
+    //     if (!err.IsNone()) {
+    //         return err;
+    //     }
 
-        auto chunkSize = Min(PinLength - pin.Size(), chunk.Size());
+    //     auto chunkSize = Min(PinLength - pin.Size(), chunk.Size());
 
-        pin.Insert(pin.end(), chunk.begin(), chunk.begin() + chunkSize);
-    }
+    //     pin.Insert(pin.end(), chunk.begin(), chunk.begin() + chunkSize);
+    // }
 
     return ErrorEnum::eNone;
 }
