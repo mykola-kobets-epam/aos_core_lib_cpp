@@ -328,7 +328,8 @@
  * Maximum size of SHA2 digest.
  */
 #ifndef AOS_CONFIG_CRYPTO_SHA2_DIGEST_SIZE
-#define AOS_CONFIG_CRYPTO_SHA2_DIGEST_SIZE 512
+#define AOS_CONFIG_CRYPTO_SHA2_DIGEST_SIZE 64
+#endif
 #endif
 
 /**
