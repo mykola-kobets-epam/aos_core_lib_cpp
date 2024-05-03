@@ -70,6 +70,9 @@ if(WITH_MBEDTLS)
     )
 
     FetchContent_MakeAvailable(mbedtls)
+
+    get_target_property(MBEDTLS_INCLDUES mbedtls INTERFACE_INCLUDE_DIRECTORIES)
+    target_include_directories(mbedtls SYSTEM INTERFACE ${MBEDTLS_INCLDUES})
 endif()
 
 # ######################################################################################################################
