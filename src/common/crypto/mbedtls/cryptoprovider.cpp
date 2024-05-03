@@ -24,6 +24,14 @@
 
 #include "../log.hpp"
 
+extern "C" {
+// The following functions became private in mbedtls since 3.6.0.
+// As a workaround declare them below.
+int mbedtls_x509_get_name(unsigned char** p, const unsigned char* end, mbedtls_x509_name* cur);
+
+int mbedtls_x509_write_names(unsigned char** p, unsigned char* start, mbedtls_asn1_named_data* first);
+}
+
 namespace aos {
 namespace crypto {
 
