@@ -238,9 +238,7 @@ Array<uint8_t> ConvertToAttributeValue(T& val)
 
 Error GenPIN(String& pin)
 {
-    if (pin.MaxSize() == 0) {
-        return ErrorEnum::eNone;
-    }
+    const auto cPinLength = Min<size_t>(cGenPINLen, pin.MaxSize());
 
     pin.Clear();
 
@@ -248,7 +246,7 @@ Error GenPIN(String& pin)
 
     StaticString<sizeof(unsigned) * 2> chunk;
 
-    while (pin.Size() < pin.MaxSize()) {
+    while (pin.Size() < cPinLength) {
         unsigned value     = rand();
         auto     byteArray = Array<uint8_t>(reinterpret_cast<uint8_t*>(&value), sizeof(value));
 
@@ -257,7 +255,7 @@ Error GenPIN(String& pin)
             return err;
         }
 
-        auto chunkSize = Min(pin.MaxSize() - pin.Size(), chunk.Size());
+        auto chunkSize = Min(cPinLength - pin.Size(), chunk.Size());
 
         pin.Insert(pin.end(), chunk.begin(), chunk.begin() + chunkSize);
     }
@@ -371,7 +369,9 @@ Error LibraryContext::InitToken(SlotID slotID, const String& pin, const String& 
         return err;
     }
 
-    CK_RV rv = mFunctionList->C_InitToken(slotID, ConvertToPKCS11UTF8CHARPTR(pin.CStr()), pin.Size(), pkcsLabel);
+    const char* pinPtr = pin.IsEmpty() ? nullptr : pin.CStr();
+
+    CK_RV rv = mFunctionList->C_InitToken(slotID, ConvertToPKCS11UTF8CHARPTR(pinPtr), pin.Size(), pkcsLabel);
     if (rv != CKR_OK) {
         return static_cast<int>(rv);
     }
@@ -572,7 +572,9 @@ Error SessionContext::Login(UserType userType, const String& pin)
         return ErrorEnum::eWrongState;
     }
 
-    CK_RV rv = mFunctionList->C_Login(mHandle, userType, ConvertToPKCS11UTF8CHARPTR(pin.CStr()), pin.Size());
+    const char* pinPtr = pin.IsEmpty() ? nullptr : pin.CStr();
+
+    CK_RV rv = mFunctionList->C_Login(mHandle, userType, ConvertToPKCS11UTF8CHARPTR(pinPtr), pin.Size());
     if (rv == CKR_USER_ALREADY_LOGGED_IN) {
         return ErrorEnum::eAlreadyLoggedIn;
     }
@@ -604,7 +606,9 @@ Error SessionContext::InitPIN(const String& pin)
         return ErrorEnum::eWrongState;
     }
 
-    CK_RV rv = mFunctionList->C_InitPIN(mHandle, ConvertToPKCS11UTF8CHARPTR(pin.CStr()), pin.Size());
+    const char* pinPtr = pin.IsEmpty() ? nullptr : pin.CStr();
+
+    CK_RV rv = mFunctionList->C_InitPIN(mHandle, ConvertToPKCS11UTF8CHARPTR(pinPtr), pin.Size());
     if (rv != CKR_OK) {
         return static_cast<int>(rv);
     }

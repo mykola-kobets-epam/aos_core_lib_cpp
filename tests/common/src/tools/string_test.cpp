@@ -202,12 +202,27 @@ TEST(StringTest, ByteArrayToHex)
     ASSERT_EQ(dst, expected);
 }
 
+TEST(StringTest, AsByteArray)
+{
+    const char*   src         = "Hello World";
+    const uint8_t byteArray[] = {0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0x57, 0x6F, 0x72, 0x6C, 0x64};
+
+    EXPECT_EQ(String(src).AsByteArray(), Array<uint8_t>(byteArray, sizeof(byteArray)));
+}
+
 TEST(StringTest, Format)
 {
     StaticString<20> str;
 
     ASSERT_TRUE(str.Format("%s: %d", "id", 10).IsNone());
     ASSERT_EQ(str, "id: 10");
+}
+
+TEST(StringTest, FormatNotEnoughMemory)
+{
+    StaticString<5> str;
+
+    ASSERT_TRUE(str.Format("%s: %d", "id", 10).Is(ErrorEnum::eNoMemory));
 }
 
 TEST(StringTest, Remove)

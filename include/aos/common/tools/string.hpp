@@ -363,6 +363,13 @@ public:
     }
 
     /**
+     * Returns byte array representation of the current string(null terminator excluded).
+     *
+     * @return Array<uint8_t>.
+     */
+    Array<uint8_t> AsByteArray() const { return Array<uint8_t>(reinterpret_cast<const uint8_t*>(CStr()), Size()); }
+
+    /**
      * Converts error to string.
      *
      * @param inErr error.
@@ -484,9 +491,7 @@ public:
             return ret;
         }
 
-        Resize(ret);
-
-        return ErrorEnum::eNone;
+        return Resize(ret);
     }
 
     /**

@@ -91,47 +91,55 @@ Error PKCS11Module::SetOwner(const String& password)
         return AOS_ERROR_WRAP(err);
     }
 
+    StaticString<pkcs11::cPINLen> userPIN, soPIN;
+
     if (!mTeeLoginType.IsEmpty()) {
-        err = GetTeeUserPIN(mTeeLoginType, mUserPIN);
+        err = GetTeeUserPIN(mTeeLoginType, mConfig.mUID, mConfig.mGID, userPIN);
         if (!err.IsNone()) {
             return err;
         }
+
+        mUserPIN.Clear();
+        soPIN.Clear();
     } else {
-        err = GetUserPin(mUserPIN);
+        err = GetUserPin(userPIN);
         if (!err.IsNone()) {
-            err = pkcs11::GenPIN(mUserPIN);
+            err = pkcs11::GenPIN(userPIN);
             if (!err.IsNone()) {
                 return err;
             }
 
-            err = FS::WriteStringToFile(mConfig.mUserPINPath, mUserPIN, 0600);
+            err = FS::WriteStringToFile(mConfig.mUserPINPath, userPIN, 0600);
             if (!err.IsNone()) {
                 return AOS_ERROR_WRAP(err);
             }
         }
+
+        mUserPIN = userPIN;
+        soPIN    = password;
     }
 
     LOG_DBG() << "Init token: slotID = " << mSlotID << ", label = " << mTokenLabel;
 
-    err = mPKCS11->InitToken(mSlotID, password, mTokenLabel);
+    err = mPKCS11->InitToken(mSlotID, soPIN, mTokenLabel);
     if (!err.IsNone()) {
         return AOS_ERROR_WRAP(err);
     }
 
     SharedPtr<pkcs11::SessionContext> session;
 
-    Tie(session, err) = CreateSession(false, password);
+    Tie(session, err) = CreateSession(false, soPIN);
     if (!err.IsNone()) {
         return err;
     }
 
     if (!mTeeLoginType.IsEmpty()) {
-        LOG_DBG() << "Init PIN: pin = " << mUserPIN << ", session = " << session->GetHandle();
+        LOG_DBG() << "Init PIN: pin = " << userPIN << ", session = " << session->GetHandle();
     } else {
         LOG_DBG() << "Init PIN: session = " << session->GetHandle();
     }
 
-    err = session->InitPIN(mUserPIN);
+    err = session->InitPIN(userPIN);
 
     CloseSession();
 
@@ -545,7 +553,7 @@ Error PKCS11Module::PrintInfo(pkcs11::SlotID slotID) const
     return ErrorEnum::eNone;
 }
 
-Error PKCS11Module::GetTeeUserPIN(const String& loginType, String& userPIN)
+Error PKCS11Module::GetTeeUserPIN(const String& loginType, uint32_t uid, uint32_t gid, String& userPIN)
 {
     if (loginType == cLoginTypePublic) {
         userPIN = loginType;
@@ -553,11 +561,11 @@ Error PKCS11Module::GetTeeUserPIN(const String& loginType, String& userPIN)
     }
 
     if (loginType == cLoginTypeUser) {
-        return GeneratePIN(cLoginTypeUser, userPIN);
+        return GenTeeUserPIN(cLoginTypeUser, "uid", uid, userPIN);
     }
 
     if (loginType == cLoginTypeGroup) {
-        return GeneratePIN(cLoginTypeGroup, userPIN);
+        return GenTeeUserPIN(cLoginTypeGroup, "gid", gid, userPIN);
     }
 
     LOG_ERR() << "Wrong TEE login: type = " << loginType;
@@ -565,11 +573,29 @@ Error PKCS11Module::GetTeeUserPIN(const String& loginType, String& userPIN)
     return AOS_ERROR_WRAP(ErrorEnum::eInvalidArgument);
 }
 
-Error PKCS11Module::GeneratePIN(const String& loginType, String& userPIN)
+Error PKCS11Module::GenTeeUserPIN(const String& loginType, const String& idType, uint32_t id, String& userPIN)
 {
-    auto pinStr = uuid::UUIDToString(uuid::CreateUUID());
+    StaticString<pkcs11::cPINLen> userID;
+    uuid::UUID                    teeSpace;
+    uuid::UUID                    userSHA1;
+    Error                         err = ErrorEnum::eNone;
 
-    auto err = userPIN.Format("%s:%s", loginType.CStr(), pinStr.CStr());
+    Tie(teeSpace, err) = uuid::StringToUUID(cTeeClientUUIDNs);
+    if (!err.IsNone()) {
+        return AOS_ERROR_WRAP(err);
+    }
+
+    err = userID.Format("%s=%d", idType.CStr(), id);
+    if (!err.IsNone()) {
+        return AOS_ERROR_WRAP(err);
+    }
+
+    Tie(userSHA1, err) = mX509Provider->CreateUUIDv5(teeSpace, userID.AsByteArray());
+    if (!err.IsNone()) {
+        return AOS_ERROR_WRAP(err);
+    }
+
+    err = userPIN.Format("%s:%s", loginType.CStr(), uuid::UUIDToString(userSHA1).CStr());
     if (!err.IsNone()) {
         return AOS_ERROR_WRAP(err);
     }
@@ -778,7 +804,7 @@ Error PKCS11Module::CreateCertificateChain(const SharedPtr<pkcs11::SessionContex
 
 Error PKCS11Module::CreateURL(const String& label, const Array<uint8_t>& id, String& url)
 {
-    const auto AddParam = [](const aos::String name, const aos::String param, bool opaque, String& paramList) {
+    const auto AddParam = [](const aos::String& name, const aos::String& param, bool opaque, String& paramList) {
         if (!paramList.IsEmpty()) {
             paramList.Append(opaque ? ";" : "&");
         }
@@ -836,7 +862,7 @@ Error PKCS11Module::ParseURL(const String& url, String& label, Array<uint8_t>& i
     return ErrorEnum::eNone;
 }
 
-Error PKCS11Module::GetValidInfo(pkcs11::SessionContext& session, Array<SearchObject>& certs,
+Error PKCS11Module::GetValidInfo(const pkcs11::SessionContext& session, Array<SearchObject>& certs,
     Array<SearchObject>& privKeys, Array<SearchObject>& pubKeys, Array<CertInfo>& resCerts)
 {
     for (auto privKey = privKeys.begin(); privKey != privKeys.end();) {
@@ -912,7 +938,7 @@ PKCS11Module::SearchObject* PKCS11Module::FindObjectByID(Array<SearchObject>& ar
 }
 
 Error PKCS11Module::GetX509Cert(
-    pkcs11::SessionContext& session, pkcs11::ObjectHandle object, crypto::x509::Certificate& cert)
+    const pkcs11::SessionContext& session, pkcs11::ObjectHandle object, crypto::x509::Certificate& cert)
 {
     static constexpr auto cSingleAttribute = 1;
 
@@ -976,7 +1002,7 @@ Error PKCS11Module::CreateInvalidURLs(const Array<SearchObject>& objects, Array<
     return ErrorEnum::eNone;
 }
 
-void PKCS11Module::PrintInvalidObjects(const String& objectType, Array<SearchObject>& objects)
+void PKCS11Module::PrintInvalidObjects(const String& objectType, const Array<SearchObject>& objects)
 {
     for (const auto& object : objects) {
         LOG_WRN() << "Invalid " << objectType << " found: certType = " << mCertType

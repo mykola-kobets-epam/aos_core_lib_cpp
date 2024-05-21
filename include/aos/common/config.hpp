@@ -177,6 +177,13 @@
 #endif
 
 /**
+ * Version max len.
+ */
+#ifndef AOS_CONFIG_TYPES_VERSION_LEN
+#define AOS_CONFIG_TYPES_VERSION_LEN 32
+#endif
+
+/**
  * Monitoring send period.
  */
 #ifndef AOS_CONFIG_MONITORING_SEND_PERIOD_SEC
@@ -325,10 +332,33 @@
 #endif
 
 /**
+ * Maximum size of SHA1 digest.
+ *
+ * 128 chars to represent sha512 + 8 chars for algorithm.
+ */
+#ifndef AOS_CONFIG_CRYPTO_SHA1_DIGEST_SIZE
+#define AOS_CONFIG_CRYPTO_SHA1_DIGEST_SIZE 136
+#endif
+
+/**
  * Maximum size of SHA2 digest.
  */
 #ifndef AOS_CONFIG_CRYPTO_SHA2_DIGEST_SIZE
-#define AOS_CONFIG_CRYPTO_SHA2_DIGEST_SIZE 512
+#define AOS_CONFIG_CRYPTO_SHA2_DIGEST_SIZE 64
+#endif
+
+/**
+ * Maximum size of SHA1 digest.
+ */
+#ifndef AOS_CONFIG_CRYPTO_SHA1_DIGEST_SIZE
+#define AOS_CONFIG_CRYPTO_SHA1_DIGEST_SIZE 20
+#endif
+
+/**
+ * Maximum size of input data for SHA1 hash calculation.
+ */
+#ifndef AOS_CONFIG_CRYPTO_SHA1_INPUT_SIZE
+#define AOS_CONFIG_CRYPTO_SHA1_INPUT_SIZE 42
 #endif
 
 /**
@@ -384,7 +414,14 @@
  * Maximum length of user PIN (password).
  */
 #ifndef AOS_CONFIG_PKCS11_PIN_LEN
-#define AOS_CONFIG_PKCS11_PIN_LEN 30
+#define AOS_CONFIG_PKCS11_PIN_LEN 50
+#endif
+
+/**
+ * Length of randomly generated PIN.
+ */
+#ifndef AOS_CONFIG_PKCS11_GEN_PIN_LEN
+#define AOS_CONFIG_PKCS11_GEN_PIN_LEN 30
 #endif
 
 /**
@@ -444,17 +481,17 @@
 #endif
 
 /**
- *  UUID length
+ *  UUID size.
  */
-#ifndef AOS_CONFIG_UUID_LEN
-#define AOS_CONFIG_UUID_LEN 16
+#ifndef AOS_CONFIG_UUID_SIZE
+#define AOS_CONFIG_UUID_SIZE 16
 #endif
 
 /**
- *  Length of UUID string representation
+ *  Length of UUID string representation.
  */
-#ifndef AOS_CONFIG_UUID_STR_LEN
-#define AOS_CONFIG_UUID_STR_LEN AOS_CONFIG_UUID_LEN * 2 + 4 + 1 // 32 hex digits + 4 '-' symbols + '\0'
+#ifndef AOS_CONFIG_UUID_LEN
+#define AOS_CONFIG_UUID_LEN AOS_CONFIG_UUID_SIZE * 2 + 4 + 1 // 32 hex digits + 4 '-' symbols + '\0'
 #endif
 
 /**
@@ -483,6 +520,55 @@
  */
 #ifndef AOS_CONFIG_CRYPTOPROVIDER_PUB_KEYS_COUNT
 #define AOS_CONFIG_CRYPTOPROVIDER_PUB_KEYS_COUNT 5
+#endif
+
+/**
+ * Max media type len.
+ */
+#ifndef AOS_CONFIG_OCISPEC_MEDIA_TYPE_LEN
+#define AOS_CONFIG_OCISPEC_MEDIA_TYPE_LEN 64
+#endif
+
+/**
+ * Max spec parameter len.
+ */
+#ifndef AOS_CONFIG_OCISPEC_MAX_SPEC_PARAM_LEN
+#define AOS_CONFIG_OCISPEC_MAX_SPEC_PARAM_LEN 256
+#endif
+
+/**
+ * Spec parameter max count.
+ */
+#ifndef AOS_CONFIG_OCISPEC_MAX_SPEC_PARAM_COUNT
+#define AOS_CONFIG_OCISPEC_MAX_SPEC_PARAM_COUNT 8
+#endif
+
+/**
+ * Max DT devices count.
+ */
+#ifndef AOS_CONFIG_OCISPEC_MAX_DT_DEVICES_COUNT
+#define AOS_CONFIG_OCISPEC_MAX_DT_DEVICES_COUNT 20
+#endif
+
+/**
+ * Max DT device name length.
+ */
+#ifndef AOS_CONFIG_OCISPEC_DT_DEV_NAME_LEN
+#define AOS_CONFIG_OCISPEC_DT_DEV_NAME_LEN 32
+#endif
+
+/**
+ * Max IOMEMs count.
+ */
+#ifndef AOS_CONFIG_OCISPEC_MAX_IOMEMS_COUNT
+#define AOS_CONFIG_OCISPEC_MAX_IOMEMS_COUNT 20
+#endif
+
+/**
+ * Max IRQs count.
+ */
+#ifndef AOS_CONFIG_OCISPEC_MAX_IRQS_COUNT
+#define AOS_CONFIG_OCISPEC_MAX_IRQS_COUNT 20
 #endif
 
 #endif

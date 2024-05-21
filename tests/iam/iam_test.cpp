@@ -79,6 +79,8 @@ protected:
         config.mSlotID          = mSOFTHSMEnv.GetSlotID();
         config.mUserPINPath     = CERTIFICATES_DIR "/pin.txt";
         config.mModulePathInURL = true;
+        config.mUID             = 42;
+        config.mGID             = 0;
 
         return config;
     }
