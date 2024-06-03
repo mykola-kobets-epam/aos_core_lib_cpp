@@ -85,6 +85,7 @@ public:
         eCommonMonitoring,
         eCommonPKCS11,
         eCommonCrypto,
+        eProvisionManager,
         eNumModules,
     };
 
@@ -101,6 +102,7 @@ public:
             "resourcemonitor",
             "pkcs11",
             "crypto",
+            "provisionmanager",
         };
 
         return Array<const char* const>(sLogModuleTypeStrings, ArraySize(sLogModuleTypeStrings));
