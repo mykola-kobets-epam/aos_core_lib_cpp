@@ -81,6 +81,7 @@ public:
         eIAMCertHandler,
         eIAMIdentHandler,
         eIAMPermHandler,
+        eIAMNodeManager,
         eCommonMonitoring,
         eCommonPKCS11,
         eCommonCrypto,
@@ -90,7 +91,7 @@ public:
     static const Array<const char* const> GetStrings()
     {
         static const char* const sLogModuleTypeStrings[] = {"default", "launcher", "servicemanager", "certhandler",
-            "identhandler", "permhandler", "resourcemonitor", "pkcs11", "crypto"};
+            "identhandler", "permhandler", "nodemanager", "resourcemonitor", "pkcs11", "crypto"};
 
         return Array<const char* const>(sLogModuleTypeStrings, ArraySize(sLogModuleTypeStrings));
     };
