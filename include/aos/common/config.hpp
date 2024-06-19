@@ -760,4 +760,18 @@
 #define AOS_CONFIG_UNIT_CONFIG_JSON_LEN 4096
 #endif
 
+/**
+ * Max error message len.
+ */
+#ifndef AOS_CONFIG_ERROR_MESSAGE_LEN
+#define AOS_CONFIG_ERROR_MESSAGE_LEN 64
+#endif
+
+/**
+ * Max error print message len.
+ */
+#ifndef AOS_CONFIG_ERROR_STR_LEN
+#define AOS_CONFIG_ERROR_STR_LEN 128
+#endif
+
 #endif
