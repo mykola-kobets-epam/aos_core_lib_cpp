@@ -155,12 +155,12 @@ constexpr auto cNodeNameLen = AOS_CONFIG_TYPES_NODE_NAME_LEN;
 constexpr auto cOSType = AOS_CONFIG_TYPES_OS_TYPE_LEN;
 
 /*
- * Mux number of CPUs.
+ * Max number of CPUs.
  */
 constexpr auto cMaxNumCPUs = AOS_CONFIG_TYPES_MAX_NUM_CPUS;
 
 /*
- * Mux number of node attributes.
+ * Max number of node attributes.
  */
 constexpr auto cMaxNumNodeAttributes = AOS_CONFIG_TYPES_MAX_NUM_NODE_ATTRIBUTES;
 
@@ -717,6 +717,7 @@ struct CPUInfo {
     size_t                          mNumThreads;
     StaticString<cCPUArchLen>       mArch;
     StaticString<cCPUArchFamilyLen> mArchFamily;
+    uint64_t                        mMaxDMIPS;
 
     /**
      * Compares CPU info.
@@ -727,7 +728,8 @@ struct CPUInfo {
     bool operator==(const CPUInfo& info) const
     {
         return mID == info.mID && mModelName == info.mModelName && mNumCores == info.mNumCores
-            && mNumThreads == info.mNumThreads && mArch == info.mArch && mArchFamily == info.mArchFamily;
+            && mNumThreads == info.mNumThreads && mArch == info.mArch && mArchFamily == info.mArchFamily
+            && mMaxDMIPS == info.mMaxDMIPS;
     }
 
     /**
@@ -804,15 +806,15 @@ using NodeStatus     = EnumStringer<NodeStatusType>;
  * Node info.
  */
 struct NodeInfo {
-    StaticString<cNodeIDLen>   mID;
-    StaticString<cNodeTypeLen> mType;
+    StaticString<cNodeIDLen>   mNodeID;
+    StaticString<cNodeTypeLen> mNodeType;
     StaticString<cNodeNameLen> mName;
     NodeStatus                 mStatus;
     StaticString<cOSType>      mOSType;
     CPUInfoStaticArray         mCPUs;
     PartitionInfoStaticArray   mPartitions;
     NodeAttributeStaticArray   mAttrs;
-    float                      mMaxDMIPS = 0;
+    uint64_t                   mMaxDMIPS = 0;
     uint64_t                   mTotalRAM = 0;
 
     /**
@@ -823,7 +825,7 @@ struct NodeInfo {
      */
     bool operator==(const NodeInfo& info) const
     {
-        return mID == info.mID && mType == info.mType && mName == info.mName && mStatus == info.mStatus
+        return mNodeID == info.mNodeID && mNodeType == info.mNodeType && mName == info.mName && mStatus == info.mStatus
             && mOSType == info.mOSType && mCPUs == info.mCPUs && mMaxDMIPS == info.mMaxDMIPS
             && mTotalRAM == info.mTotalRAM && mPartitions == info.mPartitions && mAttrs == info.mAttrs;
     }
