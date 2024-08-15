@@ -34,6 +34,7 @@ public:
         auto item = mItems.Find([&key](const Pair<Key, Value>& item) { return item.mFirst == key; });
 
         if (!item.mError.IsNone()) {
+            // cppcheck-suppress nullPointer
             return {*static_cast<Value*>(nullptr), item.mError};
         }
 
@@ -102,6 +103,25 @@ public:
         }
 
         return mItems.EmplaceBack(key, value);
+    }
+
+    /**
+     * Inserts a new value into the map.
+     *
+     * @param args list of arguments to construct a new element.
+     * @return Error
+     */
+    template <typename... Args>
+    Error Emplace(Args&&... args)
+    {
+        const auto kv = Pair<Key, Value>(args...);
+
+        auto cur = At(kv.mFirst);
+        if (!cur.mError.IsNone()) {
+            return mItems.EmplaceBack(kv);
+        }
+
+        return ErrorEnum::eInvalidArgument;
     }
 
     /**
@@ -174,7 +194,7 @@ public:
     const Pair<Key, Value>* end() const { return mItems.end(); }
 
 protected:
-    Map(Array<Pair<Key, Value>>& array)
+    explicit Map(Array<Pair<Key, Value>>& array)
         : mItems(array)
     {
     }
