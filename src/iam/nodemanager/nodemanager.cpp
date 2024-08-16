@@ -16,6 +16,8 @@ namespace aos::iam::nodemanager {
 
 Error NodeManager::Init(NodeInfoStorageItf& storage)
 {
+    LockGuard lock(mMutex);
+
     mStorage = &storage;
 
     StaticArray<StaticString<cNodeIDLen>, cNodeMaxNum> nodeIds;
@@ -44,6 +46,8 @@ Error NodeManager::Init(NodeInfoStorageItf& storage)
 
 Error NodeManager::SetNodeInfo(const NodeInfo& info)
 {
+    LockGuard lock(mMutex);
+
     Error err = ErrorEnum::eNone;
 
     if (info.mStatus == NodeStatusEnum::eUnprovisioned) {
@@ -76,6 +80,8 @@ Error NodeManager::SetNodeStatus(const String& nodeId, NodeStatus status)
 
 Error NodeManager::GetNodeInfo(const String& nodeId, NodeInfo& nodeInfo) const
 {
+    LockGuard lock(mMutex);
+
     auto cachedInfo = GetNodeFromCache(nodeId);
 
     if (cachedInfo == nullptr) {
@@ -89,6 +95,8 @@ Error NodeManager::GetNodeInfo(const String& nodeId, NodeInfo& nodeInfo) const
 
 Error NodeManager::GetAllNodeIds(Array<StaticString<cNodeIDLen>>& ids) const
 {
+    LockGuard lock(mMutex);
+
     for (const auto& nodeInfo : mNodeInfoCache) {
         auto err = ids.PushBack(nodeInfo.mNodeID);
         if (!err.IsNone()) {
@@ -101,6 +109,8 @@ Error NodeManager::GetAllNodeIds(Array<StaticString<cNodeIDLen>>& ids) const
 
 Error NodeManager::RemoveNodeInfo(const String& nodeId)
 {
+    LockGuard lock(mMutex);
+
     auto cachedInfo = GetNodeFromCache(nodeId);
     if (cachedInfo == nullptr) {
         // Cache contains all the entries, so if not found => just return error.
@@ -126,6 +136,8 @@ Error NodeManager::RemoveNodeInfo(const String& nodeId)
 
 Error NodeManager::SubscribeNodeInfoChange(NodeInfoListenerItf& listener)
 {
+    LockGuard lock(mMutex);
+
     mNodeInfoListener = &listener;
 
     return ErrorEnum::eNone;
