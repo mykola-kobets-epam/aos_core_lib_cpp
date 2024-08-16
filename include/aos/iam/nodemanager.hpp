@@ -8,6 +8,7 @@
 #ifndef AOS_NODEMANAGER_HPP_
 #define AOS_NODEMANAGER_HPP_
 
+#include "aos/common/tools/thread.hpp"
 #include "aos/common/types.hpp"
 #include "aos/iam/config.hpp"
 
@@ -224,6 +225,7 @@ private:
     NodeInfoStorageItf*                mStorage          = nullptr;
     NodeInfoListenerItf*               mNodeInfoListener = nullptr;
     StaticArray<NodeInfo, cNodeMaxNum> mNodeInfoCache;
+    mutable Mutex                      mMutex;
 };
 
 /** @}*/
