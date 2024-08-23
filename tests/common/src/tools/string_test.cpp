@@ -249,6 +249,52 @@ TEST(StringTest, Remove)
     ASSERT_EQ(str3, expected);
 }
 
+TEST(StringTest, LeftTrim)
+{
+    StaticString<100> str1 = " \tHello world";
+    StaticString<100> str2 = "Hello world";
+    StaticString<100> str3 = "\t \r\n";
+
+    str1.LeftTrim("\t ");
+    EXPECT_EQ(str1, "Hello world");
+
+    str2.LeftTrim(" ");
+    EXPECT_EQ(str2, "Hello world");
+
+    str2.LeftTrim("");
+    EXPECT_EQ(str2, "Hello world");
+
+    str3.LeftTrim("\t\r\n ");
+    EXPECT_EQ(str3, "");
+}
+
+TEST(StringTest, RightTrim)
+{
+    StaticString<100> str1 = "Hello world\r\n";
+    StaticString<100> str2 = "Hello world";
+    StaticString<100> str3 = "\t \r\n";
+
+    str1.RightTrim("\n\r");
+    EXPECT_EQ(str1, "Hello world");
+
+    str2.RightTrim(" ");
+    EXPECT_EQ(str2, "Hello world");
+
+    str2.RightTrim("");
+    EXPECT_EQ(str2, "Hello world");
+
+    str3.RightTrim("\t\r\n ");
+    EXPECT_EQ(str3, "");
+}
+
+TEST(StringTest, Trim)
+{
+    StaticString<100> str = "  \tHello world\r\n";
+
+    str.Trim(" \t\r\n");
+    EXPECT_EQ(str, "Hello world");
+}
+
 TEST(StringTest, FindSubstr)
 {
     StaticString<100> str = "Hello World!";
