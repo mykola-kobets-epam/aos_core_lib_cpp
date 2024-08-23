@@ -164,6 +164,53 @@ public:
     }
 
     /**
+     * Removes leading characters.
+     *
+     * @param chars characters to be removed.
+     */
+    void LeftTrim(const String& chars)
+    {
+        auto newStart = 0U;
+
+        while (newStart < Size()) {
+            if (chars.Find((*this)[newStart]).mError.IsNone()) {
+                newStart++;
+            } else {
+                break;
+            }
+        }
+
+        Remove(begin(), begin() + newStart);
+    }
+
+    /**
+     * Removes trailing characters.
+     *
+     * @param chars characters to be removed.
+     */
+    void RightTrim(const String& chars)
+    {
+        while (Size() > 0) {
+            if (chars.Find(Back().mValue).mError.IsNone()) {
+                PopBack();
+            } else {
+                break;
+            }
+        }
+    }
+
+    /**
+     * Removes leading and trailing characters from the list.
+     *
+     * @param chars characters to be removed.
+     */
+    void Trim(const String& chars)
+    {
+        LeftTrim(chars);
+        RightTrim(chars);
+    }
+
+    /**
      * Appends string operator.
      *
      * @param str string to append with.
