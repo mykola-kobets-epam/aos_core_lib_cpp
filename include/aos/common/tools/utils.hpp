@@ -53,8 +53,8 @@ struct Pair {
     /**
      * Comparison operators.
      */
-    bool operator==(const Pair<F, S>& other) { return mFirst == other.mFirst && mSecond == other.mSecond; }
-    bool operator!=(const Pair<F, S>& other) { return !(*this == other); }
+    bool operator==(const Pair<F, S>& other) const { return mFirst == other.mFirst && mSecond == other.mSecond; }
+    bool operator!=(const Pair<F, S>& other) const { return !(*this == other); }
 
     /**
      * Pair first value.
