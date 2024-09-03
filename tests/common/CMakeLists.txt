@@ -23,6 +23,7 @@ set(SOURCES
     src/tools/buffer_test.cpp
     src/tools/enum_test.cpp
     src/tools/error_test.cpp
+    src/tools/fs_test.cpp
     src/tools/function_test.cpp
     src/tools/log_test.cpp
     src/tools/map_test.cpp
