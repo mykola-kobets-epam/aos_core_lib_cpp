@@ -352,6 +352,12 @@ struct RetWithError {
     }
 
     /**
+     * Comparison operators.
+     */
+    bool operator==(const RetWithError<T>& other) const { return mValue == other.mValue && mError == other.mError; }
+    bool operator!=(const RetWithError<T>& other) const { return !(*this == other); }
+
+    /**
      * Holds returned value.
      */
     T mValue;
