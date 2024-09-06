@@ -48,7 +48,7 @@ if(WITH_MBEDTLS)
     FetchContent_Declare(
         mbedtls
         GIT_REPOSITORY https://github.com/Mbed-TLS/mbedtls.git
-        GIT_TAG v3.6.0
+        GIT_TAG v3.6.1
         GIT_PROGRESS TRUE
         GIT_SHALLOW TRUE
         PATCH_COMMAND
