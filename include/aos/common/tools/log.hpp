@@ -70,39 +70,9 @@ using LogLevelEnum = LogLevelType::Enum;
 using LogLevel     = EnumStringer<LogLevelType>;
 
 /**
- * Log module types.
- */
-class LogModuleType {
-public:
-    enum class Enum {
-        eDefault,
-        eSMLauncher,
-        eSMServiceManager,
-        eIAMCertHandler,
-        eIAMIdentHandler,
-        eIAMPermHandler,
-        eCommonMonitoring,
-        eCommonPKCS11,
-        eCommonCrypto,
-        eNumModules,
-    };
-
-    static const Array<const char* const> GetStrings()
-    {
-        static const char* const sLogModuleTypeStrings[] = {"default", "launcher", "servicemanager", "certhandler",
-            "identhandler", "permhandler", "resourcemonitor", "pkcs11", "crypto"};
-
-        return Array<const char* const>(sLogModuleTypeStrings, ArraySize(sLogModuleTypeStrings));
-    };
-};
-
-using LogModuleEnum = LogModuleType::Enum;
-using LogModule     = EnumStringer<LogModuleType>;
-
-/**
  * Log line callback. Should be set in application to display log using application logging mechanism.
  */
-using LogCallback = void (*)(LogModule module, LogLevel level, const String& message);
+using LogCallback = void (*)(const char* module, LogLevel level, const String& message);
 
 /**
  * Implements log functionality.
@@ -120,7 +90,7 @@ public:
      * @param module log module type.
      * @param level log level type.
      */
-    Log(LogModule module, LogLevel level)
+    Log(const char* module, LogLevel level)
         : mModule(module)
         , mLevel(level)
         , mCurrentLen(0) {};
@@ -193,14 +163,10 @@ public:
 
     Log& operator<<(const Error& err)
     {
-        *this << err.Message();
+        StaticString<cMaxErrorStrLen> tmpStr;
 
-        if (err.Errno() != 0) {
-            *this << " [" << err.Errno() << "]";
-        }
-
-        if (err.FileName() != nullptr) {
-            *this << " (" << err.FileName() << ":" << err.LineNumber() << ")";
+        if (tmpStr.Convert(err).IsNone()) {
+            return *this << tmpStr;
         }
 
         return *this;
@@ -223,7 +189,7 @@ private:
     }
 
     StaticString<cMaxLineLen> mLogLine;
-    LogModule                 mModule;
+    const char*               mModule;
     LogLevel                  mLevel;
     size_t                    mCurrentLen;
 };

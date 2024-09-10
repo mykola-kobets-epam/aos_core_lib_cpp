@@ -11,8 +11,15 @@ set(TARGET aosiamcpp)
 # Sources
 # ######################################################################################################################
 
-set(SOURCES certhandler/certhandler.cpp certmodules/certmodule.cpp certmodules/pkcs11/pkcs11.cpp
-            identmodules/fileidentifier.cpp permhandler/permhandler.cpp
+set(SOURCES
+    certhandler/certhandler.cpp
+    certmodules/certmodule.cpp
+    certmodules/pkcs11/pkcs11.cpp
+    identmodules/fileidentifier.cpp
+    nodeinfoprovider/nodeinfoprovider.cpp
+    nodemanager/nodemanager.cpp
+    permhandler/permhandler.cpp
+    provisionmanager/provisionmanager.cpp
 )
 
 # ######################################################################################################################

@@ -9,7 +9,7 @@
 #ifndef AOS_INSTANCE_HPP_
 #define AOS_INSTANCE_HPP_
 
-#include "aos/common/monitoring.hpp"
+#include "aos/common/monitoring/monitoring.hpp"
 #include "aos/common/tools/allocator.hpp"
 #include "aos/sm/config.hpp"
 #include "aos/sm/runner.hpp"
@@ -83,17 +83,17 @@ public:
     const Error& RunError() const { return mRunError; };
 
     /**
-     * Returns instance service Aos version.
+     * Returns instance service version.
      *
-     * @return uint64_t Aos version.
+     * @return StaticString<cVersionLen> version.
      */
-    uint64_t AosVersion() const
+    StaticString<cVersionLen> GetServiceVersion() const
     {
         if (mService) {
-            return mService->Data().mVersionInfo.mAosVersion;
+            return mService->Data().mVersion;
         }
 
-        return 0;
+        return "";
     };
 
     /**
@@ -155,8 +155,8 @@ private:
     OCISpecItf&                     mOCIManager;
     runner::RunnerItf&              mRunner;
     monitoring::ResourceMonitorItf& mResourceMonitor;
-    uint64_t                        mAosVersion = 0;
-    const Service*                  mService    = nullptr;
+    StaticString<cVersionLen>       mServiceVersion;
+    const Service*                  mService = nullptr;
     InstanceRunState                mRunState;
     Error                           mRunError;
 };

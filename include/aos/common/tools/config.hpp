@@ -54,7 +54,21 @@
  * Configures thread stack alignment.
  */
 #ifndef AOS_CONFIG_THREAD_STACK_ALIGN
-#define AOS_CONFIG_THREAD_STACK_ALIGN sizeof(int)
+#define AOS_CONFIG_THREAD_STACK_ALIGN 4096
+#endif
+
+/**
+ * Configures thread stack guard size.
+ */
+#ifndef AOS_CONFIG_THREAD_STACK_GUARD_SIZE
+#define AOS_CONFIG_THREAD_STACK_GUARD_SIZE 0
+#endif
+
+/**
+ * Configures thread stack usage.
+ */
+#ifndef AOS_CONFIG_THREAD_STACK_USAGE
+#define AOS_CONFIG_THREAD_STACK_USAGE 0
 #endif
 
 /**
@@ -62,6 +76,13 @@
  */
 #ifndef AOS_CONFIG_THREAD_POOL_DEFAULT_QUEUE_SIZE
 #define AOS_CONFIG_THREAD_POOL_DEFAULT_QUEUE_SIZE 16
+#endif
+
+/**
+ * Configures clock ID used for thread time operations.
+ */
+#ifndef AOS_CONFIG_THREAD_CLOCK_ID
+#define AOS_CONFIG_THREAD_CLOCK_ID CLOCK_REALTIME
 #endif
 
 /**

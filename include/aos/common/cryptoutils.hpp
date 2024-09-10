@@ -22,15 +22,6 @@ namespace cryptoutils {
 class CertLoaderItf {
 public:
     /**
-     * Initializes object instance.
-     *
-     * @param cryptoProvider crypto provider interface.
-     * @param pkcs11Manager PKCS11 library manager.
-     * @return Error.
-     */
-    virtual Error Init(crypto::x509::ProviderItf& cryptoProvider, pkcs11::PKCS11Manager& pkcs11Manager) = 0;
-
-    /**
      * Loads certificate chain by URL.
      *
      * @param url input url.
@@ -64,7 +55,7 @@ public:
      * @param pkcs11Manager PKCS11 library manager.
      * @return Error.
      */
-    Error Init(crypto::x509::ProviderItf& cryptoProvider, pkcs11::PKCS11Manager& pkcs11Manager) override;
+    Error Init(crypto::x509::ProviderItf& cryptoProvider, pkcs11::PKCS11Manager& pkcs11Manager);
 
     /**
      * Loads certificate chain by URL.
@@ -90,6 +81,7 @@ private:
         + sizeof(PEMCertChainBlob);
     static constexpr auto cKeyAllocatorSize
         = AOS_CONFIG_CRYPTOUTILS_KEYS_COUNT * pkcs11::cPrivateKeyMaxSize + sizeof(crypto::cPrivKeyPEMLen);
+    static constexpr auto cNumAllocation = AOS_CONFIG_CRYPTOUTILS_NUM_ALLOCATIONS;
 
     static constexpr auto cDefaultPKCS11Library = AOS_CONFIG_CRYPTOUTILS_DEFAULT_PKCS11_LIB;
 
@@ -103,7 +95,8 @@ private:
     crypto::x509::ProviderItf* mCryptoProvider = nullptr;
     pkcs11::PKCS11Manager*     mPKCS11         = nullptr;
 
-    StaticAllocator<cCertAllocatorSize + cKeyAllocatorSize + pkcs11::Utils::cLocalObjectsMaxSize> mAllocator;
+    StaticAllocator<cCertAllocatorSize + cKeyAllocatorSize + pkcs11::Utils::cLocalObjectsMaxSize, cNumAllocation>
+        mAllocator;
 };
 
 /**

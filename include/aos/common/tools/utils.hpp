@@ -40,11 +40,30 @@ constexpr size_t AlignedSize(size_t size, size_t align = sizeof(int))
  */
 template <typename F, typename S>
 struct Pair {
-    Pair(F f, S s)
+    /**
+     * Constructor.
+     *
+     * @param @f first value
+     * @param @s second value
+     */
+    Pair(const F& f, const S& s)
         : mFirst(f)
         , mSecond(s) {};
 
+    /**
+     * Comparison operators.
+     */
+    bool operator==(const Pair<F, S>& other) { return mFirst == other.mFirst && mSecond == other.mSecond; }
+    bool operator!=(const Pair<F, S>& other) { return !(*this == other); }
+
+    /**
+     * Pair first value.
+     */
     F mFirst;
+
+    /**
+     * Pair second value.
+     */
     S mSecond;
 };
 

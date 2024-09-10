@@ -1,5 +1,5 @@
-[![ci](https://github.com/aoscloud/aos_core_lib_cpp/actions/workflows/build_test.yaml/badge.svg)](https://github.com/aoscloud/aos_core_lib_cpp/actions/workflows/build_test.yaml)
-[![codecov](https://codecov.io/gh/aoscloud/aos_core_lib_cpp/graph/badge.svg?token=kg8h7ATd9S)](https://codecov.io/gh/aoscloud/aos_core_lib_cpp)
+[![ci](https://github.com/aosedge/aos_core_lib_cpp/actions/workflows/build_test.yaml/badge.svg)](https://github.com/aosedge/aos_core_lib_cpp/actions/workflows/build_test.yaml)
+[![codecov](https://codecov.io/gh/aosedge/aos_core_lib_cpp/graph/badge.svg?token=kg8h7ATd9S)](https://codecov.io/gh/aosedge/aos_core_lib_cpp)
 
 # Aos core cpp libraries
 

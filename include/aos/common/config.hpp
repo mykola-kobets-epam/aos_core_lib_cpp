@@ -79,13 +79,6 @@
 #endif
 
 /**
- * Vendor version len.
- */
-#ifndef AOS_CONFIG_TYPES_VENDOR_VERSION_LEN
-#define AOS_CONFIG_TYPES_VENDOR_VERSION_LEN 20
-#endif
-
-/**
  * Service/layer description len.
  */
 #ifndef AOS_CONFIG_TYPES_DESCRIPTION_LEN
@@ -125,6 +118,132 @@
  */
 #ifndef AOS_CONFIG_TYPES_FILE_CHUNK_SIZE
 #define AOS_CONFIG_TYPES_FILE_CHUNK_SIZE 1024
+#endif
+
+/**
+ * File system mount type len.
+ */
+#ifndef AOS_CONFIG_TYPES_FS_MOUNT_TYPE_LEN
+#define AOS_CONFIG_TYPES_FS_MOUNT_TYPE_LEN 16
+#endif
+
+/**
+ * File system mount option len.
+ */
+#ifndef AOS_CONFIG_TYPES_FS_MOUNT_OPTION_LEN
+#define AOS_CONFIG_TYPES_FS_MOUNT_OPTION_LEN 16
+#endif
+
+/**
+ * Max number of file system mount options.
+ */
+#ifndef AOS_CONFIG_TYPES_MAX_NUM_FS_MOUNT_OPTIONS
+#define AOS_CONFIG_TYPES_MAX_NUM_FS_MOUNT_OPTIONS 4
+#endif
+
+/**
+ * IP len.
+ */
+#ifndef AOS_CONFIG_TYPES_IP_LEN
+#define AOS_CONFIG_TYPES_IP_LEN 48
+#endif
+
+/**
+ * Host name len.
+ */
+#ifndef AOS_CONFIG_TYPES_HOST_NAME_LEN
+#define AOS_CONFIG_TYPES_HOST_NAME_LEN 48
+#endif
+
+/**
+ * Host device name len.
+ */
+#ifndef AOS_CONFIG_TYPES_DEVICE_NAME_LEN
+#define AOS_CONFIG_TYPES_DEVICE_NAME_LEN 16
+#endif
+
+/**
+ * Max number of host devices.
+ */
+#ifndef AOS_CONFIG_TYPES_MAX_NUM_HOST_DEVICES
+#define AOS_CONFIG_TYPES_MAX_NUM_HOST_DEVICES 32
+#endif
+
+/**
+ * Resource name len.
+ */
+#ifndef AOS_CONFIG_TYPES_RESOURCE_NAME_LEN
+#define AOS_CONFIG_TYPES_RESOURCE_NAME_LEN 16
+#endif
+
+/**
+ * Group name len.
+ */
+#ifndef AOS_CONFIG_TYPES_GROUP_NAME_LEN
+#define AOS_CONFIG_TYPES_GROUP_NAME_LEN 32
+#endif
+
+/**
+ * Max number of groups.
+ */
+#ifndef AOS_CONFIG_TYPES_MAX_NUM_GROUPS
+#define AOS_CONFIG_TYPES_MAX_NUM_GROUPS 32
+#endif
+
+/**
+ * Max number of file system mounts.
+ */
+#ifndef AOS_CONFIG_TYPES_MAX_NUM_FS_MOUNTS
+#define AOS_CONFIG_TYPES_MAX_NUM_FS_MOUNTS 4
+#endif
+
+/**
+ * Environment variable name len.
+ */
+#ifndef AOS_CONFIG_TYPES_ENV_VAR_NAME_LEN
+#define AOS_CONFIG_TYPES_ENV_VAR_NAME_LEN 32
+#endif
+
+/**
+ * Max number of environment variables.
+ */
+#ifndef AOS_CONFIG_TYPES_MAX_NUM_ENV_VARIABLES
+#define AOS_CONFIG_TYPES_MAX_NUM_ENV_VARIABLES 4
+#endif
+
+/**
+ * Max number of hosts.
+ */
+#ifndef AOS_CONFIG_TYPES_MAX_NUM_HOSTS
+#define AOS_CONFIG_TYPES_MAX_NUM_HOSTS 4
+#endif
+
+/**
+ * Max number of devices.
+ */
+#ifndef AOS_CONFIG_TYPES_MAX_NUM_DEVICES
+#define AOS_CONFIG_TYPES_MAX_NUM_DEVICES 8
+#endif
+
+/**
+ * Max number of node's resources.
+ */
+#ifndef AOS_CONFIG_TYPES_MAX_NUM_NODE_RESOURCES
+#define AOS_CONFIG_TYPES_MAX_NUM_NODE_RESOURCES 4
+#endif
+
+/**
+ * Label name len.
+ */
+#ifndef AOS_CONFIG_TYPES_LABEL_NAME_LEN
+#define AOS_CONFIG_TYPES_LABEL_NAME_LEN 16
+#endif
+
+/**
+ * Max number of node's labels.
+ */
+#ifndef AOS_CONFIG_TYPES_MAX_NUM_NODE_LABELS
+#define AOS_CONFIG_TYPES_MAX_NUM_NODE_LABELS 4
 #endif
 
 /**
@@ -170,10 +289,73 @@
 #endif
 
 /**
+ * Node name len.
+ */
+#ifndef AOS_CONFIG_TYPES_NODE_NAME_LEN
+#define AOS_CONFIG_TYPES_NODE_NAME_LEN 64
+#endif
+
+/**
  * Node type len.
  */
 #ifndef AOS_CONFIG_TYPES_NODE_TYPE_LEN
 #define AOS_CONFIG_TYPES_NODE_TYPE_LEN 64
+#endif
+
+/**
+ * OS type len.
+ */
+#ifndef AOS_CONFIG_TYPES_OS_TYPE_LEN
+#define AOS_CONFIG_TYPES_OS_TYPE_LEN 16
+#endif
+
+/**
+ * Max number of CPUs.
+ */
+#ifndef AOS_CONFIG_TYPES_MAX_NUM_CPUS
+#define AOS_CONFIG_TYPES_MAX_NUM_CPUS 8
+#endif
+
+/**
+ * CPU model name len.
+ */
+#ifndef AOS_CONFIG_TYPES_CPU_MODEL_NAME_LEN
+#define AOS_CONFIG_TYPES_CPU_MODEL_NAME_LEN 64
+#endif
+
+/**
+ * CPU architecture len.
+ */
+#ifndef AOS_CONFIG_TYPES_CPU_ARCH_LEN
+#define AOS_CONFIG_TYPES_CPU_ARCH_LEN 16
+#endif
+
+/**
+ * CPU architecture family len.
+ */
+#ifndef AOS_CONFIG_TYPES_CPU_ARCH_FAMILY_LEN
+#define AOS_CONFIG_TYPES_CPU_ARCH_FAMILY_LEN 16
+#endif
+
+/**
+ * Node attribute name len.
+ */
+#ifndef AOS_CONFIG_TYPES_NODE_ATTRIBUTE_NAME_LEN
+#define AOS_CONFIG_TYPES_NODE_ATTRIBUTE_NAME_LEN 16
+#endif
+
+/**
+ * Node attribute value len.
+ */
+#ifndef AOS_CONFIG_TYPES_NODE_ATTRIBUTE_VALUE_LEN
+#define AOS_CONFIG_TYPES_NODE_ATTRIBUTE_VALUE_LEN 64
+#endif
+
+/**
+ * Max number of node attributes.
+ */
+#ifndef AOS_CONFIG_TYPES_MAX_NUM_NODE_ATTRIBUTES
+#define AOS_CONFIG_TYPES_MAX_NUM_NODE_ATTRIBUTES 16
 #endif
 
 /**
@@ -184,17 +366,17 @@
 #endif
 
 /**
- * Monitoring send period.
- */
-#ifndef AOS_CONFIG_MONITORING_SEND_PERIOD_SEC
-#define AOS_CONFIG_MONITORING_SEND_PERIOD_SEC 60
-#endif
-
-/**
  * Monitoring poll period.
  */
 #ifndef AOS_CONFIG_MONITORING_POLL_PERIOD_SEC
 #define AOS_CONFIG_MONITORING_POLL_PERIOD_SEC 10
+#endif
+
+/**
+ * Monitoring average window.
+ */
+#ifndef AOS_CONFIG_MONITORING_AVERAGE_WINDOW_SEC
+#define AOS_CONFIG_MONITORING_AVERAGE_WINDOW_SEC 60
 #endif
 
 /**
@@ -509,10 +691,24 @@
 #endif
 
 /**
+ * Max number of cryptoutils allocations.
+ */
+#ifndef AOS_CONFIG_CRYPTOUTILS_NUM_ALLOCATIONS
+#define AOS_CONFIG_CRYPTOUTILS_NUM_ALLOCATIONS 16
+#endif
+
+/**
  * Default PKCS11 library.
  */
 #ifndef AOS_CONFIG_CRYPTOUTILS_DEFAULT_PKCS11_LIB
 #define AOS_CONFIG_CRYPTOUTILS_DEFAULT_PKCS11_LIB "/usr/lib/softhsm/libsofthsm2.so"
+#endif
+
+/**
+ * Use PKCS11 OS locking mechanism.
+ */
+#ifndef AOS_CONFIG_CRYPTOUTILS_PKCS11_OS_LOCKING
+#define AOS_CONFIG_CRYPTOUTILS_PKCS11_OS_LOCKING 1
 #endif
 
 /**
@@ -569,6 +765,27 @@
  */
 #ifndef AOS_CONFIG_OCISPEC_MAX_IRQS_COUNT
 #define AOS_CONFIG_OCISPEC_MAX_IRQS_COUNT 20
+#endif
+
+/**
+ * Node config JSON length.
+ */
+#ifndef AOS_CONFIG_NODE_CONFIG_JSON_LEN
+#define AOS_CONFIG_NODE_CONFIG_JSON_LEN 4096
+#endif
+
+/**
+ * Max error message len.
+ */
+#ifndef AOS_CONFIG_ERROR_MESSAGE_LEN
+#define AOS_CONFIG_ERROR_MESSAGE_LEN 64
+#endif
+
+/**
+ * Max error print message len.
+ */
+#ifndef AOS_CONFIG_ERROR_STR_LEN
+#define AOS_CONFIG_ERROR_STR_LEN 128
 #endif
 
 #endif

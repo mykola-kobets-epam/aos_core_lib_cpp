@@ -11,7 +11,7 @@
 #include <assert.h>
 
 #include "aos/common/connectionsubsc.hpp"
-#include "aos/common/monitoring.hpp"
+#include "aos/common/monitoring/monitoring.hpp"
 #include "aos/common/ocispec.hpp"
 #include "aos/common/tools/array.hpp"
 #include "aos/common/tools/noncopyable.hpp"
@@ -130,7 +130,7 @@ public:
      */
     ~Launcher()
     {
-        mConnectionPublisher->Unsubscribes(*this);
+        mConnectionPublisher->Unsubscribe(*this);
         mThread.Join();
     }
 
@@ -178,8 +178,8 @@ public:
 
 private:
     static constexpr auto cNumLaunchThreads = AOS_CONFIG_LAUNCHER_NUM_COOPERATE_LAUNCHES;
-    static constexpr auto cThreadTaskSize   = 256;
-    static constexpr auto cThreadStackSize  = 16384;
+    static constexpr auto cThreadTaskSize   = AOS_CONFIG_LAUNCHER_THREAD_TASK_SIZE;
+    static constexpr auto cThreadStackSize  = AOS_CONFIG_LAUNCHER_THREAD_STACK_SIZE;
 
     void  ProcessInstances(const Array<InstanceInfo>& instances, bool forceRestart = false);
     void  ProcessServices(const Array<ServiceInfo>& services);

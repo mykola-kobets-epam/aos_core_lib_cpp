@@ -112,8 +112,15 @@ TEST(StringTest, Basic)
     EXPECT_TRUE(strErr.Convert(Error(ErrorEnum::eFailed)).IsNone());
     EXPECT_EQ(strErr, "failed");
 
-    EXPECT_TRUE(strErr.Convert(Error(ErrorEnum::eRuntime, "file1", 123)).IsNone());
+    EXPECT_TRUE(strErr.Convert(Error(ErrorEnum::eRuntime, "", "file1", 123)).IsNone());
     EXPECT_EQ(strErr, "runtime error (file1:123)");
+
+    EXPECT_TRUE(strErr.Convert(Error(ErrorEnum::eRuntime, "error message", "file1", 123)).IsNone());
+    EXPECT_EQ(strErr, "error message (file1:123)");
+
+    StaticString<128> strErrno;
+    EXPECT_TRUE(strErrno.Convert(Error(EAGAIN, "error message", "file1", 123)).IsNone());
+    EXPECT_EQ(strErrno, "error message [Resource temporarily unavailable] (file1:123)");
 
     // Copy static string to static string
 
@@ -240,6 +247,52 @@ TEST(StringTest, Remove)
     StaticString<100> str3 = "Thank you, sir(for removing me)";
     ASSERT_TRUE(str3.Remove(str3.begin() + 14, str3.end()).IsNone());
     ASSERT_EQ(str3, expected);
+}
+
+TEST(StringTest, LeftTrim)
+{
+    StaticString<100> str1 = " \tHello world";
+    StaticString<100> str2 = "Hello world";
+    StaticString<100> str3 = "\t \r\n";
+
+    str1.LeftTrim("\t ");
+    EXPECT_EQ(str1, "Hello world");
+
+    str2.LeftTrim(" ");
+    EXPECT_EQ(str2, "Hello world");
+
+    str2.LeftTrim("");
+    EXPECT_EQ(str2, "Hello world");
+
+    str3.LeftTrim("\t\r\n ");
+    EXPECT_EQ(str3, "");
+}
+
+TEST(StringTest, RightTrim)
+{
+    StaticString<100> str1 = "Hello world\r\n";
+    StaticString<100> str2 = "Hello world";
+    StaticString<100> str3 = "\t \r\n";
+
+    str1.RightTrim("\n\r");
+    EXPECT_EQ(str1, "Hello world");
+
+    str2.RightTrim(" ");
+    EXPECT_EQ(str2, "Hello world");
+
+    str2.RightTrim("");
+    EXPECT_EQ(str2, "Hello world");
+
+    str3.RightTrim("\t\r\n ");
+    EXPECT_EQ(str3, "");
+}
+
+TEST(StringTest, Trim)
+{
+    StaticString<100> str = "  \tHello world\r\n";
+
+    str.Trim(" \t\r\n");
+    EXPECT_EQ(str, "Hello world");
 }
 
 TEST(StringTest, FindSubstr)

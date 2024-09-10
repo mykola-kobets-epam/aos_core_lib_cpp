@@ -19,6 +19,10 @@
 #include "aos/common/tools/queue.hpp"
 #include "aos/common/tools/time.hpp"
 
+#if AOS_CONFIG_THREAD_STACK_GUARD_SIZE != 0
+#include <sys/mman.h>
+#endif
+
 namespace aos {
 
 /**
@@ -32,6 +36,11 @@ constexpr auto cDefaultThreadStackSize = AOS_CONFIG_THREAD_DEFAULT_STACK_SIZE;
 constexpr auto cThreadStackAlign = AOS_CONFIG_THREAD_STACK_ALIGN;
 
 /**
+ * Configures thread stack guard size.
+ */
+constexpr auto cThreadStackGuardSize = AOS_CONFIG_THREAD_STACK_GUARD_SIZE;
+
+/**
  * Default thread pool queue size.
  */
 constexpr auto cDefaultThreadPoolQueueSize = AOS_CONFIG_THREAD_POOL_DEFAULT_QUEUE_SIZE;
@@ -42,11 +51,21 @@ constexpr auto cDefaultThreadPoolQueueSize = AOS_CONFIG_THREAD_POOL_DEFAULT_QUEU
 template <size_t cFunctionMaxSize = cDefaultFunctionMaxSize, size_t cStackSize = cDefaultThreadStackSize>
 class Thread : private NonCopyable {
 public:
-    // cppcheck-suppress uninitMemberVar
     /**
      * Constructs Aos thread instance and use lambda as argument.
      */
-    Thread() { }
+    Thread() = default;
+
+    /**
+     * Destructor.
+     */
+    ~Thread()
+    {
+#if AOS_CONFIG_THREAD_STACK_GUARD_SIZE != 0
+        auto ret = mprotect(mStack, AlignedSize(cThreadStackGuardSize, cThreadStackAlign), PROT_READ | PROT_WRITE);
+        assert(ret == 0);
+#endif
+    }
 
     /**
      * Runs thread function.
@@ -63,6 +82,17 @@ public:
             return err;
         }
 
+#if AOS_CONFIG_THREAD_STACK_USAGE
+        memset(&mStack[AlignedSize(cThreadStackGuardSize, cThreadStackAlign)], 0xAA,
+            AlignedSize(cStackSize, cThreadStackAlign));
+#endif
+
+#if AOS_CONFIG_THREAD_STACK_GUARD_SIZE != 0
+        if (auto ret = mprotect(mStack, AlignedSize(cThreadStackGuardSize, cThreadStackAlign), PROT_READ); ret != 0) {
+            return ret;
+        }
+#endif
+
         pthread_attr_t attr;
 
         auto ret = pthread_attr_init(&attr);
@@ -70,7 +100,8 @@ public:
             return ret;
         }
 
-        ret = pthread_attr_setstack(&attr, mStack, ArraySize(mStack));
+        ret = pthread_attr_setstack(&attr, &mStack[AlignedSize(cThreadStackGuardSize, cThreadStackAlign)],
+            AlignedSize(cStackSize, cThreadStackAlign));
         if (ret != 0) {
             return ret;
         }
@@ -98,8 +129,26 @@ public:
         return ErrorEnum::eNone;
     }
 
+#if AOS_CONFIG_THREAD_STACK_USAGE
+    size_t GetStackUsage()
+    {
+        size_t freeSize = 0;
+
+        for (size_t i = 0; i < AlignedSize(cStackSize, cThreadStackAlign); i++) {
+            if (mStack[AlignedSize(cThreadStackGuardSize, cThreadStackAlign) + i] != 0xAA) {
+                break;
+            }
+
+            freeSize++;
+        }
+
+        return AlignedSize(cStackSize, cThreadStackAlign) - freeSize;
+    }
+#endif
+
 private:
-    alignas(cThreadStackAlign) uint8_t mStack[AlignedSize(cStackSize, cThreadStackAlign)];
+    alignas(cThreadStackAlign) uint8_t
+        mStack[AlignedSize(cThreadStackGuardSize, cThreadStackAlign) + AlignedSize(cStackSize, cThreadStackAlign)];
     StaticFunction<cFunctionMaxSize> mFunction;
     pthread_t                        mPThread  = {};
     bool                             mJoinable = false;
@@ -219,7 +268,7 @@ public:
      */
     Error Lock()
     {
-        if (!(mError = mMutex.Lock()).IsNone()) {
+        if (mError = mMutex.Lock(); !mError.IsNone()) {
             return mError;
         }
 
@@ -233,7 +282,7 @@ public:
      */
     Error Unlock()
     {
-        if (!(mError = mMutex.Unlock()).IsNone()) {
+        if (mError = mMutex.Unlock(); !mError.IsNone()) {
             return mError;
         }
 
@@ -295,7 +344,7 @@ public:
      * @param absTime absolute time.
      * @return Error.
      */
-    Error Wait(UniqueLock& lock, aos::Time absTime)
+    Error Wait(UniqueLock& lock, Time absTime)
     {
         auto unixTime = absTime.UnixTime();
 
@@ -307,6 +356,15 @@ public:
 
         return mError = ret;
     }
+
+    /**
+     * Blocks the current thread until the condition variable is awakened or time duration passed.
+     *
+     * @param lock unique lock.
+     * @param absTime absolute time.
+     * @return Error.
+     */
+    Error Wait(UniqueLock& lock, Duration duration) { return Wait(lock, Time::Now(cClockID).Add(duration)); }
 
     /**
      * Blocks the current thread until the condition variable is awakened and predicate condition is met.
@@ -338,7 +396,7 @@ public:
      * @return Error.
      */
     template <typename T>
-    Error Wait(UniqueLock& lock, aos::Time absTime, T waitCondition)
+    Error Wait(UniqueLock& lock, Time absTime, T waitCondition)
     {
         while (!waitCondition()) {
             auto err = Wait(lock, absTime);
@@ -348,6 +406,21 @@ public:
         }
 
         return ErrorEnum::eNone;
+    }
+
+    /**
+     * Blocks the current thread until the condition variable is awakened and predicate condition is met or time
+     * duration passed.
+     *
+     * @param lock unique lock.
+     * @param absTime absolute time.
+     * @param waitCondition wait condition predicate.
+     * @return Error.
+     */
+    template <typename T>
+    Error Wait(UniqueLock& lock, Duration duration, T waitCondition)
+    {
+        return Wait(lock, Time::Now(cClockID).Add(duration), waitCondition);
     }
 
     /**
@@ -372,6 +445,8 @@ public:
     Error GetError() { return mError; }
 
 private:
+    static constexpr auto cClockID = AOS_CONFIG_THREAD_CLOCK_ID;
+
     pthread_cond_t mCondVar;
     Error          mError;
 };

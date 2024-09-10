@@ -86,10 +86,10 @@
 #endif
 
 /**
- * Maximum number of permhandler functional services per instance.
+ * Maximum number of permhandler functional services.
  */
-#ifndef AOS_CONFIG_PERMHANDLER_INSTANCE_FUNC_SERVICE_MAX_COUNT
-#define AOS_CONFIG_PERMHANDLER_INSTANCE_FUNC_SERVICE_MAX_COUNT 16
+#ifndef AOS_CONFIG_PERMHANDLER_FUNC_SERVICE_MAX_COUNT
+#define AOS_CONFIG_PERMHANDLER_FUNC_SERVICE_MAX_COUNT 16
 #endif
 
 /**
@@ -97,6 +97,13 @@
  */
 #ifndef AOS_CONFIG_PERMHANDLER_SECRET_LEN
 #define AOS_CONFIG_PERMHANDLER_SECRET_LEN 42
+#endif
+
+/**
+ * Maximum number of nodes handled by node manager.
+ */
+#ifndef AOS_CONFIG_NODEMANAGER_NODE_MAX_NUM
+#define AOS_CONFIG_NODEMANAGER_NODE_MAX_NUM 4
 #endif
 
 #endif
