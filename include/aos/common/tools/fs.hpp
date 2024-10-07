@@ -441,9 +441,12 @@ public:
             return Error(errno);
         }
 
+// Zephyr doesn't implement chmod
+#ifndef __ZEPHYR__
         if (chmod(fileName.CStr(), perm) != 0) {
             return Error(errno);
         }
+#endif
 
         return ErrorEnum::eNone;
     }
