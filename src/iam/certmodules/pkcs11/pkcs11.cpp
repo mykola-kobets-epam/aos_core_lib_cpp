@@ -251,6 +251,8 @@ RetWithError<SharedPtr<crypto::PrivateKeyItf>> PKCS11Module::CreateKey(const Str
         mPendingKeys.Remove(mPendingKeys.begin());
     }
 
+    LOG_DBG() << "Add private key with ID: " << uuid::UUIDToString(pendingKey.mUUID);
+
     mPendingKeys.PushBack(pendingKey);
 
     return {pendingKey.mKey.GetPrivKey(), ErrorEnum::eNone};

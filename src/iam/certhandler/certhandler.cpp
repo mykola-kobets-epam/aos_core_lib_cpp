@@ -16,7 +16,11 @@ namespace aos::iam::certhandler {
 
 CertHandler::CertHandler()
 {
-    srand(time(nullptr));
+    const auto now = time(nullptr);
+
+    LOG_DBG() << "Current time: " << now << ", (unsigned int)now" << now;
+
+    srand(now);
 }
 
 Error CertHandler::RegisterModule(CertModule& module)
