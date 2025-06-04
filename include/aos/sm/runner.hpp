@@ -50,11 +50,12 @@ public:
      * Starts instance.
      *
      * @param instanceID instance ID.
+     * @param serviceVersion service version.
      * @param runtimeDir directory with runtime spec.
      * @param runParams runtime parameters.
      * @return RunStatus.
      */
-    virtual RunStatus StartInstance(const String& instanceID, const String& runtimeDir, const RunParameters& runParams)
+    virtual RunStatus StartInstance(const String& instanceID, const String& serviceVersion, const String& runtimeDir, const RunParameters& runParams)
         = 0;
 
     /**
