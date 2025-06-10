@@ -18,6 +18,17 @@ namespace aos::sm::launcher {
 
 namespace {
 static const char* const cBindEtcEntries[] = {"nsswitch.conf", "ssl"};
+
+StaticString<cFilePathLen> CreateServiceName(const String& instanceID) {
+    StaticString<cFilePathLen> path;
+
+    path = "aos-service@";
+    path += instanceID;
+    path += ".service";
+
+    return path;
+}
+
 }
 
 StaticAllocator<Instance::cAllocatorSize, Instance::cNumAllocations> Instance::sAllocator {};
@@ -550,7 +561,7 @@ Error Instance::CreateLinuxSpec(
     runtimeSpec.mProcess->mUser.mUID = mInstanceInfo.mUID;
     runtimeSpec.mProcess->mUser.mGID = mService.mGID;
 
-    runtimeSpec.mLinux->mCgroupsPath = fs::JoinPath(cCgroupsPath, mInstanceID);
+    runtimeSpec.mLinux->mCgroupsPath = fs::JoinPath(cCgroupsPath, CreateServiceName(mInstanceID));
 
     runtimeSpec.mRoot->mPath     = fs::JoinPath(mRuntimeDir, cRootFSDir);
     runtimeSpec.mRoot->mReadonly = false;
