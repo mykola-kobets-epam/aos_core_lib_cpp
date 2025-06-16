@@ -96,6 +96,11 @@ Error Launcher::Start()
     if (auto err = mTimer.Start(
             mConfig.mRemoveOutdatedPeriod,
             [this](void*) {
+                LOG_INF() << "Launcher timer start";
+
+                auto printEnd
+                    = DeferRelease(reinterpret_cast<int*>(1), [](int*) { LOG_INF() << "Launcher timer end"; });
+
                 if (auto err = HandleOfflineTTLs(); !err.IsNone()) {
                     LOG_ERR() << "Error handling offline TTLs: err=" << err;
                 }

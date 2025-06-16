@@ -118,6 +118,11 @@ Error ServiceManager::Start()
     auto err = mTimer.Start(
         mConfig.mRemoveOutdatedPeriod,
         [this](void*) {
+            LOG_INF() << "ServiceManager timer start";
+
+            auto printEnd
+                = DeferRelease(reinterpret_cast<int*>(1), [](int*) { LOG_INF() << "ServiceManager timer end"; });
+
             auto services = MakeUnique<ServiceDataStaticArray>(&mAllocator);
 
             if (auto err = mStorage->GetAllServices(*services); !err.IsNone()) {

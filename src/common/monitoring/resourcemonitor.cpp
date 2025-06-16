@@ -499,6 +499,11 @@ void ResourceMonitor::NormalizeMonitoringData()
 
 void ResourceMonitor::ProcessMonitoring()
 {
+    LOG_INF() << "ResourceMonitor::ProcessMonitoring() start";
+
+    auto printEnd = DeferRelease(
+        reinterpret_cast<int*>(1), [](int*) { LOG_INF() << "ResourceMonitor::ProcessMonitoring() end"; });
+
     UniqueLock lock {mMutex};
 
     mNodeMonitoringData.mTimestamp = Time::Now();

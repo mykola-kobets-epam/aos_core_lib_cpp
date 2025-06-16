@@ -111,6 +111,11 @@ Error LayerManager::Start()
     auto err = mTimer.Start(
         mConfig.mRemoveOutdatedPeriod,
         [this](void*) {
+            LOG_INF() << "LayerManager timer start";
+
+            auto printEnd
+                = DeferRelease(reinterpret_cast<int*>(1), [](int*) { LOG_INF() << "LayerManager timer end"; });
+
             if (auto err = RemoveOutdatedLayers(); !err.IsNone()) {
                 LOG_ERR() << "Failed to remove outdated layers: err=" << err;
             }
