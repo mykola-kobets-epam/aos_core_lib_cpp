@@ -5,7 +5,8 @@
  */
 
 #include "aos/common/tools/timer.hpp"
-#include "aos/common/tools/logger.hpp"
+
+#include "log.hpp"
 
 namespace aos {
 
