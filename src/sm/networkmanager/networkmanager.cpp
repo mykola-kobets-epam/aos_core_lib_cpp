@@ -264,6 +264,8 @@ Error NetworkManager::RemoveInstanceFromNetwork(const String& instanceID, const 
     if (auto errStopInstanceMonitoring = mNetMonitor->StopInstanceMonitoring(instanceID);
         !errStopInstanceMonitoring.IsNone()) {
         if (err.IsNone()) {
+            LOG_WRN() << "Stop instance monitoring failed" << Log::Field("instanceID", instanceID) << Log::Field(err);
+
             err = errStopInstanceMonitoring;
         }
     }
@@ -271,6 +273,8 @@ Error NetworkManager::RemoveInstanceFromNetwork(const String& instanceID, const 
     if (auto errDeleteInstanceNetworkConfig = DeleteInstanceNetworkConfig(instanceID, networkID);
         !errDeleteInstanceNetworkConfig.IsNone()) {
         if (err.IsNone()) {
+            LOG_WRN() << "Delete instance network config failed" << Log::Field("instanceID", instanceID) << Log::Field(err);
+
             err = errDeleteInstanceNetworkConfig;
         }
     }
@@ -278,6 +282,8 @@ Error NetworkManager::RemoveInstanceFromNetwork(const String& instanceID, const 
     if (auto errRemoveInstanceFromCache = RemoveInstanceFromCache(instanceID, networkID);
         !errRemoveInstanceFromCache.IsNone()) {
         if (err.IsNone()) {
+            LOG_WRN() << "Remove instance from cache failed" << Log::Field("instanceID", instanceID) << Log::Field(err);
+
             err = errRemoveInstanceFromCache;
         }
     }
@@ -285,9 +291,13 @@ Error NetworkManager::RemoveInstanceFromNetwork(const String& instanceID, const 
     if (auto errRemoveInstanceFromStorage = mStorage->RemoveInstanceNetworkInfo(instanceID);
         !errRemoveInstanceFromStorage.IsNone()) {
         if (err.IsNone()) {
+            LOG_WRN() << "Remove instance network info failed" << Log::Field("instanceID", instanceID) << Log::Field(err);
+
             err = errRemoveInstanceFromStorage;
         }
     }
+
+    LOG_DBG() << "Remove instance from network: instanceID=" << Log::Field("instanceID", instanceID) << Log::Field(err);
 
     if (!err.IsNone()) {
         return err;
