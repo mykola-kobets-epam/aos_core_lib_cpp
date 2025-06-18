@@ -89,7 +89,7 @@ public:
      */
     template <typename Val>
     struct FieldEntry {
-        const String& mKey;
+        String mKey;
         const Val&    mValue;
 
         /**

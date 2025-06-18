@@ -34,14 +34,14 @@ conan profile detect --force
 #=======================================================================================================================
 print_next_step "Generate conan toolchain"
 
-conan install ./conan/ --output-folder build --settings=build_type=Debug --build=missing
+conan install ./conan/ --output-folder build --settings=build_type=Release --build=missing
 
 #=======================================================================================================================
 print_next_step "Run cmake"
 
 cd ./build
 
-cmake .. -DCMAKE_TOOLCHAIN_FILE=./conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Debug \
+cmake .. -DCMAKE_TOOLCHAIN_FILE=./conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release \
          -DWITH_TEST=ON -DWITH_MBEDTLS=ON -DWITH_OPENSSL=ON
 
 #=======================================================================================================================

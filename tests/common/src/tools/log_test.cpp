@@ -42,6 +42,8 @@ public:
             return false;
         }
 
+        std::cout << "msg: " << mLogMessage.CStr() << std::endl;
+
         if (mLogMessage != message) {
             return false;
         }
