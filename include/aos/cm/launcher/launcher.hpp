@@ -577,9 +577,88 @@ private:
 };
 
 /**
+ * Listener interface for services that are ready to run.
+ */
+class ReadyServicesListener {
+public:
+    /**
+     * Called when service instances are ready to run.
+     *
+     * @param requests    a list of services that are ready to run.
+     * @param rebalancing rebalancing indicator.
+     * @return Error.
+     */
+    virtual Error OnServicesReady(const Array<RunServiceRequest>& requests, bool rebalancing) = 0;
+};
+
+/**
+ * Resolves dependencies between service instances before starting them.
+ */
+class DependencyResolver : private nodemanager::ServiceStatusListenerItf {
+public:
+    /**
+     * Initializes object instance.
+     *
+     * @param nodeManager node manager.
+     * @param imageProvider image provider.
+     * @param listener ready services listener.
+     * @return Error.
+     */
+    Error Init(nodemanager::NodeManagerItf& nodeManager, imageprovider::ImageProviderItf& imageProvider,
+        ReadyServicesListener& listener);
+
+    /**
+     * Starts dependency resolver.
+     *
+     * @return Error.
+     */
+    Error Start();
+
+    /**
+     * Stops dependency resolver.
+     *
+     * @return Error.
+     */
+    Error Stop();
+
+    /**
+     * Resolves dependencies of a specified service instances.
+     *
+     * @param instances list of service instances whose dependencies should be resolved.
+     * @param rebalancing rebalancing indicator.
+     * @return Error.
+     */
+    Error ResolveDependencies(const Array<RunServiceRequest>& instances, bool rebalancing);
+
+private:
+    void               OnStatusChanged(const nodemanager::NodeRunInstanceStatus& status) override;
+    Error              SendReadyServices();
+    RetWithError<bool> IsServiceReadyToStart(const RunServiceRequest& request);
+
+    bool IsStartingDependencyOk(const RunServiceRequest& request, const String& serviceID);
+    bool IsAfterDependencyOk(const RunServiceRequest& request, const String& serviceID);
+
+    nodemanager::NodeManagerItf*     mNodeManager   = nullptr;
+    imageprovider::ImageProviderItf* mImageProvider = nullptr;
+    ReadyServicesListener*           mListener      = nullptr;
+
+    StaticArray<RunServiceRequest, cMaxNumServices> mAllServices;
+    StaticArray<RunServiceRequest, cMaxNumServices> mReadyServices;
+    bool                                            mRebalancing = false;
+
+    StaticMap<StaticString<cServiceIDLen>, StaticArray<oci::ServiceDependency, oci::cMaxNumDependencies>,
+        cMaxNumServices>
+                                                  mDependencies;
+    StaticArray<InstanceStatus, cMaxNumInstances> mRunStatus;
+
+    Mutex                                               mMutex;
+    StaticAllocator<sizeof(imageprovider::ServiceInfo)> mAllocator;
+};
+
+/**
  * Launcher class manages lifecycle of service instances.
  */
-class Launcher : private nodemanager::ServiceStatusListenerItf {
+class Launcher : private nodemanager::ServiceStatusListenerItf, private ReadyServicesListener {
 public:
     /**
      * Initializes launcher object instance.
@@ -633,7 +712,8 @@ public:
     void ResetListener();
 
 private:
-    void OnStatusChanged(const nodemanager::NodeRunInstanceStatus& status) override;
+    void  OnStatusChanged(const nodemanager::NodeRunInstanceStatus& status) override;
+    Error OnServicesReady(const Array<RunServiceRequest>& requests, bool rebalancing) override;
 
     Error InitNodes(bool rebalancing);
     Error UpdateNodes(bool rebalancing);
@@ -653,8 +733,9 @@ private:
     StaticArray<nodemanager::InstanceStatus, cNodeMaxNum * cMaxNumInstances> mRunStatus;
     StaticMap<StaticString<cNodeIDLen>, NodeHandler, cNodeMaxNum>            mNodes;
 
-    InstanceManager mInstanceManager;
-    ServiceBalancer mBalancer;
+    InstanceManager    mInstanceManager;
+    ServiceBalancer    mBalancer;
+    DependencyResolver mDependencyResolver;
 
     Mutex mMutex;
     StaticAllocator<sizeof(nodemanager::InstanceStatus) + sizeof(NodeInfo)

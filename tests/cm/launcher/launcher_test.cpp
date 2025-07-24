@@ -228,9 +228,15 @@ oci::ServiceQuotas Quotas(const Optional<uint64_t>& storageLimit, const Optional
     return quota;
 }
 
+oci::ServiceDependency Dependency(const std::string& serviceID, const oci::DependencyType& type)
+{
+    return oci::ServiceDependency {serviceID.c_str(), type};
+}
+
 oci::ServiceConfig CreateServiceConfig(const std::vector<std::string>& runners,
     const std::vector<std::string>& resources = {}, const std::vector<std::string>& devices = {},
-    const oci::ServiceQuotas& quotas = {}, bool skipResourceLimits = false)
+    const oci::ServiceQuotas& quotas = {}, bool skipResourceLimits = false,
+    const std::vector<oci::ServiceDependency>& dependencies = {})
 {
     oci::ServiceConfig config;
 
@@ -248,6 +254,10 @@ oci::ServiceConfig CreateServiceConfig(const std::vector<std::string>& runners,
 
     config.mQuotas             = quotas;
     config.mSkipResourceLimits = skipResourceLimits;
+
+    for (const auto& dependency : dependencies) {
+        config.mDependencies.PushBack(dependency);
+    }
 
     return config;
 }
@@ -949,6 +959,126 @@ TestData TestItemRebalancingPrevNode()
     return testData;
 }
 
+struct ServiceDepTestData {
+    const char*                                                mTestCaseName;
+    std::map<std::string, NodeConfig>                          mNodeConfigs;
+    std::map<std::string, oci::ServiceConfig>                  mServiceConfigs;
+    StaticArray<RunServiceRequest, cMaxNumInstances>           mDesiredInstances;
+    StaticArray<nodemanager::InstanceStatus, cMaxNumInstances> mExpectedRunStatus1;
+    StaticArray<nodemanager::InstanceStatus, cMaxNumInstances> mExpectedRunStatus2;
+    bool                                                       mRebalancing;
+};
+
+ServiceDepTestData TestItemAfterDependency()
+{
+    ServiceDepTestData testData;
+    testData.mTestCaseName = "after dependency";
+    testData.mRebalancing  = false;
+
+    // Node configs
+    testData.mNodeConfigs[cNodeTypeLocalSM] = CreateNodeConfig(cNodeTypeLocalSM, 100);
+
+    // Service configs
+    testData.mServiceConfigs[cService1] = CreateServiceConfig(
+        {cRunnerRunc}, {}, {}, {}, false, {Dependency(cService3, oci::DependencyTypeEnum::eAfter)});
+    testData.mServiceConfigs[cService2] = CreateServiceConfig({cRunnerRunc});
+    testData.mServiceConfigs[cService3] = CreateServiceConfig({cRunnerRunc});
+
+    // Desired instances
+    testData.mDesiredInstances.PushBack(CreateRunServiceRequest(cService1, cSubject1, 100, 2));
+    testData.mDesiredInstances.PushBack(CreateRunServiceRequest(cService2, cSubject1, 50, 2));
+    testData.mDesiredInstances.PushBack(CreateRunServiceRequest(cService3, cSubject1, 0, 2));
+
+    // Expected run status
+    testData.mExpectedRunStatus1.PushBack(CreateInstanceStatus({cService2, cSubject1, 0}, cNodeIDLocalSM, Error()));
+    testData.mExpectedRunStatus1.PushBack(CreateInstanceStatus({cService2, cSubject1, 1}, cNodeIDLocalSM, Error()));
+    testData.mExpectedRunStatus1.PushBack(CreateInstanceStatus({cService3, cSubject1, 0}, cNodeIDLocalSM, Error()));
+    testData.mExpectedRunStatus1.PushBack(CreateInstanceStatus({cService3, cSubject1, 1}, cNodeIDLocalSM, Error()));
+
+    testData.mExpectedRunStatus2.PushBack(CreateInstanceStatus({cService2, cSubject1, 0}, cNodeIDLocalSM, Error()));
+    testData.mExpectedRunStatus2.PushBack(CreateInstanceStatus({cService2, cSubject1, 1}, cNodeIDLocalSM, Error()));
+    testData.mExpectedRunStatus2.PushBack(CreateInstanceStatus({cService3, cSubject1, 0}, cNodeIDLocalSM, Error()));
+    testData.mExpectedRunStatus2.PushBack(CreateInstanceStatus({cService3, cSubject1, 1}, cNodeIDLocalSM, Error()));
+    testData.mExpectedRunStatus2.PushBack(CreateInstanceStatus({cService1, cSubject1, 0}, cNodeIDLocalSM, Error()));
+    testData.mExpectedRunStatus2.PushBack(CreateInstanceStatus({cService1, cSubject1, 1}, cNodeIDLocalSM, Error()));
+
+    return testData;
+}
+
+ServiceDepTestData TestItemBeforeDependency()
+{
+    ServiceDepTestData testData;
+    testData.mTestCaseName = "before dependency";
+    testData.mRebalancing  = false;
+
+    // Node configs
+    testData.mNodeConfigs[cNodeTypeLocalSM] = CreateNodeConfig(cNodeTypeLocalSM, 100);
+
+    // Service configs
+    testData.mServiceConfigs[cService1] = CreateServiceConfig(
+        {cRunnerRunc}, {}, {}, {}, false, {Dependency(cService3, oci::DependencyTypeEnum::eBefore)});
+    testData.mServiceConfigs[cService2] = CreateServiceConfig({cRunnerRunc});
+    testData.mServiceConfigs[cService3] = CreateServiceConfig({cRunnerRunc});
+
+    // Desired instances
+    testData.mDesiredInstances.PushBack(CreateRunServiceRequest(cService1, cSubject1, 100, 2));
+    testData.mDesiredInstances.PushBack(CreateRunServiceRequest(cService2, cSubject1, 50, 2));
+    testData.mDesiredInstances.PushBack(CreateRunServiceRequest(cService3, cSubject1, 0, 2));
+
+    // Expected run status
+    testData.mExpectedRunStatus1.PushBack(CreateInstanceStatus({cService1, cSubject1, 0}, cNodeIDLocalSM, Error()));
+    testData.mExpectedRunStatus1.PushBack(CreateInstanceStatus({cService1, cSubject1, 1}, cNodeIDLocalSM, Error()));
+    testData.mExpectedRunStatus1.PushBack(CreateInstanceStatus({cService2, cSubject1, 0}, cNodeIDLocalSM, Error()));
+    testData.mExpectedRunStatus1.PushBack(CreateInstanceStatus({cService2, cSubject1, 1}, cNodeIDLocalSM, Error()));
+
+    testData.mExpectedRunStatus2.PushBack(CreateInstanceStatus({cService1, cSubject1, 0}, cNodeIDLocalSM, Error()));
+    testData.mExpectedRunStatus2.PushBack(CreateInstanceStatus({cService1, cSubject1, 1}, cNodeIDLocalSM, Error()));
+    testData.mExpectedRunStatus2.PushBack(CreateInstanceStatus({cService2, cSubject1, 0}, cNodeIDLocalSM, Error()));
+    testData.mExpectedRunStatus2.PushBack(CreateInstanceStatus({cService2, cSubject1, 1}, cNodeIDLocalSM, Error()));
+    testData.mExpectedRunStatus2.PushBack(CreateInstanceStatus({cService3, cSubject1, 0}, cNodeIDLocalSM, Error()));
+    testData.mExpectedRunStatus2.PushBack(CreateInstanceStatus({cService3, cSubject1, 1}, cNodeIDLocalSM, Error()));
+
+    return testData;
+}
+
+ServiceDepTestData TestItemStartedDependency()
+{
+    ServiceDepTestData testData;
+    testData.mTestCaseName = "started dependency";
+    testData.mRebalancing  = false;
+
+    // Node configs
+    testData.mNodeConfigs[cNodeTypeLocalSM] = CreateNodeConfig(cNodeTypeLocalSM, 100);
+
+    // Service configs
+    testData.mServiceConfigs[cService1] = CreateServiceConfig(
+        {cRunnerRunc}, {}, {}, {}, false, {Dependency(cService3, oci::DependencyTypeEnum::eStarted)});
+    testData.mServiceConfigs[cService2] = CreateServiceConfig({cRunnerRunc});
+    testData.mServiceConfigs[cService3] = CreateServiceConfig({cRunnerRunc}, {}, {}, Quotas({}, {}, 2000));
+
+    // Desired instances
+    testData.mDesiredInstances.PushBack(CreateRunServiceRequest(cService1, cSubject1, 100, 2));
+    testData.mDesiredInstances.PushBack(CreateRunServiceRequest(cService2, cSubject1, 50, 2));
+    testData.mDesiredInstances.PushBack(CreateRunServiceRequest(cService3, cSubject1, 0, 2));
+
+    // Expected run status
+    testData.mExpectedRunStatus1.PushBack(CreateInstanceStatus({cService2, cSubject1, 0}, cNodeIDLocalSM, Error()));
+    testData.mExpectedRunStatus1.PushBack(CreateInstanceStatus({cService2, cSubject1, 1}, cNodeIDLocalSM, Error()));
+    testData.mExpectedRunStatus1.PushBack(CreateInstanceStatus({cService3, cSubject1, 0}, cNodeIDLocalSM, Error()));
+    testData.mExpectedRunStatus1.PushBack(
+        CreateInstanceStatus({cService3, cSubject1, 1}, "", Error(ErrorEnum::eNotFound)));
+
+    testData.mExpectedRunStatus2.PushBack(CreateInstanceStatus({cService2, cSubject1, 0}, cNodeIDLocalSM, Error()));
+    testData.mExpectedRunStatus2.PushBack(CreateInstanceStatus({cService2, cSubject1, 1}, cNodeIDLocalSM, Error()));
+    testData.mExpectedRunStatus2.PushBack(CreateInstanceStatus({cService3, cSubject1, 0}, cNodeIDLocalSM, Error()));
+    testData.mExpectedRunStatus2.PushBack(CreateInstanceStatus({cService1, cSubject1, 0}, cNodeIDLocalSM, Error()));
+    testData.mExpectedRunStatus2.PushBack(CreateInstanceStatus({cService1, cSubject1, 1}, cNodeIDLocalSM, Error()));
+    testData.mExpectedRunStatus2.PushBack(
+        CreateInstanceStatus({cService3, cSubject1, 1}, "", Error(ErrorEnum::eNotFound)));
+
+    return testData;
+}
+
 /***********************************************************************************************************************
  * Tests
  **********************************************************************************************************************/
@@ -1146,6 +1276,7 @@ TEST_F(CMLauncherTest, InitialStatus)
         mNodeManager.SendRunStatus(nodemanager::NodeRunInstanceStatus {status.mNodeID, "", instances});
     }
 
+    mNodeManager.Join();
     ASSERT_TRUE(mLauncher.Stop().IsNone());
 
     mLauncher.ResetListener();
@@ -1276,6 +1407,7 @@ TEST_F(CMLauncherTest, Balancing)
             nodeRunStatus.mInstances.Clear();
 
             mNodeManager.SendRunStatus(nodeRunStatus);
+            mNodeManager.Join();
         }
 
         // Run instances
@@ -1285,6 +1417,8 @@ TEST_F(CMLauncherTest, Balancing)
             .Times(AnyNumber())
             .WillRepeatedly(SaveArg<0>(&actualStatus));
         ASSERT_TRUE(mLauncher.RunInstances(testItem.mDesiredInstances, testItem.mRebalancing).IsNone());
+
+        mNodeManager.Join();
         EXPECT_EQ(actualStatus, testItem.mExpectedRunStatus);
 
         ASSERT_TRUE(mLauncher.Stop().IsNone());
@@ -1407,6 +1541,8 @@ TEST_F(CMLauncherTest, Rebalancing)
             mNodeManager.SendRunStatus(nodeRunStatus);
         }
 
+        mNodeManager.Join();
+
         // Run instances with rebalancing enabled
         StaticArray<nodemanager::InstanceStatus, cMaxNumInstances> actualStatus;
 
@@ -1414,10 +1550,11 @@ TEST_F(CMLauncherTest, Rebalancing)
             .Times(AnyNumber())
             .WillRepeatedly(SaveArg<0>(&actualStatus));
         ASSERT_TRUE(mLauncher.RunInstances(testItem.mDesiredInstances, testItem.mRebalancing).IsNone());
+
+        mNodeManager.Join();
         EXPECT_EQ(actualStatus, testItem.mExpectedRunStatus);
 
         ASSERT_TRUE(mNodeManager.CompareStartRequests(testItem.mExpectedRunRequests).IsNone());
-
         ASSERT_TRUE(mLauncher.Stop().IsNone());
     }
 }
@@ -1501,6 +1638,8 @@ TEST_F(CMLauncherTest, StorageCleanup)
         mNodeManager.SendRunStatus(nodeRunStatus);
     }
 
+    mNodeManager.Join();
+
     // 1st run
     StaticArray<RunServiceRequest, cMaxNumInstances> desiredInstances1;
 
@@ -1540,7 +1679,7 @@ TEST_F(CMLauncherTest, StorageCleanup)
     EXPECT_CALL(runStatusListener, OnRunStatusChanged(_)).Times(AnyNumber());
     EXPECT_CALL(runStatusListener, OnRunStatusChanged(expectedRunStatus1));
     ASSERT_TRUE(mLauncher.RunInstances(desiredInstances1, false).IsNone());
-
+    mNodeManager.Join();
     ASSERT_TRUE(mNodeManager.CompareStartRequests(expectedRunRequests1).IsNone());
 
     // 2nd run
@@ -1556,6 +1695,7 @@ TEST_F(CMLauncherTest, StorageCleanup)
     EXPECT_CALL(runStatusListener, OnRunStatusChanged(_)).Times(AnyNumber()).WillRepeatedly(SaveArg<0>(&actualStatus));
 
     ASSERT_TRUE(mLauncher.RunInstances(desiredInstances2, false).IsNone());
+    mNodeManager.Join();
     EXPECT_EQ(actualStatus, expectedRunStatus2);
 
     // Expected cleaned instances
@@ -1568,6 +1708,119 @@ TEST_F(CMLauncherTest, StorageCleanup)
     ASSERT_EQ(expectedCleanInstances, actualCleanedInstances);
 
     ASSERT_TRUE(mLauncher.Stop().IsNone());
+}
+
+TEST_F(CMLauncherTest, ServiceDependencies)
+{
+    Config cfg;
+    cfg.mNodesConnectionTimeout = 1 * Time::cMinutes;
+
+    mNodeInfoProvider.Init(cNodeIDLocalSM);
+
+    // Set up node info
+    NodeInfo nodeInfoLocalSM;
+    nodeInfoLocalSM.mNodeID   = cNodeIDLocalSM;
+    nodeInfoLocalSM.mNodeType = cNodeTypeLocalSM;
+    nodeInfoLocalSM.mStatus   = NodeStatusEnum::eProvisioned;
+    nodeInfoLocalSM.mAttrs.PushBack(NodeAttribute {cNodeRunners, cRunnerRunc});
+    nodeInfoLocalSM.mMaxDMIPS = 1000;
+    nodeInfoLocalSM.mTotalRAM = 1024;
+    nodeInfoLocalSM.mPartitions.PushBack(CreatePartitionInfo(cStoragePartition, cStoragePartition, 1024));
+    nodeInfoLocalSM.mPartitions.PushBack(CreatePartitionInfo(cStatePartition, cStatePartition, 1024));
+    mNodeInfoProvider.AddNodeInfo(cNodeIDLocalSM, nodeInfoLocalSM);
+
+    mImageProvider.Init();
+    // Set up services
+    imageprovider::ServiceInfo service1Info = CreateExServiceInfo(cService1, 5000, cService1LocalURL);
+    service1Info.mRemoteURL                 = cService1RemoteURL;
+    service1Info.mLayerDigests.PushBack(cLayer1);
+    service1Info.mLayerDigests.PushBack(cLayer2);
+    mImageProvider.AddService(cService1, service1Info);
+
+    imageprovider::ServiceInfo service2Info = CreateExServiceInfo(cService2, 5001, cService2LocalURL);
+    service2Info.mRemoteURL                 = cService2RemoteURL;
+    service2Info.mLayerDigests.PushBack(cLayer1);
+    mImageProvider.AddService(cService2, service2Info);
+
+    imageprovider::ServiceInfo service3Info = CreateExServiceInfo(cService3, 5002, cService3LocalURL);
+    service3Info.mRemoteURL                 = cService3RemoteURL;
+    mImageProvider.AddService(cService3, service3Info);
+
+    // Set up layers
+    imageprovider::LayerInfo layer1Info = CreateExLayerInfo(cLayer1, cLayer1LocalURL);
+    layer1Info.mRemoteURL               = cLayer1RemoteURL;
+    mImageProvider.AddLayer(cLayer1, layer1Info);
+
+    imageprovider::LayerInfo layer2Info = CreateExLayerInfo(cLayer2, cLayer2LocalURL);
+    layer2Info.mRemoteURL               = cLayer2RemoteURL;
+    mImageProvider.AddLayer(cLayer2, layer2Info);
+
+    // Test data array
+    std::vector<ServiceDepTestData> testItems
+        = {TestItemBeforeDependency(), TestItemAfterDependency(), TestItemStartedDependency()};
+    //= { TestItemAfterDependency() };
+
+    for (size_t i = 0; i < testItems.size(); ++i) {
+        const auto& testItem = testItems[i];
+
+        LOG_INF();
+        LOG_INF() << "Test case: " << testItem.mTestCaseName;
+
+        mNetworkManager.Init();
+        mNodeManager.Init();
+        mStorageState.Init();
+        mStorage.Init(Array<storage::InstanceInfo>());
+        mResourceManager.Init(testItem.mNodeConfigs);
+
+        // Set up service configs
+        for (const auto& [serviceID, config] : testItem.mServiceConfigs) {
+            imageprovider::ServiceInfo info;
+            ASSERT_TRUE(mImageProvider.GetServiceInfo(serviceID.c_str(), info).IsNone());
+
+            info.mConfig = config;
+            mImageProvider.AddService(serviceID.c_str(), info);
+        }
+
+        mStorage.Init({});
+
+        ASSERT_TRUE(mLauncher
+                        .Init(cfg, mStorage, mNodeInfoProvider, mNodeManager, mImageProvider, mResourceManager,
+                            mStorageState, mNetworkManager)
+                        .IsNone());
+
+        ASSERT_TRUE(mLauncher.Start().IsNone());
+
+        MockRunStatusListener runStatusListener;
+        mLauncher.SetListener(runStatusListener);
+
+        // Wait initial run status for all nodes.
+        EXPECT_CALL(runStatusListener, OnRunStatusChanged(Array<nodemanager::InstanceStatus>()));
+
+        const std::vector<const char*> nodeIDs   = {cNodeIDLocalSM};
+        const std::vector<const char*> nodeTypes = {cNodeTypeLocalSM};
+
+        for (size_t nodeIdx = 0; nodeIdx < nodeIDs.size(); ++nodeIdx) {
+            nodemanager::NodeRunInstanceStatus nodeRunStatus;
+
+            nodeRunStatus.mNodeID   = nodeIDs[nodeIdx];
+            nodeRunStatus.mNodeType = nodeTypes[nodeIdx];
+            nodeRunStatus.mInstances.Clear();
+
+            mNodeManager.SendRunStatus(nodeRunStatus);
+        }
+
+        mNodeManager.Join();
+
+        // Run instances
+        StaticArray<nodemanager::InstanceStatus, cMaxNumInstances> actualStatus;
+
+        EXPECT_CALL(runStatusListener, OnRunStatusChanged(testItem.mExpectedRunStatus1));
+        EXPECT_CALL(runStatusListener, OnRunStatusChanged(testItem.mExpectedRunStatus2));
+        ASSERT_TRUE(mLauncher.RunInstances(testItem.mDesiredInstances, testItem.mRebalancing).IsNone());
+        mNodeManager.Join();
+        mNodeManager.Stop();
+        ASSERT_TRUE(mLauncher.Stop().IsNone());
+    }
 }
 
 } // namespace aos::cm::launcher
