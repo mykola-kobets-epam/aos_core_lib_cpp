@@ -30,6 +30,11 @@ static constexpr auto cMaxNumConnections = AOS_CONFIG_NETWORKMANAGER_CONNECTIONS
 static constexpr auto cConnectionNameLen = AOS_CONFIG_NETWORKMANAGER_CONNECTION_NAME_LEN;
 
 /**
+ * Maximum number dependencies per service.
+ */
+static constexpr auto cMaxNumDependencies = AOS_CONFIG_MAX_NUM_SERVICE_DEPENDENCIES;
+
+/**
  * Service quotas.
  */
 struct ServiceQuotas {
@@ -127,6 +132,71 @@ struct ServiceDevice {
 };
 
 /**
+ * Dependency type enum.
+ */
+class DependencyTypeType {
+public:
+    enum class Enum {
+        /**
+         * At least one instance of dependency item should be successfully started,
+         * if dependency item fails in runtime, current item should work with no interruption.
+         */
+        eStarted,
+        /**
+         * At least one instance of dependency item should be successfully started and healthy, if dependency item is
+         * not healthy or fails in runtime, the current item should be stopped till dependency satisfies the condition
+         * again.
+         */
+        eHealthy,
+        /**
+         * All instances of dependency item should be successfully completed (for one shot services/jobs).
+         */
+        eCompleted,
+        /**
+         * The current item should be started before any instance of dependency item - run, result of the current item
+         * is not checked.
+         */
+        eBefore,
+        /**
+         * The current item should be started after all instances of dependency item - run, result of dependency item
+         * instances are not checked.
+         */
+        eAfter
+    };
+
+    static const Array<const char* const> GetStrings()
+    {
+        static const char* const sString[] = {
+            "started",
+            "healthy",
+            "completed",
+            "before",
+            "after",
+        };
+
+        return Array<const char* const>(sString, ArraySize(sString));
+    };
+};
+
+using DependencyTypeEnum = DependencyTypeType::Enum;
+using DependencyType     = EnumStringer<DependencyTypeType>;
+
+/**
+ * Service dependency.
+ */
+struct ServiceDependency {
+    /**
+     * Service identifier.
+     */
+    StaticString<cServiceIDLen> mServiceID;
+
+    /**
+     * Dependency type.
+     */
+    DependencyType mType = DependencyTypeEnum::eStarted;
+};
+
+/**
  * Service configuration.
  */
 struct ServiceConfig {
@@ -146,6 +216,7 @@ struct ServiceConfig {
     StaticArray<StaticString<cResourceNameLen>, cMaxNumNodeResources>              mResources;
     StaticArray<FunctionServicePermissions, cFuncServiceMaxCount>                  mPermissions;
     Optional<AlertRules>                                                           mAlertRules;
+    StaticArray<ServiceDependency, cMaxNumDependencies>                            mDependencies;
 
     /**
      * Compares service config.

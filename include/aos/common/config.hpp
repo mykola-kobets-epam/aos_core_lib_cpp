@@ -1054,4 +1054,11 @@
 #define AOS_CONFIG_NODE_MAX_NUM 4
 #endif
 
+/**
+ * Maximum number dependencies per service.
+ */
+#ifndef AOS_CONFIG_MAX_NUM_SERVICE_DEPENDENCIES
+#define AOS_CONFIG_MAX_NUM_SERVICE_DEPENDENCIES 4
+#endif
+
 #endif
