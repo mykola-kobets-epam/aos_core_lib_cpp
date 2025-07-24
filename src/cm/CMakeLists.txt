@@ -11,7 +11,9 @@ set(TARGET aoscm)
 # Sources
 # ######################################################################################################################
 
-set(SOURCES launcher/instancemanager.cpp launcher/launcher.cpp launcher/nodehandler.cpp launcher/servicebalancer.cpp)
+set(SOURCES launcher/dependencyresolver.cpp launcher/instancemanager.cpp
+            launcher/launcher.cpp launcher/nodehandler.cpp launcher/servicebalancer.cpp
+)
 
 # ######################################################################################################################
 # Target

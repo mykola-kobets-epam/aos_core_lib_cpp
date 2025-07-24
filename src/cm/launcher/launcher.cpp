@@ -40,6 +40,10 @@ Error Launcher::Init(const Config& config, storage::StorageItf& storage,
         return err;
     }
 
+    if (auto err = mDependencyResolver.Init(*mNodeManager, *mImageProvider, *this); !err.IsNone()) {
+        return err;
+    }
+
     return ErrorEnum::eNone;
 }
 
@@ -63,12 +67,16 @@ Error Launcher::Start()
         return AOS_ERROR_WRAP(err);
     }
 
+    if (auto err = mNodeManager->SubscribeListener(*this); !err.IsNone()) {
+        return AOS_ERROR_WRAP(err);
+    }
+
     if (auto err = mInstanceManager.Start(); !err.IsNone()) {
         return err;
     }
 
-    if (auto err = mNodeManager->SubscribeListener(*this); !err.IsNone()) {
-        return AOS_ERROR_WRAP(err);
+    if (auto err = mDependencyResolver.Start(); !err.IsNone()) {
+        return err;
     }
 
     return ErrorEnum::eNone;
@@ -88,6 +96,10 @@ Error Launcher::Stop()
         return err;
     }
 
+    if (auto err = mDependencyResolver.Stop(); !err.IsNone()) {
+        return err;
+    }
+
     if (auto err = mConnectionTimer.Stop(); !err.IsNone()) {
         return AOS_ERROR_WRAP(err);
     }
@@ -98,6 +110,31 @@ Error Launcher::Stop()
 Error Launcher::RunInstances(const Array<RunServiceRequest>& requests, bool rebalancing)
 {
     LOG_ERR() << "Run service instances" << Log::Field("rebalancing", rebalancing);
+
+    return mDependencyResolver.ResolveDependencies(requests, rebalancing);
+}
+
+void Launcher::SetListener(RunStatusListenerItf& listener)
+{
+    LockGuard lock {mMutex};
+
+    mRunStatusListener = &listener;
+}
+
+void Launcher::ResetListener()
+{
+    LockGuard lock {mMutex};
+
+    mRunStatusListener = nullptr;
+}
+
+/***********************************************************************************************************************
+ * Private
+ **********************************************************************************************************************/
+
+Error Launcher::OnServicesReady(const Array<RunServiceRequest>& requests, bool rebalancing)
+{
+    LOG_ERR() << "Run ready service instances" << Log::Field("rebalancing", rebalancing);
 
     LockGuard lock {mMutex};
 
@@ -146,8 +183,6 @@ Error Launcher::RunInstances(const Array<RunServiceRequest>& requests, bool reba
         }
     }
 
-    // TODO: Handle service dependencies.
-
     if (auto err = mBalancer.StopInstances(*stopInstances); !err.IsNone()) {
         return AOS_ERROR_WRAP(err);
     }
@@ -165,23 +200,36 @@ Error Launcher::RunInstances(const Array<RunServiceRequest>& requests, bool reba
     return ErrorEnum::eNone;
 }
 
-void Launcher::SetListener(RunStatusListenerItf& listener)
+void Launcher::OnStatusChanged(const nodemanager::NodeRunInstanceStatus& status)
 {
+    LOG_DBG() << "Receive run status from node" << Log::Field("nodeID", status.mNodeID);
+
     LockGuard lock {mMutex};
 
-    mRunStatusListener = &listener;
+    auto* node = mNodes.Find(status.mNodeID);
+    if (node == mNodes.end()) {
+        LOG_ERR() << "Received status for unknown node" << Log::Field("nodeID", status.mNodeID);
+
+        return;
+    }
+
+    node->mSecond.SetRunStatus(status);
+
+    // Wait until all nodes send run status.
+    for (const auto& [_, node] : mNodes) {
+        if (node.IsWaiting()) {
+            return;
+        }
+    }
+
+    LOG_INF() << "All SM statuses received";
+
+    if (auto err = mConnectionTimer.Stop(); !err.IsNone()) {
+        LOG_ERR() << "Stopping connection timer failed" << Log::Field(AOS_ERROR_WRAP(err));
+    }
+
+    SendRunStatus();
 }
-
-void Launcher::ResetListener()
-{
-    LockGuard lock {mMutex};
-
-    mRunStatusListener = nullptr;
-}
-
-/***********************************************************************************************************************
- * Private
- **********************************************************************************************************************/
 
 Error Launcher::InitNodes(bool rebalancing)
 {
@@ -240,37 +288,6 @@ Error Launcher::UpdateNodes(bool rebalancing)
     }
 
     return ErrorEnum::eNone;
-}
-
-void Launcher::OnStatusChanged(const nodemanager::NodeRunInstanceStatus& status)
-{
-    LOG_DBG() << "Receive run status from node" << Log::Field("nodeID", status.mNodeID);
-
-    auto* node = mNodes.Find(status.mNodeID);
-    if (node == mNodes.end()) {
-        LOG_ERR() << "Received status for unknown node" << Log::Field("nodeID", status.mNodeID);
-
-        return;
-    }
-
-    node->mSecond.SetRunStatus(status);
-
-    // Wait until all nodes send run status.
-    for (const auto& [_, node] : mNodes) {
-        if (node.IsWaiting()) {
-            return;
-        }
-    }
-
-    LOG_INF() << "All SM statuses received";
-
-    if (auto err = mConnectionTimer.Stop(); !err.IsNone()) {
-        LOG_ERR() << "Stopping connection timer failed" << Log::Field(AOS_ERROR_WRAP(err));
-    }
-
-    SendRunStatus();
-
-    // TODO: Handle service dependencies.
 }
 
 void Launcher::SendRunStatus()
