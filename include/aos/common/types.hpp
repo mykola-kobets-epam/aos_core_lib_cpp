@@ -555,11 +555,33 @@ using InstanceInfoStaticArray = StaticArray<InstanceInfo, cMaxNumInstances>;
  */
 class InstanceRunStateType {
 public:
-    enum class Enum { eFailed, eActive, eNumStates };
+    enum class Enum {
+        /**
+         * Service instance is waiting to be started.
+         */
+        ePending,
+        /**
+         * Failed to schedule service instance.
+         */
+        eRejected,
+        /**
+         * Service instance is starting.
+         */
+        eStarting,
+        /**
+         * Service instance started and failed.
+         */
+        eFailed,
+        /**
+         * Service instance is active.
+         */
+        eActive,
+        eNumStates
+    };
 
     static const Array<const char* const> GetStrings()
     {
-        static const char* const sInstanceRunStateStrings[] = {"failed", "active"};
+        static const char* const sInstanceRunStateStrings[] = {"pending", "rejected", "starting", "failed", "active"};
 
         return Array<const char* const>(sInstanceRunStateStrings, ArraySize(sInstanceRunStateStrings));
     };
