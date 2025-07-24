@@ -51,6 +51,16 @@ void CopyUnique(const SourceContainer& source, DestContainer& destination, Cmp c
 class NodeManagerStub : public NodeManagerItf {
 public:
     /**
+     * Destructor.
+     */
+    ~NodeManagerStub() { Stop(); }
+
+    /**
+     * Stops node manager.
+     */
+    void Stop() { assert(mRunner.Shutdown().IsNone()); }
+
+    /**
      * Initializes stub object.
      */
     void Init()
@@ -58,7 +68,14 @@ public:
         mRunRequests.clear();
         mMonitoring.clear();
         mListeners.clear();
+
+        assert(mRunner.Run().IsNone());
     }
+
+    /**
+     * Joins node manager runner.
+     */
+    void Join() { assert(mRunner.Wait().IsNone()); }
 
     /**
      * Runs service instances on the specified node.
@@ -73,6 +90,8 @@ public:
     Error StartInstances(const String& nodeID, const Array<ServiceInfo>& services, const Array<LayerInfo>& layers,
         const Array<InstanceInfo>& instances, bool forceRestart) override
     {
+        LOG_INF() << "Start instances" << Log::Field("nodeID", nodeID);
+
         auto& request = mRunRequests[nodeID];
 
         auto newServices  = ConvertToVector(services);
@@ -124,6 +143,8 @@ public:
      */
     Error StopInstances(const String& nodeID, const Array<InstanceIdent>& instances) override
     {
+        LOG_INF() << "Stop instances" << Log::Field("nodeID", nodeID);
+
         NodeRunInstanceStatus stopStatus;
         stopStatus.mNodeID   = nodeID;
         stopStatus.mNodeType = "test-node-type";
@@ -184,7 +205,10 @@ public:
      */
     Error SubscribeListener(ServiceStatusListenerItf& listener) override
     {
+        LockGuard lock {mMutex};
+
         mListeners.push_back(&listener);
+
         return Error();
     }
 
@@ -196,10 +220,13 @@ public:
      */
     Error UnsubscribeListener(ServiceStatusListenerItf& listener) override
     {
+        LockGuard lock {mMutex};
+
         auto it = std::find(mListeners.begin(), mListeners.end(), &listener);
         if (it != mListeners.end()) {
             mListeners.erase(it);
         }
+
         return Error();
     }
 
@@ -281,9 +308,15 @@ public:
 
     void SendRunStatus(const NodeRunInstanceStatus& status)
     {
-        for (auto* listener : mListeners) {
-            listener->OnStatusChanged(status);
-        }
+        LOG_INF() << "Sending run status";
+
+        mRunner.AddTask([this, status](void*) {
+            LockGuard lock {mMutex};
+
+            for (auto* listener : mListeners) {
+                listener->OnStatusChanged(status);
+            }
+        });
     }
 
     std::map<String, StartRequest> GetStartRequests() { return mRunRequests; }
@@ -311,9 +344,11 @@ private:
         return true;
     }
 
-    std::map<String, StartRequest>                   mRunRequests;
-    std::map<String, monitoring::NodeMonitoringData> mMonitoring;
-    std::vector<ServiceStatusListenerItf*>           mListeners;
+    std::map<String, StartRequest>                       mRunRequests;
+    std::map<String, monitoring::NodeMonitoringData>     mMonitoring;
+    std::vector<ServiceStatusListenerItf*>               mListeners;
+    ThreadPool<1, 16, sizeof(NodeRunInstanceStatus) * 2> mRunner;
+    Mutex                                                mMutex;
 };
 
 } // namespace aos::cm::nodemanager

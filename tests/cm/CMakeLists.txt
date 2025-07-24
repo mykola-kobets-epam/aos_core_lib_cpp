@@ -13,6 +13,7 @@ set(TARGET aoscmcpp_test)
 
 set(SOURCES
     # launcher
+    ${PROJECT_SOURCE_DIR}/src/cm/launcher/dependencyresolver.cpp
     ${PROJECT_SOURCE_DIR}/src/cm/launcher/instancemanager.cpp ${PROJECT_SOURCE_DIR}/src/cm/launcher/launcher.cpp
     ${PROJECT_SOURCE_DIR}/src/cm/launcher/nodehandler.cpp ${PROJECT_SOURCE_DIR}/src/cm/launcher/servicebalancer.cpp
     launcher/launcher_test.cpp
