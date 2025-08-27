@@ -48,11 +48,73 @@ Error PKCS11RSAPrivateKey::Sign(
     return mSession->Sign(&mechanism, mPrivKeyHandle, *t, signature);
 }
 
-Error PKCS11RSAPrivateKey::Decrypt(const Array<uint8_t>& cipher, Array<uint8_t>& result) const
+Error PKCS11RSAPrivateKey::Decrypt(
+    const Array<uint8_t>& cipher, const crypto::DecryptionOptions& options, Array<uint8_t>& result) const
 {
-    CK_MECHANISM mechanism = {CKM_RSA_PKCS, nullptr, 0};
+    struct PCKS11MechConverter : public StaticVisitor<RetWithError<CK_MECHANISM>> {
+    public:
+        RetWithError<CK_MECHANISM> Visit(const crypto::PKCS1v15DecryptionOptions& options) const
+        {
+            if (options.mKeySize != 0) {
+                return {{}, AOS_ERROR_WRAP(ErrorEnum::eNotSupported)};
+            }
 
-    return mSession->Decrypt(&mechanism, mPrivKeyHandle, cipher, result);
+            return CK_MECHANISM {CKM_RSA_PKCS, nullptr, 0};
+        }
+
+        RetWithError<CK_MECHANISM> Visit(const crypto::OAEPDecryptionOptions& options) const
+        {
+            CK_MECHANISM_TYPE    hashAlg;
+            CK_RSA_PKCS_MGF_TYPE mgf;
+
+            switch (options.mHash.GetValue()) {
+            case crypto::HashEnum::eSHA1:
+                hashAlg = CKM_SHA_1;
+                mgf     = CKG_MGF1_SHA1;
+                break;
+
+            case crypto::HashEnum::eSHA256:
+                hashAlg = CKM_SHA256;
+                mgf     = CKG_MGF1_SHA256;
+                break;
+
+            case crypto::HashEnum::eSHA384:
+                hashAlg = CKM_SHA384;
+                mgf     = CKG_MGF1_SHA384;
+                break;
+
+            case crypto::HashEnum::eSHA512:
+                hashAlg = CKM_SHA512;
+                mgf     = CKG_MGF1_SHA512;
+                break;
+
+            default:
+                return {{}, AOS_ERROR_WRAP(ErrorEnum::eNotSupported)};
+            }
+
+            mOAEPParams.hashAlg         = hashAlg;
+            mOAEPParams.mgf             = mgf;
+            mOAEPParams.source          = CKZ_DATA_SPECIFIED;
+            mOAEPParams.pSourceData     = nullptr;
+            mOAEPParams.ulSourceDataLen = 0;
+
+            CK_MECHANISM mech = {CKM_RSA_PKCS_OAEP, &mOAEPParams, sizeof(mOAEPParams)};
+
+            return mech;
+        }
+
+    private:
+        mutable CK_RSA_PKCS_OAEP_PARAMS mOAEPParams = {};
+    };
+
+    PCKS11MechConverter visitor;
+
+    auto [mech, err] = options.ApplyVisitor(visitor);
+    if (!err.IsNone()) {
+        return AOS_ERROR_WRAP(err);
+    }
+
+    return mSession->Decrypt(&mech, mPrivKeyHandle, cipher, result);
 }
 
 Array<uint8_t> PKCS11RSAPrivateKey::GetPrefix(crypto::Hash hash) const

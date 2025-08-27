@@ -51,10 +51,12 @@ public:
      * Implemented PKCS#1v1.5 decryption only.
      *
      * @param cipher encrypted message.
+     * @param options decryption options.
      * @param[out] result decoded message.
      * @return Error.
      */
-    Error Decrypt(const Array<uint8_t>& cipher, Array<uint8_t>& result) const override;
+    Error Decrypt(
+        const Array<uint8_t>& cipher, const crypto::DecryptionOptions& options, Array<uint8_t>& result) const override;
 
 private:
     static constexpr uint8_t cSHA1Prefix[]
@@ -120,12 +122,15 @@ public:
      * Some information here: https://stackoverflow.com/questions/76741626/how-to-decrypt-data-with-a-ecdsa-private-key
      *
      * @param cipher encrypted message.
+     * @param options decryption options.
      * @param[out] result decoded message.
      * @return Error.
      */
-    Error Decrypt(const Array<uint8_t>& cipher, Array<uint8_t>& result) const override
+    Error Decrypt(
+        const Array<uint8_t>& cipher, const crypto::DecryptionOptions& options, Array<uint8_t>& result) const override
     {
         (void)cipher;
+        (void)options;
         (void)result;
 
         return ErrorEnum::eFailed;
