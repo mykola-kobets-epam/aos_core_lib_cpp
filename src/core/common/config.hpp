@@ -1231,6 +1231,20 @@
 #endif
 
 /**
+ * Number of recipient info in envelope data.
+ */
+#ifndef AOS_CONFIG_CRYPTO_RECIPIENTS_IN_ENVELOPEDATA
+#define AOS_CONFIG_CRYPTO_RECIPIENTS_IN_ENVELOPEDATA 4
+#endif
+
+/**
+ * Maximum size for cloud metadata.
+ */
+#ifndef AOS_CONFIG_CRYPTO_ENCRYPT_METADATA
+#define AOS_CONFIG_CRYPTO_ENCRYPT_METADATA 1024
+#endif
+
+/**
  * Max number of certificates.
  */
 #ifndef AOS_CONFIG_CRYPTO_MAX_NUM_CERTIFICATES
