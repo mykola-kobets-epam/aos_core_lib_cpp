@@ -570,8 +570,6 @@ Error MbedTLSCryptoProvider::Init()
 
     auto ret = psa_crypto_init();
 
-    ResetCurrentTime();
-
     return ret != PSA_SUCCESS ? AOS_ERROR_WRAP(ret) : ErrorEnum::eNone;
 }
 
@@ -1069,7 +1067,6 @@ RetWithError<UniquePtr<AESCipherItf>> MbedTLSCryptoProvider::CreateAESDecoder(
 Error MbedTLSCryptoProvider::Verify(const Variant<ECDSAPublicKey, RSAPublicKey>& pubKey, Hash hashFunc, Padding padding,
     const Array<uint8_t>& digest, const Array<uint8_t>& signature)
 {
-    // Common sanity
     if (digest.IsEmpty() || signature.IsEmpty()) {
         return AOS_ERROR_WRAP(ErrorEnum::eInvalidArgument);
     }
@@ -1107,17 +1104,12 @@ Error MbedTLSCryptoProvider::Verify(const Variant<ECDSAPublicKey, RSAPublicKey>&
 Error MbedTLSCryptoProvider::Verify(const Array<x509::Certificate>& rootCerts,
     const Array<x509::Certificate>& intermCerts, const VerifyOptions& options, const x509::Certificate& cert)
 {
-    // MBedTLS doesn't allow to change current time for verification request only.
-    // The found approach would use mbedtls_platform_set_time(); but it changes time for whole library.
-    LockGuard lock {mLockCurTime};
-
+    Time curTime;
     if (!options.mCurrentTime.IsZero()) {
-        mCurrentTime = options.mCurrentTime;
-
-        mbedtls_platform_set_time(&MbedTLSCryptoProvider::GetChangedTime);
+        curTime = options.mCurrentTime;
+    } else {
+        curTime = Time::Now();
     }
-
-    auto resetCurTime = DeferRelease(reinterpret_cast<int*>(1), [](int*) { ResetCurrentTime(); });
 
     mbedtls_x509_crt root;
     mbedtls_x509_crt interm;
@@ -1149,7 +1141,8 @@ Error MbedTLSCryptoProvider::Verify(const Array<x509::Certificate>& rootCerts,
 
     // Verify  target certificate.
     uint32_t flags = 0;
-    int      ret   = mbedtls_x509_crt_verify(&interm, &root, nullptr, nullptr, &flags, nullptr, nullptr);
+    int      ret   = mbedtls_x509_crt_verify(
+        &interm, &root, nullptr, nullptr, &flags, &MbedTLSCryptoProvider::VerifyTime, &curTime);
     if (ret != 0) {
         char vrfyBuff[256];
         mbedtls_x509_crt_verify_info(vrfyBuff, sizeof(vrfyBuff), "", flags);
@@ -1849,22 +1842,27 @@ MbedTLSCryptoProvider::MbedTLSRSAPrivKey::~MbedTLSRSAPrivKey()
  * Private
  **********************************************************************************************************************/
 
-Time MbedTLSCryptoProvider::mCurrentTime;
-
-void MbedTLSCryptoProvider::ResetCurrentTime()
+int MbedTLSCryptoProvider::VerifyTime(void* data, mbedtls_x509_crt* crt, int, uint32_t* flags)
 {
-    mbedtls_platform_set_time(time);
-}
+    const auto time = static_cast<Time*>(data);
 
-mbedtls_time_t MbedTLSCryptoProvider::GetChangedTime(mbedtls_time_t* t)
-{
-    mbedtls_time_t sec = static_cast<mbedtls_time_t>(mCurrentTime.UnixTime().tv_sec);
+    auto [curTime, err] = ConvertTime(*time);
 
-    if (t != nullptr) {
-        *t = sec;
+    if (!err.IsNone()) {
+        *flags |= MBEDTLS_X509_BADCERT_OTHER;
+
+        return 1;
     }
 
-    return sec;
+    if (mbedtls_x509_time_cmp(&crt->valid_from, &curTime) > 0) {
+        *flags |= MBEDTLS_X509_BADCERT_FUTURE;
+    }
+
+    if (mbedtls_x509_time_cmp(&crt->valid_to, &curTime) < 0) {
+        *flags |= MBEDTLS_X509_BADCERT_EXPIRED;
+    }
+
+    return 0;
 }
 
 Error MbedTLSCryptoProvider::ParseX509Certs(mbedtls_x509_crt* currentCrt, x509::Certificate& cert)
@@ -2043,6 +2041,20 @@ RetWithError<Time> MbedTLSCryptoProvider::ConvertTime(const mbedtls_x509_time& s
     }
 
     return Time::Unix(seconds, 0);
+}
+
+RetWithError<mbedtls_x509_time> MbedTLSCryptoProvider::ConvertTime(const Time& src)
+{
+    mbedtls_x509_time result;
+    if (auto err = src.GetDate(&result.day, &result.mon, &result.year); !err.IsNone()) {
+        return {{}, err};
+    }
+
+    if (auto err = src.GetTime(&result.hour, &result.min, &result.sec); !err.IsNone()) {
+        return {{}, err};
+    }
+
+    return result;
 }
 
 Error MbedTLSCryptoProvider::GetX509CertExtensions(x509::Certificate& cert, mbedtls_x509_crt* crt)

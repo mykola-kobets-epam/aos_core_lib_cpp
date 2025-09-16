@@ -401,16 +401,16 @@ private:
         + AOS_CONFIG_CRYPTO_HASHER_COUNT * sizeof(MBedTLSHash)
         + AOS_CONFIG_CRYPTO_PRIV_KEYS_COUNT * sizeof(MbedTLSRSAPrivKey);
 
-    static void           ResetCurrentTime();
-    static mbedtls_time_t GetChangedTime(mbedtls_time_t* t);
+    static int                             VerifyTime(void* data, mbedtls_x509_crt* crt, int depth, uint32_t* flags);
+    static RetWithError<Time>              ConvertTime(const mbedtls_x509_time& src);
+    static RetWithError<mbedtls_x509_time> ConvertTime(const Time& src);
 
-    Error              ParseX509Certs(mbedtls_x509_crt* currentCrt, x509::Certificate& cert);
-    Error              GetX509CertExtensions(x509::Certificate& cert, mbedtls_x509_crt* crt);
-    Error              GetX509CertData(x509::Certificate& cert, mbedtls_x509_crt* crt);
-    Error              ParseX509CertPublicKey(const mbedtls_pk_context* pk, x509::Certificate& cert);
-    Error              ParseRSAKey(const mbedtls_rsa_context* rsa, x509::Certificate& cert);
-    Error              ParseECKey(const mbedtls_ecp_keypair* eckey, x509::Certificate& cert);
-    RetWithError<Time> ConvertTime(const mbedtls_x509_time& src);
+    Error ParseX509Certs(mbedtls_x509_crt* currentCrt, x509::Certificate& cert);
+    Error GetX509CertExtensions(x509::Certificate& cert, mbedtls_x509_crt* crt);
+    Error GetX509CertData(x509::Certificate& cert, mbedtls_x509_crt* crt);
+    Error ParseX509CertPublicKey(const mbedtls_pk_context* pk, x509::Certificate& cert);
+    Error ParseRSAKey(const mbedtls_rsa_context* rsa, x509::Certificate& cert);
+    Error ParseECKey(const mbedtls_ecp_keypair* eckey, x509::Certificate& cert);
 
     void  InitializeCSR(mbedtls_x509write_csr& csr, mbedtls_pk_context& pk);
     Error SetCSRProperties(mbedtls_x509write_csr& csr, mbedtls_pk_context& pk, const x509::CSR& templ);
@@ -431,9 +431,6 @@ private:
     Error SetCertificateAuthorityKeyIdentifier(
         mbedtls_x509write_cert& cert, const x509::Certificate& templ, const x509::Certificate& parent);
     Error SetCertificateValidityPeriod(mbedtls_x509write_cert& cert, const x509::Certificate& templ);
-
-    Mutex       mLockCurTime;
-    static Time mCurrentTime;
 
     StaticAllocator<cAllocatorSize> mAllocator;
 };
