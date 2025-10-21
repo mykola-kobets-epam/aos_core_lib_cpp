@@ -247,6 +247,10 @@ Error Node::SendUpdate()
         }
     }
 
+    if (stopInstances->IsEmpty() && mScheduledInstances.IsEmpty()) {
+        return ErrorEnum::eNone;
+    }
+
     if (auto err = mInstanceRunner->UpdateInstances(mInfo.mNodeID, *stopInstances, mScheduledInstances);
         !err.IsNone()) {
         return AOS_ERROR_WRAP(err);
