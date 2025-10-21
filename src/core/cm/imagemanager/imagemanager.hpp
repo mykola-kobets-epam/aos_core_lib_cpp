@@ -7,6 +7,7 @@
 #ifndef AOS_CORE_CM_IMAGEMANAGER_IMAGEMANAGER_HPP_
 #define AOS_CORE_CM_IMAGEMANAGER_IMAGEMANAGER_HPP_
 
+#include <core/cm/config.hpp>
 #include <core/cm/fileserver/itf/fileserver.hpp>
 #include <core/cm/launcher/itf/imageinfoprovider.hpp>
 #include <core/cm/smcontroller/itf/updateimageprovider.hpp>

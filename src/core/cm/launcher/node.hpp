@@ -7,6 +7,7 @@
 #ifndef AOS_CORE_CM_LAUNCHER_NODE_HPP_
 #define AOS_CORE_CM_LAUNCHER_NODE_HPP_
 
+#include <core/cm/networkmanager/itf/networkmanager.hpp>
 #include <core/cm/nodeinfoprovider/itf/nodeinfoprovider.hpp>
 #include <core/cm/resourcemanager/resourcemanager.hpp>
 
