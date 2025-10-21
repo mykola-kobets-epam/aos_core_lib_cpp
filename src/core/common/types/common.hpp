@@ -450,7 +450,11 @@ struct InstanceIdent {
      */
     bool operator<(const InstanceIdent& rhs) const
     {
-        return mItemID <= rhs.mItemID && mSubjectID <= rhs.mSubjectID && mInstance < rhs.mInstance;
+        if (mItemID != rhs.mItemID)
+            return mItemID < rhs.mItemID;
+        if (mSubjectID != rhs.mSubjectID)
+            return mSubjectID < rhs.mSubjectID;
+        return mInstance < rhs.mInstance;
     }
 
     /**
