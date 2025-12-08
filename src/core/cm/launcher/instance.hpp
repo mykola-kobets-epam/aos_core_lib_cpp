@@ -188,7 +188,7 @@ private:
     MonitoringData       mMonitoringData;
     StaticString<cIDLen> mOwnerID;
 
-    StaticAllocator<cAllocatorSize> mAllocator;
+    static StaticAllocator<cAllocatorSize> mAllocator;
 };
 
 /**
