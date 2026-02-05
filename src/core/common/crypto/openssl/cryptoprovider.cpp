@@ -1033,6 +1033,39 @@ Error CreateClientCert(X509_REQ* csr, EVP_PKEY* caKey, X509* caCert, OSSL_LIB_CT
         return OPENSSL_ERROR();
     }
 
+    // Copy extensions from CSR to certificate
+    // Get extensions from CSR (stored in attributes)
+    int extReqIndex = X509_REQ_get_attr_by_NID(csr, NID_ext_req, -1);
+    if (extReqIndex >= 0) {
+        X509_ATTRIBUTE* attr = X509_REQ_get_attr(csr, extReqIndex);
+        if (attr) {
+            ASN1_TYPE* extReqType = X509_ATTRIBUTE_get0_type(attr, 0);
+            if (extReqType && extReqType->type == V_ASN1_SEQUENCE) {
+                const unsigned char* extData = extReqType->value.sequence->data;
+                int                  extLen  = extReqType->value.sequence->length;
+
+                STACK_OF(X509_EXTENSION)* csrExts = d2i_X509_EXTENSIONS(nullptr, &extData, extLen);
+                if (csrExts) {
+                    int extCount = sk_X509_EXTENSION_num(csrExts);
+                    for (int i = 0; i < extCount; i++) {
+                        X509_EXTENSION* ext = sk_X509_EXTENSION_value(csrExts, i);
+                        if (ext) {
+                            // Duplicate the extension and add to certificate
+                            X509_EXTENSION* dupExt = X509_EXTENSION_dup(ext);
+                            if (dupExt) {
+                                // Add extension to certificate (at position -1 means append)
+                                if (X509_add_ext(clientCert.Get(), dupExt, -1) != 1) {
+                                    X509_EXTENSION_free(dupExt);
+                                }
+                            }
+                        }
+                    }
+                    sk_X509_EXTENSION_pop_free(csrExts, X509_EXTENSION_free);
+                }
+            }
+        }
+    }
+
     if (X509_sign(clientCert.Get(), caKey, EVP_sha256()) == 0) {
         return OPENSSL_ERROR();
     }
