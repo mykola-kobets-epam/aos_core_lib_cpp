@@ -7,6 +7,7 @@
 #ifndef AOS_CORE_COMMON_CRYPTO_ITF_CERTLOADER_HPP_
 #define AOS_CORE_COMMON_CRYPTO_ITF_CERTLOADER_HPP_
 
+#include "pkcs11url.hpp"
 #include "x509.hpp"
 
 namespace aos::crypto {
@@ -23,6 +24,20 @@ public:
      * @return RetWithError<SharedPtr<crypto::x509::CertificateChain>>.
      */
     virtual RetWithError<SharedPtr<x509::CertificateChain>> LoadCertsChainByURL(const String& url) = 0;
+
+    /**
+     * Loads certificate URL chain by URL.
+     *
+     * @param url input url.
+     * @return RetWithError<SharedPtr<StaticArray<StaticString<cURLLen>, cCertChainSize>>>.
+     */
+    virtual RetWithError<SharedPtr<StaticArray<StaticString<cURLLen>, cCertChainSize>>> LoadCertURLChainByURL(
+        const String& url)
+    {
+        (void)url;
+
+        return {nullptr, ErrorEnum::eNone};
+    }
 
     /**
      * Loads private key by URL.
@@ -87,6 +102,20 @@ Error DecodeToPKCS11ID(const String& idStr, Array<uint8_t>& id);
  */
 Error ParsePKCS11URL(
     const String& url, String& library, String& token, String& label, Array<uint8_t>& id, String& userPin);
+
+/**
+ * Builds PKCS11 URL.
+ *
+ * @param library PKCS11 library.
+ * @param token token label.
+ * @param label object label.
+ * @param id object id.
+ * @param userPin user PIN.
+ * @param[out] url output URL.
+ * @return Error.
+ */
+Error BuildPKCS11URL(const String& library, const String& token, const String& label, const Array<uint8_t>& id,
+    const String& userPin, String& url);
 
 } // namespace aos::crypto
 

@@ -9,6 +9,7 @@
 #define AOS_CORE_COMMON_PKCS11_PKCS11_HPP_
 
 #include <core/common/crypto/itf/crypto.hpp>
+#include <core/common/crypto/itf/pkcs11url.hpp>
 #include <core/common/tools/log.hpp>
 #include <core/common/tools/memory.hpp>
 #include <core/common/tools/utils.hpp>
@@ -27,11 +28,6 @@ constexpr auto cSlotDescriptionLen = AOS_CONFIG_PKCS11_SLOT_DESCRIPTION_LEN;
  * Maximum length of PKCS11 manufacture ID.
  */
 constexpr auto cManufacturerIDLen = AOS_CONFIG_PKCS11_MANUFACTURE_ID_LEN;
-
-/**
- * Maximum length of PKCS11 token label.
- */
-constexpr auto cLabelLen = AOS_CONFIG_PKCS11_LABEL_LEN;
 
 /**
  * Library description length.
@@ -54,16 +50,11 @@ constexpr auto cPINLen = AOS_CONFIG_PKCS11_PIN_LEN;
 constexpr auto cGenPINLen = AOS_CONFIG_PKCS11_GEN_PIN_LEN;
 
 /**
- * Maximum size of PKCS11 ID.
- */
-constexpr auto cIDSize = AOS_CONFIG_PKCS11_ID_SIZE;
-
-/**
  * Maximum length of PKCS11 ID string.
  * RFC 7512: it should be percent-encoded uppercase hexadecimal digits.
  * Example:
  */
-constexpr auto cIDStrLen = AOS_CONFIG_PKCS11_ID_SIZE * 3;
+constexpr auto cIDStrLen = cIDSize * 3;
 
 /**
  * Maximum number of open sessions per PKCS11 library.
@@ -702,10 +693,12 @@ public:
      * Depending on the needs, it might be required to reserve additional space for PKCS11 objects, like
      * PKCS11ECDSAPrivateKey, PKCS11RSAPrivateKey, crypto::x509::Certificate etc.
      */
-    static constexpr auto cLocalObjectsMaxSize = Max(sizeof(StaticArray<uint8_t, crypto::cRSAModulusSize>)
-            + sizeof(StaticArray<uint8_t, crypto::cRSAPubExponentSize>) + sizeof(crypto::RSAPublicKey),
-        sizeof(StaticArray<uint8_t, crypto::cECDSAParamsOIDSize>) * 2
-            + sizeof(StaticArray<uint8_t, crypto::cECDSAPointDERSize>) * 2 + sizeof(crypto::ECDSAPublicKey));
+    static constexpr auto cLocalObjectsMaxSize
+        = Max(Max(sizeof(StaticArray<uint8_t, crypto::cRSAModulusSize>)
+                      + sizeof(StaticArray<uint8_t, crypto::cRSAPubExponentSize>) + sizeof(crypto::RSAPublicKey),
+                  sizeof(StaticArray<uint8_t, crypto::cECDSAParamsOIDSize>) * 2
+                      + sizeof(StaticArray<uint8_t, crypto::cECDSAPointDERSize>) * 2 + sizeof(crypto::ECDSAPublicKey)),
+            sizeof(crypto::x509::CertificateChain) + sizeof(crypto::x509::Certificate) + sizeof(PKCS11URL));
 
     /**
      * Creates an object instance.
@@ -785,6 +778,15 @@ public:
         const Array<uint8_t>& id, const String& label);
 
     /**
+     * Finds certificate URL chain using certificate attributes.
+     *
+     * @param id certificate identifier.
+     * @param label certificate label.
+     * @return RetWithError<SharedPtr<CertificateURLChain>>.
+     */
+    RetWithError<SharedPtr<CertificateURLChain>> FindCertificateURLChain(const Array<uint8_t>& id, const String& label);
+
+    /**
      * Deletes a previously imported certificate.
      *
      * @param id certificate id.
@@ -807,9 +809,15 @@ private:
 
     Error FindCertificates(const Array<uint8_t>& id, const String& label, Array<ObjectHandle>& handles);
     Error FindCertificateChain(const crypto::x509::Certificate& certificate, crypto::x509::CertificateChain& chain);
-    RetWithError<SharedPtr<crypto::x509::Certificate>> FindCertificateByKeyID(const Array<uint8_t>& keyID);
+    Error FindCertificateURLChain(const crypto::x509::Certificate& certificate, CertificateURLChain& chain,
+        crypto::x509::CertificateChain& certChain);
 
+    RetWithError<SharedPtr<crypto::x509::Certificate>> FindCertificateByKeyID(const Array<uint8_t>& keyID);
     RetWithError<SharedPtr<crypto::x509::Certificate>> GetCertificate(ObjectHandle handle);
+
+    Error FindPKCS11URLByKeyID(
+        const Array<uint8_t>& keyID, SharedPtr<crypto::x509::Certificate>& certificate, SharedPtr<PKCS11URL>& url);
+    RetWithError<SharedPtr<PKCS11URL>> GetPKCS11URL(ObjectHandle handle);
 
     SharedPtr<SessionContext>  mSession;
     crypto::x509::ProviderItf& mCryptoProvider;

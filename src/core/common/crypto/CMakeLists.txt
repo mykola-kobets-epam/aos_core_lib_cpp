@@ -96,6 +96,7 @@ set(HEADERS
     itf/crypto.hpp
     itf/cryptohelper.hpp
     itf/hash.hpp
+    itf/pkcs11url.hpp
     itf/privkey.hpp
     itf/x509.hpp
 )

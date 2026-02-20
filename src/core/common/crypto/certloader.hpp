@@ -39,6 +39,15 @@ public:
     RetWithError<SharedPtr<x509::CertificateChain>> LoadCertsChainByURL(const String& url) override;
 
     /**
+     * Loads certificate chain by URL.
+     *
+     * @param url input url.
+     * @return RetWithError<SharedPtr<StaticArray<StaticString<cURLLen>, cCertChainSize>>>.
+     */
+    RetWithError<SharedPtr<StaticArray<StaticString<cURLLen>, cCertChainSize>>> LoadCertURLChainByURL(
+        const String& url) override;
+
+    /**
      * Loads private key by URL.
      *
      * @param url input url.
@@ -53,6 +62,8 @@ private:
         = cCertChainsCount * cCertChainSize * sizeof(x509::Certificate) + sizeof(PEMCertChainBlob);
     static constexpr auto cKeyAllocatorSize
         = AOS_CONFIG_CRYPTO_PRIV_KEYS_COUNT * pkcs11::cPrivateKeyMaxSize + sizeof(cPrivKeyPEMLen);
+    static constexpr auto cURLAllocatorSize
+        = cCertChainsCount * (sizeof(pkcs11::CertificateURLChain) + sizeof(StaticArray<StaticString<cURLLen>, cCertChainSize>));
     static constexpr auto cNumAllocation = AOS_CONFIG_CRYPTO_NUM_ALLOCATIONS;
 
     static constexpr auto cDefaultPKCS11Library = AOS_CONFIG_CRYPTO_DEFAULT_PKCS11_LIB;
@@ -67,7 +78,8 @@ private:
     x509::ProviderItf*     mCryptoProvider = nullptr;
     pkcs11::PKCS11Manager* mPKCS11         = nullptr;
 
-    StaticAllocator<cCertAllocatorSize + cKeyAllocatorSize + pkcs11::Utils::cLocalObjectsMaxSize, cNumAllocation>
+    StaticAllocator<cCertAllocatorSize + cKeyAllocatorSize + cURLAllocatorSize + pkcs11::Utils::cLocalObjectsMaxSize,
+        cNumAllocation>
         mAllocator;
 };
 

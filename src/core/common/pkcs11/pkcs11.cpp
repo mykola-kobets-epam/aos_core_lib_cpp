@@ -1281,6 +1281,50 @@ RetWithError<SharedPtr<crypto::x509::CertificateChain>> Utils::FindCertificateCh
     return {chain, err};
 }
 
+RetWithError<SharedPtr<CertificateURLChain>> Utils::FindCertificateURLChain(
+    const Array<uint8_t>& id, const String& label)
+{
+    StaticArray<ObjectHandle, cKeysPerToken> certHandles;
+
+    auto err = FindCertificates(id, label, certHandles);
+    if (!err.IsNone()) {
+        return {nullptr, err};
+    }
+
+    SharedPtr<crypto::x509::Certificate> certificate;
+    SharedPtr<PKCS11URL>                 url;
+
+    auto urlChain  = MakeShared<CertificateURLChain>(&mAllocator);
+    auto certChain = MakeShared<crypto::x509::CertificateChain>(&mAllocator);
+
+    Tie(certificate, err) = GetCertificate(certHandles[0]);
+    if (!err.IsNone()) {
+        return {nullptr, err};
+    }
+
+    Tie(url, err) = GetPKCS11URL(certHandles[0]);
+    if (!err.IsNone()) {
+        return {nullptr, err};
+    }
+
+    err = urlChain->PushBack(*url);
+    if (!err.IsNone()) {
+        return {nullptr, err};
+    }
+
+    err = certChain->PushBack(*certificate);
+    if (!err.IsNone()) {
+        return {nullptr, err};
+    }
+
+    err = FindCertificateURLChain(*certificate, *urlChain, *certChain);
+    if (!err.IsNone()) {
+        return {nullptr, err};
+    }
+
+    return {urlChain, err};
+}
+
 Error Utils::DeleteCertificate(const Array<uint8_t>& id, const String& label)
 {
     CK_OBJECT_CLASS                              certClass = CKO_CERTIFICATE;
@@ -1443,6 +1487,62 @@ Error Utils::FindCertificateChain(const crypto::x509::Certificate& certificate, 
     return FindCertificateChain(*foundCert, chain);
 }
 
+Error Utils::FindCertificateURLChain(const crypto::x509::Certificate& certificate, CertificateURLChain& urlChain,
+    crypto::x509::CertificateChain& certChain)
+{
+    if (certificate.mIssuer.IsEmpty() || certificate.mIssuer == certificate.mSubject) {
+        return ErrorEnum::eNone;
+    }
+
+    CK_OBJECT_CLASS                                      certClass = CKO_CERTIFICATE;
+    StaticArray<ObjectAttribute, cObjectAttributesCount> certTempl;
+
+    certTempl.PushBack({CKA_CLASS, ConvertToAttributeValue(certClass)});
+    certTempl.PushBack({CKA_SUBJECT, certificate.mIssuer});
+
+    StaticArray<ObjectHandle, cKeysPerToken> handles;
+    SharedPtr<crypto::x509::Certificate>     foundCert;
+    SharedPtr<PKCS11URL>                     foundURL;
+
+    auto  err = mSession->FindObjects(certTempl, handles);
+    Error pkcs11URLErr;
+
+    if (err.IsNone()) {
+        Tie(foundCert, err)         = GetCertificate(handles[0]);
+        Tie(foundURL, pkcs11URLErr) = GetPKCS11URL(handles[0]);
+    } else if (err == ErrorEnum::eNotFound && !certificate.mAuthorityKeyId.IsEmpty()) {
+        pkcs11URLErr = FindPKCS11URLByKeyID(certificate.mAuthorityKeyId, foundCert, foundURL);
+    } else {
+        return err;
+    }
+
+    if (!err.IsNone()) {
+        return err;
+    }
+
+    if (!pkcs11URLErr.IsNone()) {
+        return pkcs11URLErr;
+    }
+
+    for (const auto& cur : certChain) {
+        if (cur.mSubject == foundCert->mSubject) {
+            return ErrorEnum::eNone;
+        }
+    }
+
+    err = certChain.PushBack(*foundCert);
+    if (!err.IsNone()) {
+        return err;
+    }
+
+    err = urlChain.PushBack(*foundURL);
+    if (!err.IsNone()) {
+        return err;
+    }
+
+    return FindCertificateURLChain(*foundCert, urlChain, certChain);
+}
+
 RetWithError<SharedPtr<crypto::x509::Certificate>> Utils::FindCertificateByKeyID(const Array<uint8_t>& keyID)
 {
     CK_OBJECT_CLASS                                      certClass = CKO_CERTIFICATE;
@@ -1473,6 +1573,40 @@ RetWithError<SharedPtr<crypto::x509::Certificate>> Utils::FindCertificateByKeyID
     return {nullptr, ErrorEnum::eNotFound};
 }
 
+Error Utils::FindPKCS11URLByKeyID(
+    const Array<uint8_t>& keyID, SharedPtr<crypto::x509::Certificate>& certificate, SharedPtr<PKCS11URL>& url)
+{
+    CK_OBJECT_CLASS                                      certClass = CKO_CERTIFICATE;
+    StaticArray<ObjectAttribute, cObjectAttributesCount> certTempl;
+
+    certTempl.PushBack({CKA_CLASS, ConvertToAttributeValue(certClass)});
+
+    StaticArray<ObjectHandle, cKeysPerToken> handles;
+
+    auto err = mSession->FindObjects(certTempl, handles);
+    if (err.IsNone()) {
+        return err;
+    }
+
+    for (auto handle : handles) {
+        Tie(certificate, err) = GetCertificate(handle);
+        if (!err.IsNone()) {
+            return err;
+        }
+
+        if (certificate->mSubjectKeyId == keyID) {
+            Tie(url, err) = GetPKCS11URL(handle);
+            if (!err.IsNone()) {
+                return err;
+            }
+
+            return ErrorEnum::eNone;
+        }
+    }
+
+    return ErrorEnum::eNotFound;
+}
+
 RetWithError<SharedPtr<crypto::x509::Certificate>> Utils::GetCertificate(ObjectHandle handle)
 {
     auto certificate = MakeShared<crypto::x509::Certificate>(&mAllocator);
@@ -1494,6 +1628,36 @@ RetWithError<SharedPtr<crypto::x509::Certificate>> Utils::GetCertificate(ObjectH
     err = mCryptoProvider.DERToX509Cert(certificate->mRaw, *certificate);
 
     return {certificate, err};
+}
+
+RetWithError<SharedPtr<PKCS11URL>> Utils::GetPKCS11URL(ObjectHandle handle)
+{
+    constexpr auto cPKCS11URLAttributesCount = 2;
+
+    auto url = MakeShared<PKCS11URL>(&mAllocator);
+
+    StaticArray<Array<uint8_t>, cPKCS11URLAttributesCount> attrValues;
+    StaticArray<AttributeType, cPKCS11URLAttributesCount>  attrTypes;
+    Array<uint8_t> label(reinterpret_cast<uint8_t*>(url->mLabel.Get()), url->mLabel.MaxSize());
+
+    url->mID.Resize(url->mID.MaxSize());
+    url->mLabel.Resize(url->mLabel.MaxSize());
+
+    attrTypes.PushBack(CKA_ID);
+    attrValues.PushBack(url->mID);
+
+    attrTypes.PushBack(CKA_LABEL);
+    attrValues.PushBack(label);
+
+    auto err = mSession->GetAttributeValues(handle, attrTypes, attrValues);
+    if (!err.IsNone()) {
+        return {nullptr, err};
+    }
+
+    url->mID.Resize(attrValues[0].Size());
+    url->mLabel.Resize(attrValues[1].Size());
+
+    return {url, ErrorEnum::eNone};
 }
 
 } // namespace aos::pkcs11

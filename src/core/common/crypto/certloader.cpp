@@ -79,6 +79,64 @@ RetWithError<SharedPtr<x509::CertificateChain>> CertLoader::LoadCertsChainByURL(
     return {nullptr, ErrorEnum::eInvalidArgument};
 }
 
+RetWithError<SharedPtr<StaticArray<StaticString<cURLLen>, cCertChainSize>>> CertLoader::LoadCertURLChainByURL(
+    const String& url)
+{
+    LOG_DBG() << "Load certs chain URL" << Log::Field("url", url);
+
+    StaticString<cSchemeMaxLength> scheme;
+
+    auto err = ParseURLScheme(url, scheme);
+    if (!err.IsNone()) {
+        return {nullptr, err};
+    }
+
+    if (scheme == cSchemeFile) {
+        return {nullptr, ErrorEnum::eInvalidArgument};
+    } else if (scheme == cSchemePKCS11) {
+        StaticString<cFilePathLen>            library;
+        StaticString<pkcs11::cLabelLen>       token;
+        StaticString<pkcs11::cLabelLen>       label;
+        StaticArray<uint8_t, pkcs11::cIDSize> id;
+        StaticString<pkcs11::cPINLen>         userPIN;
+
+        err = ParsePKCS11URL(url, library, token, label, id, userPIN);
+        if (!err.IsNone()) {
+            return {nullptr, err};
+        }
+
+        SharedPtr<pkcs11::SessionContext> session;
+
+        Tie(session, err) = OpenSession(library, token, userPIN);
+        if (!err.IsNone()) {
+            return {nullptr, err};
+        }
+
+        auto [pkcs11URLs, urlChainErr]
+            = pkcs11::Utils(session, *mCryptoProvider, mAllocator).FindCertificateURLChain(id, label);
+        if (!urlChainErr.IsNone()) {
+            return {nullptr, err};
+        }
+
+        auto urls = MakeShared<StaticArray<StaticString<cURLLen>, cCertChainSize>>(&mAllocator);
+
+        for (const auto& url : *pkcs11URLs) {
+            if (auto emplaceErr = urls->EmplaceBack(); !emplaceErr.IsNone()) {
+                return {nullptr, emplaceErr};
+            }
+
+            if (auto buildErr = BuildPKCS11URL(library, token, url.mLabel, url.mID, userPIN, urls->Back());
+                !buildErr.IsNone()) {
+                return {nullptr, buildErr};
+            }
+        }
+
+        return {urls, ErrorEnum::eNone};
+    }
+
+    return {nullptr, ErrorEnum::eInvalidArgument};
+}
+
 RetWithError<SharedPtr<PrivateKeyItf>> CertLoader::LoadPrivKeyByURL(const String& url)
 {
     LOG_DBG() << "Load private key by URL: url=" << url;
@@ -442,6 +500,89 @@ Error ParsePKCS11URL(
     }
 
     err = ParsePIN(url, userPin);
+    if (!err.IsNone()) {
+        return err;
+    }
+
+    return ErrorEnum::eNone;
+}
+
+/***********************************************************************************************************************
+ * BuildPKCS11URL
+ **********************************************************************************************************************/
+
+Error BuildPKCS11URL(const String& library, const String& token, const String& label, const Array<uint8_t>& id,
+    const String& userPin, String& url)
+{
+    auto buildParam = [](const String& name, const String& value, const String& delim, String& url) -> Error {
+        static const String cEqual = "=";
+
+        auto err = url.Insert(url.end(), delim.begin(), delim.end());
+        if (!err.IsNone()) {
+            return AOS_ERROR_WRAP(err);
+        }
+
+        err = url.Insert(url.end(), name.begin(), name.end());
+        if (!err.IsNone()) {
+            return AOS_ERROR_WRAP(err);
+        }
+
+        err = url.Insert(url.end(), cEqual.begin(), cEqual.end());
+        if (!err.IsNone()) {
+            return AOS_ERROR_WRAP(err);
+        }
+
+        err = url.Insert(url.end(), value.begin(), value.end());
+        if (!err.IsNone()) {
+            return AOS_ERROR_WRAP(err);
+        }
+
+        return ErrorEnum::eNone;
+    };
+
+    url.Clear();
+    url.Append(cSchemePKCS11).Append(":");
+
+    // Build opaque part (semicolon-separated): token, object, id
+    static const String cSemicolon = ";";
+    static const String cToken     = "token";
+    static const String cObject    = "object";
+    static const String cId        = "id";
+
+    Error err = buildParam(cToken, token, "", url);
+    if (!err.IsNone()) {
+        return err;
+    }
+
+    err = buildParam(cObject, label, cSemicolon, url);
+    if (!err.IsNone()) {
+        return err;
+    }
+
+    // Encode ID first
+    StaticString<pkcs11::cIDStrLen> idStr;
+    err = EncodePKCS11ID(id, idStr);
+    if (!err.IsNone()) {
+        return err;
+    }
+
+    err = buildParam(cId, idStr, cSemicolon, url);
+    if (!err.IsNone()) {
+        return err;
+    }
+
+    // Build query part (question mark, ampersand-separated): module-path, pin-value
+    static const String cQuestionMark = "?";
+    static const String cAmpersand    = "&";
+    static const String cModulePath   = "module-path";
+    static const String cPinValue     = "pin-value";
+
+    err = buildParam(cModulePath, library, cQuestionMark, url);
+    if (!err.IsNone()) {
+        return err;
+    }
+
+    err = buildParam(cPinValue, userPin, cAmpersand, url);
     if (!err.IsNone()) {
         return err;
     }
