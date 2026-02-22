@@ -137,6 +137,54 @@ RetWithError<SharedPtr<StaticArray<StaticString<cURLLen>, cCertChainSize>>> Cert
     return {nullptr, ErrorEnum::eInvalidArgument};
 }
 
+RetWithError<StaticString<cURLLen>> CertLoader::LoadCACertURL(const String& clientCertURL)
+{
+    LOG_DBG() << "Load CA certificate URL using client certificate URL: clientCertURL=" << clientCertURL;
+
+    StaticString<cSchemeMaxLength> scheme;
+
+    StaticString<cURLLen> result;
+
+    auto err = ParseURLScheme(clientCertURL, scheme);
+    if (!err.IsNone()) {
+        return {result, err};
+    }
+
+    if (scheme != cSchemePKCS11) {
+        return {result, ErrorEnum::eInvalidArgument};
+    }
+
+    StaticString<cFilePathLen>            library;
+    StaticString<pkcs11::cLabelLen>       token;
+    StaticString<pkcs11::cLabelLen>       label;
+    StaticArray<uint8_t, pkcs11::cIDSize> id;
+    StaticString<pkcs11::cPINLen>         userPIN;
+
+    err = ParsePKCS11URL(clientCertURL, library, token, label, id, userPIN);
+    if (!err.IsNone()) {
+        return {result, err};
+    }
+
+    SharedPtr<pkcs11::SessionContext> session;
+
+    Tie(session, err) = OpenSession(library, token, userPIN);
+    if (!err.IsNone()) {
+        return {result, err};
+    }
+
+    auto [caURL, caURLErr] = pkcs11::Utils(session, *mCryptoProvider, mAllocator).FindCACertificateURL(id, label);
+    if (!caURLErr.IsNone()) {
+        return {result, caURLErr};
+    }
+
+    err = BuildPKCS11URL(library, token, caURL->mLabel, caURL->mID, userPIN, result);
+    if (!err.IsNone()) {
+        return {result, err};
+    }
+
+    return {result, ErrorEnum::eNone};
+}
+
 RetWithError<SharedPtr<PrivateKeyItf>> CertLoader::LoadPrivKeyByURL(const String& url)
 {
     LOG_DBG() << "Load private key by URL: url=" << url;

@@ -40,6 +40,19 @@ public:
     }
 
     /**
+     * Loads CA certificate URL using client certificate URL.
+     *
+     * @param caCert input certificate.
+     * @return RetWithError<StaticString<cURLLen>>.
+     */
+    virtual RetWithError<StaticString<cURLLen>> LoadCACertURL(const String& clientCertURL)
+    {
+        (void)clientCertURL;
+
+        return {"", ErrorEnum::eNone};
+    }
+
+    /**
      * Loads private key by URL.
      *
      * @param url input url.

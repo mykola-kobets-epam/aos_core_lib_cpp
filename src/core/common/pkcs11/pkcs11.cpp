@@ -1325,6 +1325,86 @@ RetWithError<SharedPtr<CertificateURLChain>> Utils::FindCertificateURLChain(
     return {urlChain, err};
 }
 
+RetWithError<SharedPtr<PKCS11URL>> Utils::FindCACertificateURL(const Array<uint8_t>& id, const String& label)
+{
+    StaticArray<ObjectHandle, cKeysPerToken> certHandles;
+
+    auto err = FindCertificates(id, label, certHandles);
+    if (!err.IsNone()) {
+        return {nullptr, err};
+    }
+
+    SharedPtr<crypto::x509::Certificate> certificate;
+
+    Tie(certificate, err) = GetCertificate(certHandles[0]);
+    if (!err.IsNone()) {
+        return {nullptr, err};
+    }
+
+    SharedPtr<PKCS11URL> clientCertURL;
+    Tie(clientCertURL, err) = GetPKCS11URL(certHandles[0]);
+    if (!err.IsNone()) {
+        return {nullptr, err};
+    }
+
+    auto visitedChain = MakeShared<crypto::x509::CertificateChain>(&mAllocator);
+    err               = visitedChain->PushBack(*certificate);
+    if (!err.IsNone()) {
+        return {nullptr, err};
+    }
+
+    return FindRootCACertificateURL(*certificate, *visitedChain, clientCertURL);
+}
+
+RetWithError<SharedPtr<PKCS11URL>> Utils::FindRootCACertificateURL(const crypto::x509::Certificate& certificate,
+    crypto::x509::CertificateChain& chain, const SharedPtr<PKCS11URL>& caURL)
+{
+    if (certificate.mIssuer.IsEmpty() || certificate.mIssuer == certificate.mSubject) {
+        return {caURL, ErrorEnum::eNone};
+    }
+
+    CK_OBJECT_CLASS                                      certClass = CKO_CERTIFICATE;
+    StaticArray<ObjectAttribute, cObjectAttributesCount> certTempl;
+
+    certTempl.PushBack({CKA_CLASS, ConvertToAttributeValue(certClass)});
+    certTempl.PushBack({CKA_SUBJECT, certificate.mIssuer});
+
+    StaticArray<ObjectHandle, cKeysPerToken> handles;
+    SharedPtr<crypto::x509::Certificate>     foundCert;
+    SharedPtr<PKCS11URL>                     foundURL;
+
+    auto err = mSession->FindObjects(certTempl, handles);
+    if (err.IsNone()) {
+        Tie(foundCert, err) = GetCertificate(handles[0]);
+        Tie(foundURL, err)  = GetPKCS11URL(handles[0]);
+    } else if (err == ErrorEnum::eNotFound && !certificate.mAuthorityKeyId.IsEmpty()) {
+        err = FindPKCS11URLByKeyID(certificate.mAuthorityKeyId, foundCert, foundURL);
+    } else {
+        return {nullptr, err};
+    }
+
+    if (!err.IsNone()) {
+        return {nullptr, err};
+    }
+
+    if (!foundURL) {
+        return {nullptr, ErrorEnum::eNotFound};
+    }
+
+    for (const auto& cur : chain) {
+        if (cur.mSubject == foundCert->mSubject) {
+            return {nullptr, ErrorEnum::eNotFound};
+        }
+    }
+
+    err = chain.PushBack(*foundCert);
+    if (!err.IsNone()) {
+        return {nullptr, err};
+    }
+
+    return FindRootCACertificateURL(*foundCert, chain, foundURL);
+}
+
 Error Utils::DeleteCertificate(const Array<uint8_t>& id, const String& label)
 {
     CK_OBJECT_CLASS                              certClass = CKO_CERTIFICATE;

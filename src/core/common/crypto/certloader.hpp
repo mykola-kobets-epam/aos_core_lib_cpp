@@ -48,6 +48,15 @@ public:
         const String& url) override;
 
     /**
+     * Loads CA certificate URL using client certificate URL.
+     *
+     * @param clientCertURL input client certificate URL.
+     * @return RetWithError<StaticString<cURLLen>>.
+     * @note This function is used to load the CA certificate URL using the client certificate URL.
+     */
+    RetWithError<StaticString<cURLLen>> LoadCACertURL(const String& clientCertURL) override;
+
+    /**
      * Loads private key by URL.
      *
      * @param url input url.
@@ -62,8 +71,11 @@ private:
         = cCertChainsCount * cCertChainSize * sizeof(x509::Certificate) + sizeof(PEMCertChainBlob);
     static constexpr auto cKeyAllocatorSize
         = AOS_CONFIG_CRYPTO_PRIV_KEYS_COUNT * pkcs11::cPrivateKeyMaxSize + sizeof(cPrivKeyPEMLen);
-    static constexpr auto cURLAllocatorSize
-        = cCertChainsCount * (sizeof(pkcs11::CertificateURLChain) + sizeof(StaticArray<StaticString<cURLLen>, cCertChainSize>));
+    static constexpr auto cURLAllocatorSize = cCertChainsCount
+        * (sizeof(pkcs11::CertificateURLChain) + sizeof(StaticArray<StaticString<cURLLen>, cCertChainSize>));
+    static constexpr auto cCACertURLAllocatorSize = cCertChainsCount
+        * (sizeof(pkcs11::CertificateURLChain) + sizeof(StaticArray<StaticString<cURLLen>, cCertChainSize>));
+
     static constexpr auto cNumAllocation = AOS_CONFIG_CRYPTO_NUM_ALLOCATIONS;
 
     static constexpr auto cDefaultPKCS11Library = AOS_CONFIG_CRYPTO_DEFAULT_PKCS11_LIB;
@@ -78,7 +90,8 @@ private:
     x509::ProviderItf*     mCryptoProvider = nullptr;
     pkcs11::PKCS11Manager* mPKCS11         = nullptr;
 
-    StaticAllocator<cCertAllocatorSize + cKeyAllocatorSize + cURLAllocatorSize + pkcs11::Utils::cLocalObjectsMaxSize,
+    StaticAllocator<cCertAllocatorSize + cKeyAllocatorSize + cURLAllocatorSize + cCACertURLAllocatorSize
+            + pkcs11::Utils::cLocalObjectsMaxSize,
         cNumAllocation>
         mAllocator;
 };

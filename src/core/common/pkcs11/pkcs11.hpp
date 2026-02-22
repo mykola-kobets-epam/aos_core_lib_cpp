@@ -787,6 +787,17 @@ public:
     RetWithError<SharedPtr<CertificateURLChain>> FindCertificateURLChain(const Array<uint8_t>& id, const String& label);
 
     /**
+     * Finds root CA certificate URL by traversing the certificate chain.
+     * This function recursively traverses the chain until it finds a self-signed certificate (root CA).
+     * If the client certificate is self-signed, returns its own URL.
+     *
+     * @param id client certificate identifier.
+     * @param label client certificate label.
+     * @return RetWithError<SharedPtr<PKCS11URL>>.
+     */
+    RetWithError<SharedPtr<PKCS11URL>> FindCACertificateURL(const Array<uint8_t>& id, const String& label);
+
+    /**
      * Deletes a previously imported certificate.
      *
      * @param id certificate id.
@@ -817,6 +828,9 @@ private:
 
     Error FindPKCS11URLByKeyID(
         const Array<uint8_t>& keyID, SharedPtr<crypto::x509::Certificate>& certificate, SharedPtr<PKCS11URL>& url);
+
+    RetWithError<SharedPtr<PKCS11URL>> FindRootCACertificateURL(const crypto::x509::Certificate& certificate,
+        crypto::x509::CertificateChain& visitedChain, const SharedPtr<PKCS11URL>& caURL);
     RetWithError<SharedPtr<PKCS11URL>> GetPKCS11URL(ObjectHandle handle);
 
     SharedPtr<SessionContext>  mSession;
