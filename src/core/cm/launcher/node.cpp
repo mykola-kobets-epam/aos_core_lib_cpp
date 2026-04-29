@@ -91,6 +91,51 @@ auto FilterByNode(const Array<SharedPtr<Instance>>& array, const String& nodeID)
     return Filter<SharedPtr<Instance>, decltype(cmp)>(array, cmp);
 }
 
+void PrintDetailedStartInstances(const Array<aos::InstanceInfo>& startInstances)
+{
+    for (const auto& instance : startInstances) {
+        LOG_INF() << "Start instance detailed info [ident]"
+                  << Log::Field("instance", static_cast<const InstanceIdent&>(instance))
+                  << Log::Field("itemID", instance.mItemID) << Log::Field("subjectID", instance.mSubjectID)
+                  << Log::Field("instanceIndex", instance.mInstance) << Log::Field("type", instance.mType);
+
+        LOG_INF() << "Start instance detailed info [runtime]"
+                  << Log::Field("instance", static_cast<const InstanceIdent&>(instance))
+                  << Log::Field("preinstalled", instance.mPreinstalled) << Log::Field("version", instance.mVersion)
+                  << Log::Field("runtimeID", instance.mRuntimeID)
+                  << Log::Field("manifestDigest", instance.mManifestDigest) << Log::Field("ownerID", instance.mOwnerID)
+                  << Log::Field("subjectType", instance.mSubjectType);
+
+        LOG_INF() << "Start instance detailed info [resources]"
+                  << Log::Field("instance", static_cast<const InstanceIdent&>(instance))
+                  << Log::Field("uid", instance.mUID) << Log::Field("gid", instance.mGID)
+                  << Log::Field("priority", instance.mPriority) << Log::Field("storagePath", instance.mStoragePath)
+                  << Log::Field("statePath", instance.mStatePath)
+                  << Log::Field("envVarsCount", instance.mEnvVars.Size())
+                  << Log::Field("hasNetworkParameters", instance.mNetworkParameters.HasValue())
+                  << Log::Field("hasMonitoringParameters", instance.mMonitoringParams.HasValue());
+
+        if (instance.mNetworkParameters.HasValue()) {
+            const auto& networkParams = instance.mNetworkParameters.GetValue();
+
+            LOG_INF() << "Start instance network parameters"
+                      << Log::Field("instance", static_cast<const InstanceIdent&>(instance))
+                      << Log::Field("networkID", networkParams.mNetworkID)
+                      << Log::Field("subnet", networkParams.mSubnet) << Log::Field("ip", networkParams.mIP)
+                      << Log::Field("dnsServersCount", networkParams.mDNSServers.Size())
+                      << Log::Field("firewallRulesCount", networkParams.mFirewallRules.Size());
+        }
+
+        if (instance.mMonitoringParams.HasValue()) {
+            const auto& monitoringParams = instance.mMonitoringParams.GetValue();
+
+            LOG_INF() << "Start instance monitoring parameters"
+                      << Log::Field("instance", static_cast<const InstanceIdent&>(instance))
+                      << Log::Field("hasAlertRules", monitoringParams.mAlertRules.HasValue());
+        }
+    }
+}
+
 /***********************************************************************************************************************
  * Public
  **********************************************************************************************************************/
@@ -359,6 +404,8 @@ Error Node::SendScheduledInstances(
         LOG_INF() << "Update node start instance" << Log::Field("instance", static_cast<const InstanceIdent&>(instance))
                   << Log::Field("version", instance.mVersion) << Log::Field("runtimeID", instance.mRuntimeID);
     }
+
+    PrintDetailedStartInstances(*startInstances);
 
     if (auto err = mInstanceRunner->UpdateInstances(mInfo.mNodeID, *stopInstances, *startInstances); !err.IsNone()) {
         return AOS_ERROR_WRAP(err);

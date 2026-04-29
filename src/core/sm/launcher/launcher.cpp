@@ -10,6 +10,44 @@
 
 namespace aos::sm::launcher {
 
+void PrintDetailedInstanceInfo(const char* title, const InstanceInfo& instance)
+{
+    LOG_DBG() << title << " [ident]" << Log::Field("instance", static_cast<const InstanceIdent&>(instance))
+              << Log::Field("itemID", instance.mItemID) << Log::Field("subjectID", instance.mSubjectID)
+              << Log::Field("instanceIndex", instance.mInstance) << Log::Field("type", instance.mType);
+
+    LOG_DBG() << title << " [runtime]" << Log::Field("instance", static_cast<const InstanceIdent&>(instance))
+              << Log::Field("preinstalled", instance.mPreinstalled) << Log::Field("version", instance.mVersion)
+              << Log::Field("runtimeID", instance.mRuntimeID) << Log::Field("manifestDigest", instance.mManifestDigest)
+              << Log::Field("ownerID", instance.mOwnerID) << Log::Field("subjectType", instance.mSubjectType);
+
+    LOG_DBG() << title << " [resources]" << Log::Field("instance", static_cast<const InstanceIdent&>(instance))
+              << Log::Field("uid", instance.mUID) << Log::Field("gid", instance.mGID)
+              << Log::Field("priority", instance.mPriority) << Log::Field("storagePath", instance.mStoragePath)
+              << Log::Field("statePath", instance.mStatePath) << Log::Field("envVarsCount", instance.mEnvVars.Size())
+              << Log::Field("hasNetworkParameters", instance.mNetworkParameters.HasValue())
+              << Log::Field("hasMonitoringParameters", instance.mMonitoringParams.HasValue());
+
+    if (instance.mNetworkParameters.HasValue()) {
+        const auto& networkParams = instance.mNetworkParameters.GetValue();
+
+        LOG_DBG() << title << " network parameters"
+                  << Log::Field("instance", static_cast<const InstanceIdent&>(instance))
+                  << Log::Field("networkID", networkParams.mNetworkID) << Log::Field("subnet", networkParams.mSubnet)
+                  << Log::Field("ip", networkParams.mIP)
+                  << Log::Field("dnsServersCount", networkParams.mDNSServers.Size())
+                  << Log::Field("firewallRulesCount", networkParams.mFirewallRules.Size());
+    }
+
+    if (instance.mMonitoringParams.HasValue()) {
+        const auto& monitoringParams = instance.mMonitoringParams.GetValue();
+
+        LOG_DBG() << title << " monitoring parameters"
+                  << Log::Field("instance", static_cast<const InstanceIdent&>(instance))
+                  << Log::Field("hasAlertRules", monitoringParams.mAlertRules.HasValue());
+    }
+}
+
 /***********************************************************************************************************************
  * Public
  **********************************************************************************************************************/
@@ -761,7 +799,11 @@ Error Launcher::AppendInstancesWithModifiedParams(
             continue;
         }
 
-        LOG_DBG() << "Instance parameters modified, adding to stop list" << Log::Field("instance", startInstance);
+        LOG_DBG() << "Instance parameters modified, adding to stop list"
+                  << Log::Field("instance", static_cast<const InstanceIdent&>(startInstance));
+
+        PrintDetailedInstanceInfo("Modified instance [new]", startInstance);
+        PrintDetailedInstanceInfo("Modified instance [current]", instanceData->mInfo);
 
         if (auto err = stopInstances.EmplaceBack(startInstance); !err.IsNone()) {
             return AOS_ERROR_WRAP(err);

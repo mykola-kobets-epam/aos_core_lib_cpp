@@ -552,6 +552,51 @@ Error Balancer::UpdateMonitoringData(bool isInitialUpdate)
     return ErrorEnum::eNone;
 }
 
+void Balancer::PrintInstanceInfos(Array<SharedPtr<Instance>>& instances)
+{
+    for (const auto& instance : instances) {
+        const auto& launcherInfo = instance->GetInfo();
+        const auto& smInfo       = instance->GetSMInfo();
+
+        LOG_DBG() << "Launcher instance info" << Log::Field("instance", launcherInfo.mInstanceIdent)
+                  << Log::Field("version", launcherInfo.mVersion) << Log::Field("nodeID", launcherInfo.mNodeID)
+                  << Log::Field("runtimeID", launcherInfo.mRuntimeID)
+                  << Log::Field("manifestDigest", launcherInfo.mManifestDigest)
+                  << Log::Field("ownerID", launcherInfo.mOwnerID);
+
+        LOG_DBG() << "SM instance info" << Log::Field("instance", static_cast<const InstanceIdent&>(smInfo))
+                  << Log::Field("itemID", smInfo.mItemID) << Log::Field("subjectID", smInfo.mSubjectID)
+                  << Log::Field("instanceIndex", smInfo.mInstance) << Log::Field("type", smInfo.mType)
+                  << Log::Field("preinstalled", smInfo.mPreinstalled) << Log::Field("version", smInfo.mVersion)
+                  << Log::Field("runtimeID", smInfo.mRuntimeID) << Log::Field("manifestDigest", smInfo.mManifestDigest)
+                  << Log::Field("ownerID", smInfo.mOwnerID) << Log::Field("subjectType", smInfo.mSubjectType)
+                  << Log::Field("uid", smInfo.mUID) << Log::Field("gid", smInfo.mGID)
+                  << Log::Field("priority", smInfo.mPriority) << Log::Field("storagePath", smInfo.mStoragePath)
+                  << Log::Field("statePath", smInfo.mStatePath) << Log::Field("envVarsCount", smInfo.mEnvVars.Size())
+                  << Log::Field("hasNetworkParameters", smInfo.mNetworkParameters.HasValue())
+                  << Log::Field("hasMonitoringParameters", smInfo.mMonitoringParams.HasValue());
+
+        if (smInfo.mNetworkParameters.HasValue()) {
+            const auto& networkParams = smInfo.mNetworkParameters.GetValue();
+
+            LOG_DBG() << "SM instance network parameters"
+                      << Log::Field("instance", static_cast<const InstanceIdent&>(smInfo))
+                      << Log::Field("networkID", networkParams.mNetworkID)
+                      << Log::Field("subnet", networkParams.mSubnet) << Log::Field("ip", networkParams.mIP)
+                      << Log::Field("dnsServersCount", networkParams.mDNSServers.Size())
+                      << Log::Field("firewallRulesCount", networkParams.mFirewallRules.Size());
+        }
+
+        if (smInfo.mMonitoringParams.HasValue()) {
+            const auto& monitoringParams = smInfo.mMonitoringParams.GetValue();
+
+            LOG_DBG() << "SM instance monitoring parameters"
+                      << Log::Field("instance", static_cast<const InstanceIdent&>(smInfo))
+                      << Log::Field("hasAlertRules", monitoringParams.mAlertRules.HasValue());
+        }
+    }
+}
+
 Error Balancer::PrepareForBalancing(bool rebalancing, bool isInitialUpdate)
 {
     if (auto err = UpdateMonitoringData(isInitialUpdate); !err.IsNone()) {

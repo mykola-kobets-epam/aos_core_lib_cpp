@@ -101,6 +101,7 @@ private:
 
     Error PrepareForBalancing(bool rebalancing, bool isInitialUpdate = false);
     Error UpdateMonitoringData(bool isInitialUpdate = false);
+    void  PrintInstanceInfos(Array<SharedPtr<Instance>>& instances);
 
     ImageInfoProvider*     mImageInfoProvider {};
     InstanceManager*       mInstanceManager {};
