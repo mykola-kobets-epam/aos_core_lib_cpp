@@ -23,8 +23,9 @@ public:
      *
      * @param storage storage interface.
      * @param instanceManager instance manager.
+     * @param imageInfoProvider image info provider.
      */
-    void Init(StorageItf& storage, InstanceManager& instanceManager);
+    void Init(StorageItf& storage, InstanceManager& instanceManager, ImageInfoProvider& imageInfoProvider);
 
     /**
      * Saves run requests to internal buffer and to storage.
@@ -51,9 +52,20 @@ public:
     void CreateInstances(const Array<Node>& nodes, Array<SharedPtr<Instance>>& instances);
 
 private:
-    StorageItf*                                       mStorage {};
-    InstanceManager*                                  mInstanceManager {};
+    static constexpr auto cCombinedRuntimesSize
+        = sizeof(StaticArray<StaticString<cRuntimeTypeLen>, oci::cMaxNumManifests * oci::cMaxNumRunners>);
+    static constexpr auto cAllocatorSize = sizeof(oci::ImageIndex) + cCombinedRuntimesSize + sizeof(oci::ItemConfig);
+
+    void GenerateInstances(
+        const RunInstanceRequest& request, const Array<Node>& nodes, Array<SharedPtr<Instance>>& instances);
+
+    StorageItf*        mStorage {};
+    InstanceManager*   mInstanceManager {};
+    ImageInfoProvider* mImageInfoProvider {};
+
     StaticArray<RunInstanceRequest, cMaxNumInstances> mRunRequests;
+
+    StaticAllocator<cAllocatorSize> mAllocator;
 };
 
 } // namespace aos::cm::launcher
