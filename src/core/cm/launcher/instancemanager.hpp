@@ -170,6 +170,13 @@ public:
         const String& runtimeID, const Array<SharedPtr<Instance>>& newInstances);
 
     /**
+     * Removes instances generated for component run requests with mNumInstances == 0.
+     *
+     * @param request run request.
+     */
+    void RemoveGeneratedInstances(const RunInstanceRequest& request);
+
+    /**
      * Submits all stashed instances for execution.
      *
      * @return Error.
@@ -265,6 +272,8 @@ private:
     Error SetExpiredStatus();
     Error RemoveOutdatedInstances();
     Error ClearInstancesWithDeletedImages();
+    template <typename Predicate>
+    Error RemoveInstances(Array<SharedPtr<Instance>>& instances, Predicate predicate);
 
     RetWithError<SharedPtr<Instance>> CreateInstance(const InstanceInfo& info);
 
