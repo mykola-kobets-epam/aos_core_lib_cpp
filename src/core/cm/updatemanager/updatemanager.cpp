@@ -39,7 +39,7 @@ Error UpdateManager::Init(const Config& config, iamclient::IdentProviderItf& ide
 
 Error UpdateManager::Start()
 {
-    LOG_DBG() << "Start update manager";
+    LOG_DBG() << "Start update manager. New version.";
 
     if (auto err = mDesiredStatusHandler.Start(); !err.IsNone()) {
         return AOS_ERROR_WRAP(err);
