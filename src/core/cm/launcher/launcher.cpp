@@ -539,6 +539,14 @@ Error Launcher::OnInstanceStatusReceived(const InstanceStatus& status)
               << Log::Field("runtimeID", status.mRuntimeID) << Log::Field("manifestDigest", status.mManifestDigest)
               << Log::Field("state", status.mState) << Log::Field(status.mError);
 
+    LOG_DBG() << "Env var statuses received" << Log::Field("instance", static_cast<const InstanceIdent&>(status))
+              << Log::Field("count", status.mEnvVarsStatuses.Size());
+
+    for (const auto& envVarStatus : status.mEnvVarsStatuses) {
+        LOG_DBG() << "Env var status received" << Log::Field("instance", static_cast<const InstanceIdent&>(status))
+                  << Log::Field("name", envVarStatus.mName) << Log::Field(envVarStatus.mError);
+    }
+
     LockGuard updateLock {mUpdateMutex};
 
     if (auto err = mInstanceManager.UpdateStatus(status); !err.IsNone()) {
@@ -561,6 +569,16 @@ Error Launcher::OnNodeInstancesStatusesReceived(const String& nodeID, const Arra
                   << Log::Field("version", status.mVersion) << Log::Field("runtimeID", status.mRuntimeID)
                   << Log::Field("manifestDigest", status.mManifestDigest) << Log::Field("state", status.mState)
                   << Log::Field(status.mError);
+
+        LOG_DBG() << "Node env var statuses received"
+                  << Log::Field("instance", static_cast<const InstanceIdent&>(status))
+                  << Log::Field("count", status.mEnvVarsStatuses.Size());
+
+        for (const auto& envVarStatus : status.mEnvVarsStatuses) {
+            LOG_DBG() << "Node env var status received"
+                      << Log::Field("instance", static_cast<const InstanceIdent&>(status))
+                      << Log::Field("name", envVarStatus.mName) << Log::Field(envVarStatus.mError);
+        }
     }
 
     LockGuard updateLock {mUpdateMutex};

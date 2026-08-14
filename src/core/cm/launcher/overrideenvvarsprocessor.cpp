@@ -113,7 +113,23 @@ void OverrideEnvVarsProcessor::SendStatuses()
 {
     LockGuard lock {mMutex};
 
-    if (mNewEnvVarStatuses != mEnvVarStatuses) {
+    const bool changed = mNewEnvVarStatuses != mEnvVarStatuses;
+
+    LOG_DBG() << "Send override env vars statuses" << Log::Field("changed", changed)
+              << Log::Field("count", mNewEnvVarStatuses.mStatuses.Size());
+
+    if (changed) {
+        for (const auto& item : mNewEnvVarStatuses.mStatuses) {
+            LOG_DBG() << "Override env var statuses" << Log::Field("instance", static_cast<const InstanceIdent&>(item))
+                      << Log::Field("count", item.mStatuses.Size());
+
+            for (const auto& envVarStatus : item.mStatuses) {
+                LOG_DBG() << "Override env var status"
+                          << Log::Field("instance", static_cast<const InstanceIdent&>(item))
+                          << Log::Field("name", envVarStatus.mName) << Log::Field(envVarStatus.mError);
+            }
+        }
+
         if (auto err = mEnvVarStatusSender->SendOverrideEnvsStatuses(mNewEnvVarStatuses); !err.IsNone()) {
             LOG_ERR() << "Can't send override env vars statuses" << Log::Field(AOS_ERROR_WRAP(err));
         }
