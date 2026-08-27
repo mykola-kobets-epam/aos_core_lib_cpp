@@ -104,11 +104,10 @@ public:
      * @param cryptoProvider      cryptographic provider interface.
      * @param certLoader          certificate loader interface.
      * @param serviceDiscoveryURL URL for the service discovery endpoint.
-     * @param caCert              root certificate path.
      * @return Error.
      */
     Error Init(AllocatorItf& allocator, iamclient::CertProviderItf& certProvider, CryptoProviderItf& cryptoProvider,
-        CertLoaderItf& certLoader, const String& serviceDiscoveryURL, const String& caCert);
+        CertLoaderItf& certLoader, const String& serviceDiscoveryURL);
 
     /**
      * Retrieves available service discovery URLs.
@@ -153,6 +152,7 @@ public:
 private:
     static constexpr auto cMaxHashSize                 = cSHA2DigestSize;
     static constexpr auto cServiceDiscoveryDefaultPort = 9000;
+    static constexpr auto cMaxRootCerts                = AOS_CONFIG_TYPES_ROOT_CERTS_PER_NODE;
 
     static constexpr auto cOnlineCert  = "online";
     static constexpr auto cOfflineCert = "offline";
@@ -160,6 +160,15 @@ private:
     static constexpr auto cEnvelopedDataOid = "1.2.840.113549.1.7.3";
     static constexpr auto cRSAEncryptionOid = "1.2.840.113549.1.1.1";
     static constexpr auto cAES256CBCOid     = "2.16.840.1.101.3.4.1.42";
+
+    /**
+     * Loads trusted root CA certificates from the cert provider.
+     *
+     * Root certs are loaded once during Init. After UpdateRootCerts, a process restart is required
+     * for the new trust set to take effect (CertListener notifies with a single cert which is not
+     * suitable for replacing the full root set).
+     */
+    Error LoadRootCerts();
 
     RetWithError<SharedPtr<x509::CertificateChain>> GetOnlineCert();
     Error SetDefaultServiceDiscoveryURL(Array<StaticString<cURLLen>>& urls) const;
@@ -199,8 +208,8 @@ private:
     CryptoProviderItf*          mCryptoProvider {};
     CertLoaderItf*              mCertLoader {};
 
-    StaticString<cURLLen>  mServiceDiscoveryURL;
-    x509::CertificateChain mCACerts;
+    StaticString<cURLLen>                         mServiceDiscoveryURL;
+    StaticArray<x509::Certificate, cMaxRootCerts> mCACerts;
 
     Semaphore     mSemaphore {cMaxNumConcurrentItems};
     AllocatorItf* mAllocator {};
