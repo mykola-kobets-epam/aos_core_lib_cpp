@@ -103,11 +103,10 @@ public:
      * @param cryptoProvider      cryptographic provider interface.
      * @param certLoader          certificate loader interface.
      * @param serviceDiscoveryURL URL for the service discovery endpoint.
-     * @param caCert              root certificate path.
      * @return Error.
      */
     Error Init(AllocatorItf& allocator, iamclient::CertProviderItf& certProvider, CryptoProviderItf& cryptoProvider,
-        CertLoaderItf& certLoader, const String& serviceDiscoveryURL, const String& caCert);
+        CertLoaderItf& certLoader, const String& serviceDiscoveryURL);
 
     /**
      * Retrieves available service discovery URLs.
@@ -154,6 +153,7 @@ private:
 
     static constexpr auto cOnlineCert  = "online";
     static constexpr auto cOfflineCert = "offline";
+    static constexpr auto cRootCerts   = "rootcerts";
 
     static constexpr auto cEnvelopedDataOid = "1.2.840.113549.1.7.3";
     static constexpr auto cRSAEncryptionOid = "1.2.840.113549.1.1.1";
