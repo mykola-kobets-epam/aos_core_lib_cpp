@@ -146,15 +146,15 @@ public:
         ASSERT_TRUE(mSoftHSMEnv.Init(mAllocator, cPIN, cLabel).IsNone());
         ASSERT_TRUE(mCertLoader.Init(mAllocator, *mCryptoProvider, mSoftHSMEnv.GetManager()).IsNone());
 
+        mCertProvider.AddCert("rootcerts", "rootCA");
+
         ASSERT_TRUE(
-            mCryptoHelper
-                .Init(mAllocator, mCertProvider, *mCryptoProvider, mCertLoader, cDefaultServiceDiscoveryURL, cCACert)
+            mCryptoHelper.Init(mAllocator, mCertProvider, *mCryptoProvider, mCertLoader, cDefaultServiceDiscoveryURL)
                 .IsNone());
     }
 
 protected:
     static constexpr auto cDefaultServiceDiscoveryURL = "http://service-discovery-url.html";
-    static constexpr auto cCACert                     = CRYPTOHELPER_CERTS_DIR "/rootCA.pem";
 
     static constexpr auto cLabel = "iam pkcs11 test slot";
     static constexpr auto cPIN   = "admin";
@@ -599,10 +599,10 @@ protected:
         CryptoHelperGCMTest::SetUp();
 
         ASSERT_TRUE(mFaultyProvider.Init(mAllocator).IsNone());
-        ASSERT_TRUE(mFaultyHelper
-                        .Init(mSwitchAllocator, mCertProvider, mFaultyProvider, mCertLoader,
-                            cDefaultServiceDiscoveryURL, cCACert)
-                        .IsNone());
+        ASSERT_TRUE(
+            mFaultyHelper
+                .Init(mSwitchAllocator, mCertProvider, mFaultyProvider, mCertLoader, cDefaultServiceDiscoveryURL)
+                .IsNone());
     }
 
     Error Decrypt(const std::string& decryptedPath = "")
