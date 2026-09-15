@@ -465,7 +465,7 @@ Error ConvertX509ToAos(X509* cert, x509::Certificate& resultCert)
         return AOS_ERROR_WRAP(err);
     }
 
-    resultCert.mVersion = static_cast<int>(X509_get_version(cert)) + 1;
+    resultCert.mVersion = static_cast<int32_t>(X509_get_version(cert)) + 1;
 
     err = GetBasicConstraints(cert, resultCert.mIsCA);
     if (!err.IsNone()) {
@@ -525,12 +525,14 @@ RetWithError<EVP_PKEY*> GetEvpPublicKey(const RSAPublicKey& pubKey, OSSL_LIB_CTX
         return {nullptr, OPENSSL_ERROR()};
     }
 
-    auto n = DeferRelease(BN_bin2bn(pubKey.GetN().Get(), static_cast<int>(pubKey.GetN().Size()), nullptr), BN_free);
+    auto n = DeferRelease(BN_bin2bn(pubKey.GetN().Get(), static_cast<int>(pubKey.GetN().Size()), nullptr),
+        BN_free); // NOSONAR cpp:M23_058 - matches the fixed parameter type of the external C API
     if (!n) {
         return {nullptr, OPENSSL_ERROR()};
     }
 
-    auto e = DeferRelease(BN_bin2bn(pubKey.GetE().Get(), static_cast<int>(pubKey.GetE().Size()), nullptr), BN_free);
+    auto e = DeferRelease(BN_bin2bn(pubKey.GetE().Get(), static_cast<int>(pubKey.GetE().Size()), nullptr),
+        BN_free); // NOSONAR cpp:M23_058 - matches the fixed parameter type of the external C API
     if (!e) {
         return {nullptr, OPENSSL_ERROR()};
     }
@@ -588,7 +590,8 @@ RetWithError<EVP_PKEY*> GetEvpPublicKey(const ECDSAPublicKey& pubKey, OSSL_LIB_C
     }
 
     auto octetStr = DeferRelease(ASN1_OCTET_STRING_new(), ASN1_OCTET_STRING_free);
-    if (ASN1_OCTET_STRING_set(octetStr.Get(), pubKey.GetECPoint().Get(), static_cast<int>(pubKey.GetECPoint().Size()))
+    if (ASN1_OCTET_STRING_set(octetStr.Get(), pubKey.GetECPoint().Get(),
+            static_cast<int>(pubKey.GetECPoint().Size())) // NOSONAR cpp:M23_058
         != 1) {
         return {nullptr, OPENSSL_ERROR()};
     }
@@ -777,7 +780,8 @@ Error SetSerial(const Array<uint8_t>& serial, X509* cert)
     } else {
         auto buf = serial.Get();
 
-        auto bnSerialRaw = DeferRelease(BN_bin2bn(buf, static_cast<int>(serial.Size()), nullptr), BN_free);
+        auto bnSerialRaw = DeferRelease(BN_bin2bn(buf, static_cast<int>(serial.Size()), nullptr),
+            BN_free); // NOSONAR cpp:M23_058 - matches the fixed parameter type of the external C API
         if (!bnSerialRaw) {
             return OPENSSL_ERROR();
         }
@@ -951,7 +955,9 @@ Error SetIssuerAltNameURIs(const Array<StaticString<cURLLen>>& uris, X509* cert)
             return OPENSSL_ERROR();
         }
 
-        if (!ASN1_STRING_set(ia5.Get(), uri.CStr(), static_cast<int>(uri.Size()))) {
+        if (!ASN1_STRING_set(ia5.Get(), uri.CStr(),
+                static_cast<int>(
+                    uri.Size()))) { // NOSONAR cpp:M23_058 - matches the fixed parameter type of the external C API
             return OPENSSL_ERROR();
         }
 
@@ -1372,7 +1378,8 @@ Error OpenSSLCryptoProvider::CreateClientCert(const String& csrPEM, const String
     LOG_DBG() << "Create client certificate";
 
     // Parse CSR
-    auto bioCsr = DeferRelease(BIO_new_mem_buf(csrPEM.CStr(), static_cast<int>(csrPEM.Size())), BIO_free);
+    auto bioCsr = DeferRelease(BIO_new_mem_buf(csrPEM.CStr(), static_cast<int>(csrPEM.Size())),
+        BIO_free); // NOSONAR cpp:M23_058 - matches the fixed parameter type of the external C API
     if (!bioCsr) {
         return ErrorEnum::eFailed;
     }
@@ -1383,7 +1390,8 @@ Error OpenSSLCryptoProvider::CreateClientCert(const String& csrPEM, const String
     }
 
     // Parse CA Private Key
-    auto bioCaKey = DeferRelease(BIO_new_mem_buf(caKeyPEM.CStr(), static_cast<int>(caKeyPEM.Size())), BIO_free);
+    auto bioCaKey = DeferRelease(BIO_new_mem_buf(caKeyPEM.CStr(), static_cast<int>(caKeyPEM.Size())),
+        BIO_free); // NOSONAR cpp:M23_058 - matches the fixed parameter type of the external C API
     if (!bioCaKey) {
         return ErrorEnum::eFailed;
     }
@@ -1395,7 +1403,8 @@ Error OpenSSLCryptoProvider::CreateClientCert(const String& csrPEM, const String
     }
 
     // Parse CA Certificate
-    auto bioCaCert = DeferRelease(BIO_new_mem_buf(caCertPEM.CStr(), static_cast<int>(caCertPEM.Size())), BIO_free);
+    auto bioCaCert = DeferRelease(BIO_new_mem_buf(caCertPEM.CStr(), static_cast<int>(caCertPEM.Size())),
+        BIO_free); // NOSONAR cpp:M23_058 - matches the fixed parameter type of the external C API
     if (!bioCaCert) {
         return ErrorEnum::eFailed;
     }
@@ -1412,7 +1421,8 @@ Error OpenSSLCryptoProvider::PEMToX509Certs(const String& pemBlob, Array<x509::C
 {
     LOG_DBG() << "Convert certs from PEM to x509";
 
-    auto bio = DeferRelease(BIO_new_mem_buf(pemBlob.CStr(), static_cast<int>(pemBlob.Size())), BIO_free);
+    auto bio = DeferRelease(BIO_new_mem_buf(pemBlob.CStr(), static_cast<int>(pemBlob.Size())),
+        BIO_free); // NOSONAR cpp:M23_058 - matches the fixed parameter type of the external C API
     if (!bio) {
         return ErrorEnum::eFailed;
     }
@@ -1519,7 +1529,8 @@ RetWithError<SharedPtr<PrivateKeyItf>> OpenSSLCryptoProvider::PEMToX509PrivKey(c
 {
     LOG_ERR() << "Create private key from PEM";
 
-    auto bio = DeferRelease(BIO_new_mem_buf(pemBlob.Get(), static_cast<int>(pemBlob.Size())), BIO_free);
+    auto bio = DeferRelease(BIO_new_mem_buf(pemBlob.Get(), static_cast<int>(pemBlob.Size())),
+        BIO_free); // NOSONAR cpp:M23_058 - matches the fixed parameter type of the external C API
     if (!bio) {
         return {{}, OPENSSL_ERROR()};
     }
@@ -1691,7 +1702,8 @@ Error OpenSSLCryptoProvider::ASN1EncodeObjectIds(const Array<asn1::ObjectIdentif
 
 Error OpenSSLCryptoProvider::ASN1EncodeBigInt(const Array<uint8_t>& number, Array<uint8_t>& asn1Value)
 {
-    auto bn = DeferRelease(BN_signed_bin2bn(number.Get(), static_cast<int>(number.Size()), nullptr), BN_free);
+    auto bn = DeferRelease(BN_signed_bin2bn(number.Get(), static_cast<int>(number.Size()), nullptr),
+        BN_free); // NOSONAR cpp:M23_058 - matches the fixed parameter type of the external C API
     if (!bn) {
         return OPENSSL_ERROR();
     }
