@@ -93,7 +93,9 @@ Error CryptoHelper::Decrypt(const String& encryptedFile, const String& decrypted
     const auto& sessionKey       = decryptInfo.mBlockKey;
     const auto& sessionIV        = decryptInfo.mBlockIV;
 
-    StaticString<cAlgLen> algName, modeName, paddingName;
+    StaticString<cAlgLen> algName;
+    StaticString<cAlgLen> modeName;
+    StaticString<cAlgLen> paddingName;
 
     if (auto err = DecodeSymAlgNames(symmetricAlgName, algName, modeName, paddingName); !err.IsNone()) {
         return err;
@@ -346,7 +348,8 @@ Error CryptoHelper::GetSymmetricAlgInfo(const String& algName, size_t& keySize, 
 Error CryptoHelper::CheckSessionKey(
     const String& symAlgName, const Array<uint8_t>& sessionIV, const Array<uint8_t>& sessionKey)
 {
-    size_t keySize = 0, ivSize = 0;
+    size_t keySize = 0;
+    size_t ivSize  = 0;
 
     if (auto err = GetSymmetricAlgInfo(symAlgName, keySize, ivSize); !err.IsNone()) {
         return err;
@@ -375,7 +378,8 @@ Error CryptoHelper::DecodeFile(const String& encryptedFile, const String& decryp
         return AOS_ERROR_WRAP(ErrorEnum::eNoMemory);
     }
 
-    fs::File inputFile, outputFile;
+    fs::File inputFile;
+    fs::File outputFile;
 
     Error err = inputFile.Open(encryptedFile, fs::File::Mode::Read);
     if (!err.IsNone()) {
@@ -505,7 +509,9 @@ Error CryptoHelper::VerifySigns(const String& file, const SignInfo& signs, SignC
         return err;
     }
 
-    StaticString<cAlgLen> algName, hashName, paddingName;
+    StaticString<cAlgLen> algName;
+    StaticString<cAlgLen> hashName;
+    StaticString<cAlgLen> paddingName;
 
     if (auto err = DecodeSignAlgNames(signs.mAlg, algName, hashName, paddingName); !err.IsNone()) {
         return err;

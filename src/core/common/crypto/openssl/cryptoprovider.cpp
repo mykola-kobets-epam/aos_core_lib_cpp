@@ -295,7 +295,8 @@ Error ConvertASN1Time(const ASN1_TIME* src, Time& dst)
 
 Error SetRSAPubKey(const EVP_PKEY* src, Variant<ECDSAPublicKey, RSAPublicKey>& dst)
 {
-    BIGNUM *n = nullptr, *e = nullptr;
+    BIGNUM* n = nullptr;
+    BIGNUM* e = nullptr;
 
     if (EVP_PKEY_get_bn_param(src, OSSL_PKEY_PARAM_RSA_N, &n) <= 0) {
         return OPENSSL_ERROR();
@@ -1192,7 +1193,8 @@ asn1::ASN1ParseResult ReadASN1Container(const Array<uint8_t>& data, const asn1::
 
     const uint8_t* p      = data.Get();
     int64_t        length = 0;
-    int32_t        tag = 0, xclass = 0;
+    int32_t        tag    = 0;
+    int32_t        xclass = 0;
 
     int32_t ret = ASN1_get_object(&p, &length, &tag, &xclass, data.Size());
     if ((ret & cASN1GetObjectError) != 0) {
@@ -1237,8 +1239,9 @@ asn1::ASN1ParseResult ReadASN1Container(const Array<uint8_t>& data, const asn1::
     auto           bytesLeft = static_cast<size_t>(length);
     while (bytesLeft > 0) {
         int64_t        elemLength = 0;
-        int32_t        elemTag = 0, elemClass = 0;
-        const uint8_t* nextPtr = elemPtr;
+        int32_t        elemTag    = 0;
+        int32_t        elemClass  = 0;
+        const uint8_t* nextPtr    = elemPtr;
 
         int32_t elemRet = ASN1_get_object(&nextPtr, &elemLength, &elemTag, &elemClass, bytesLeft);
         if ((elemRet & cASN1GetObjectError) != 0) {
@@ -1581,7 +1584,8 @@ Error OpenSSLCryptoProvider::ASN1EncodeDN(const String& commonName, Array<uint8_
             return AOS_ERROR_WRAP(ErrorEnum::eInvalidArgument);
         }
 
-        StaticString<cOSSLMaxNameSize> key, value;
+        StaticString<cOSSLMaxNameSize> key;
+        StaticString<cOSSLMaxNameSize> value;
 
         err = key.Insert(key.begin(), entry.begin(), entry.begin() + pos);
         if (!err.IsNone()) {
@@ -2068,7 +2072,8 @@ asn1::ASN1ParseResult OpenSSLCryptoProvider::ReadStruct(
 
     const uint8_t* p      = data.Get();
     int64_t        length = 0;
-    int32_t        tag = 0, xclass = 0;
+    int32_t        tag    = 0;
+    int32_t        xclass = 0;
 
     int32_t ret = ASN1_get_object(&p, &length, &tag, &xclass, data.Size());
     if ((ret & cASN1GetObjectError) != 0) {
