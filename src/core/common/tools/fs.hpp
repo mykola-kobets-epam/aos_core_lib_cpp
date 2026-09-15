@@ -531,7 +531,7 @@ public:
      * @param[out] buffer destination buffer.
      * @return Error.
      */
-    Error ReadBlock(Array<uint8_t>& buffer);
+    Error ReadBlock(Array<uint8_t>& buffer) const;
 
     /**
      * Writes a block to the file.
@@ -539,7 +539,7 @@ public:
      * @param[out] buffer source buffer.
      * @return Error.
      */
-    Error WriteBlock(const Array<uint8_t>& buffer);
+    Error WriteBlock(const Array<uint8_t>& buffer) const;
 
 private:
     int32_t mFd = -1;

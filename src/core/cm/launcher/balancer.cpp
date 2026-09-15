@@ -191,18 +191,18 @@ Error Balancer::SelectNodes(Instance& instance, Array<Node*>& nodes)
     return ErrorEnum::eNone;
 }
 
-void Balancer::FilterNodesByID(Instance& instance, Array<Node*>& nodes)
+void Balancer::FilterNodesByID(Instance& instance, Array<Node*>& nodes) const
 {
     (void)nodes.RemoveIf([&instance](const Node* node) { return !instance.IsNodeIDOk(node->GetInfo().mNodeID); });
 }
 
-void Balancer::FilterNodesByLabels(Instance& instance, Array<Node*>& nodes)
+void Balancer::FilterNodesByLabels(Instance& instance, Array<Node*>& nodes) const
 {
     (void)nodes.RemoveIf(
         [&instance](const Node* node) { return !instance.AreNodeLabelsOk(node->GetConfig().mLabels); });
 }
 
-void Balancer::FilterNodesByResources(Instance& instance, Array<Node*>& nodes)
+void Balancer::FilterNodesByResources(Instance& instance, Array<Node*>& nodes) const
 {
     (void)nodes.RemoveIf([&instance](const Node* node) { return !instance.AreNodeResourcesOk(*node); });
 }
@@ -281,7 +281,7 @@ RetWithError<Pair<Node*, const RuntimeInfo*>> Balancer::SelectRuntime(Instance& 
     return {result, ErrorEnum::eNone};
 }
 
-Error Balancer::CreateRuntimes(const Array<Node*>& nodes, NodeRuntimes& runtimes)
+Error Balancer::CreateRuntimes(const Array<Node*>& nodes, NodeRuntimes& runtimes) const
 {
     for (auto node : nodes) {
         if (auto err = runtimes.Emplace(node); !err.IsNone()) {
@@ -306,7 +306,7 @@ Error Balancer::CreateRuntimes(const Array<Node*>& nodes, NodeRuntimes& runtimes
 }
 
 template <typename Filter>
-void Balancer::FilterRuntimes(NodeRuntimes& runtimes, Filter& filter)
+void Balancer::FilterRuntimes(NodeRuntimes& runtimes, Filter& filter) const
 {
     for (auto it = runtimes.begin(); it != runtimes.end();) {
         auto& node         = it->mFirst;
@@ -380,7 +380,7 @@ void Balancer::FilterByNumInstances(NodeRuntimes& nodes)
     FilterRuntimes(nodes, filter);
 }
 
-void Balancer::FilterTopPriorityNodes(NodeRuntimes& nodes)
+void Balancer::FilterTopPriorityNodes(NodeRuntimes& nodes) const
 {
     if (nodes.IsEmpty()) {
         return;
