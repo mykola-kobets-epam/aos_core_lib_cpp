@@ -8,6 +8,7 @@
 #define AOS_CORE_COMMON_CRYPTO_OPENSSL_CRYPTOPROVIDER_HPP_
 
 #include <core/common/config.hpp>
+#include <core/common/tools/noncopyable.hpp>
 
 #include "../itf/crypto.hpp"
 #include "opensslprovider.hpp"
@@ -17,7 +18,7 @@ namespace aos::crypto {
 /**
  * OpenSSLCryptoProvider provider.
  */
-class OpenSSLCryptoProvider : public CryptoProviderItf {
+class OpenSSLCryptoProvider : public CryptoProviderItf, private NonCopyable {
 public:
     /**
      * Destructor.
@@ -380,7 +381,7 @@ private:
         struct evp_cipher_st*     mCipherType = nullptr;
     };
 
-    class OpenSSLRSAPrivKey : public crypto::PrivateKeyItf {
+    class OpenSSLRSAPrivKey : public crypto::PrivateKeyItf, private NonCopyable {
     public:
         Error               Init(struct evp_pkey_st* pkey);
         const PublicKeyItf& GetPublic() const override;
