@@ -113,7 +113,7 @@ static int32_t ASN1EncodeBigInt(const Array<uint8_t>& number, uint8_t** p, uint8
 
 static Error ASN1RemoveTag(const Array<uint8_t>& src, Array<uint8_t>& dst, int32_t tag)
 {
-    auto*  p   = const_cast<uint8_t*>(src.Get());
+    auto*  p   = const_cast<uint8_t*>(src.Get()); // NOSONAR cpp:M23_090
     size_t len = 0;
 
     if (int32_t ret = mbedtls_asn1_get_tag(&p, src.end(), &len, tag); ret < 0) {
@@ -200,7 +200,7 @@ static Error CreateClientCert(const mbedtls_x509_csr& csr, const mbedtls_pk_cont
         return AOS_ERROR_WRAP(ret);
     }
 
-    mbedtls_x509write_crt_set_subject_key(&clientCert, const_cast<mbedtls_pk_context*>(&csr.pk));
+    mbedtls_x509write_crt_set_subject_key(&clientCert, const_cast<mbedtls_pk_context*>(&csr.pk)); // NOSONAR cpp:M23_090
 
     // set CA certificate properties
     StaticString<crypto::cCertIssuerSize> issuer;
@@ -216,10 +216,11 @@ static Error CreateClientCert(const mbedtls_x509_csr& csr, const mbedtls_pk_cont
     }
 
     // set CA key
-    mbedtls_x509write_crt_set_issuer_key(&clientCert, const_cast<mbedtls_pk_context*>(&caKey));
+    mbedtls_x509write_crt_set_issuer_key(&clientCert, const_cast<mbedtls_pk_context*>(&caKey)); // NOSONAR cpp:M23_090
 
     // set additional properties: serial, valid time interval
-    ret = mbedtls_x509write_crt_set_serial_raw(&clientCert, const_cast<uint8_t*>(serial.Get()), serial.Size());
+    ret = mbedtls_x509write_crt_set_serial_raw(
+        &clientCert, const_cast<uint8_t*>(serial.Get()), serial.Size()); // NOSONAR cpp:M23_090
     if (ret != 0) {
         return AOS_ERROR_WRAP(ret);
     }
@@ -297,7 +298,7 @@ Error GetASN1Object(
 
     // Read length.
     size_t len = 0;
-    if (int32_t ret = mbedtls_asn1_get_len(const_cast<uint8_t**>(&p), end, &len); ret != 0) {
+    if (int32_t ret = mbedtls_asn1_get_len(const_cast<uint8_t**>(&p), end, &len); ret != 0) { // NOSONAR cpp:M23_090
         return AOS_ERROR_WRAP(ErrorEnum::eFailed);
     }
 
@@ -511,7 +512,7 @@ Error VerifyECDSASignature(const ECDSAPublicKey& pubKey, const Array<uint8_t>& d
 
     // Init public key.
     mbedtls_asn1_buf oidBuf;
-    oidBuf.p   = const_cast<uint8_t*>(pubKey.GetECParamsOID().Get());
+    oidBuf.p   = const_cast<uint8_t*>(pubKey.GetECParamsOID().Get()); // NOSONAR cpp:M23_090
     oidBuf.len = pubKey.GetECParamsOID().Size();
     oidBuf.tag = MBEDTLS_ASN1_OID;
 
@@ -798,7 +799,7 @@ Error MbedTLSCryptoProvider::ASN1DecodeDN(const Array<uint8_t>& dn, String& resu
 {
     mbedtls_asn1_named_data tmpDN = {};
 
-    auto*  p   = const_cast<uint8_t*>(dn.begin());
+    auto*  p   = const_cast<uint8_t*>(dn.begin()); // NOSONAR cpp:M23_090
     size_t tmp = 0;
 
     auto ret = mbedtls_asn1_get_tag(&p, dn.end(), &tmp, MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE);
@@ -1186,7 +1187,7 @@ asn1::ASN1ParseResult MbedTLSCryptoProvider::ReadStruct(
         return {ErrorEnum::eNone, {}};
     }
 
-    auto*          p   = const_cast<uint8_t*>(data.Get());
+    auto*          p   = const_cast<uint8_t*>(data.Get()); // NOSONAR cpp:M23_090
     const uint8_t* end = p + data.Size();
 
     // Read tag
@@ -1272,7 +1273,7 @@ asn1::ASN1ParseResult MbedTLSCryptoProvider::ReadInteger(
     const uint8_t* p   = data.Get();
     const uint8_t* end = p + data.Size();
 
-    if (int32_t ret = mbedtls_asn1_get_int(const_cast<uint8_t**>(&p), end, &value); ret != 0) {
+    if (int32_t ret = mbedtls_asn1_get_int(const_cast<uint8_t**>(&p), end, &value); ret != 0) { // NOSONAR cpp:M23_090
         if (opt.mOptional) {
             return {AOS_ERROR_WRAP(ErrorEnum::eNotFound), data};
         }
@@ -1300,7 +1301,7 @@ asn1::ASN1ParseResult MbedTLSCryptoProvider::ReadBigInt(
     mbedtls_mpi_init(&mpi);
     [[maybe_unused]] auto mpiRelease = DeferRelease(&mpi, mbedtls_mpi_free);
 
-    if (int32_t ret = mbedtls_asn1_get_mpi(const_cast<uint8_t**>(&p), end, &mpi); ret != 0) {
+    if (int32_t ret = mbedtls_asn1_get_mpi(const_cast<uint8_t**>(&p), end, &mpi); ret != 0) { // NOSONAR cpp:M23_090
         if (opt.mOptional) {
             return {AOS_ERROR_WRAP(ErrorEnum::eNotFound), data};
         }
@@ -1334,7 +1335,8 @@ asn1::ASN1ParseResult MbedTLSCryptoProvider::ReadOID(
     mbedtls_asn1_buf buf {};
 
     // Parse the OID tag and length
-    int32_t ret = mbedtls_asn1_get_tag(const_cast<uint8_t**>(&p), end, &buf.len, MBEDTLS_ASN1_OID);
+    int32_t ret
+        = mbedtls_asn1_get_tag(const_cast<uint8_t**>(&p), end, &buf.len, MBEDTLS_ASN1_OID); // NOSONAR cpp:M23_090
     if (ret != 0) {
         if (opt.mOptional) {
             return {AOS_ERROR_WRAP(ErrorEnum::eNotFound), data};
@@ -1344,7 +1346,7 @@ asn1::ASN1ParseResult MbedTLSCryptoProvider::ReadOID(
     }
 
     buf.tag = MBEDTLS_ASN1_OID;
-    buf.p   = const_cast<uint8_t*>(p);
+    buf.p   = const_cast<uint8_t*>(p); // NOSONAR cpp:M23_090
 
     // Convert DER bytes to dotted string
     if (auto err = oid.Resize(oid.MaxSize()); !err.IsNone()) {
@@ -1451,7 +1453,8 @@ asn1::ASN1ParseResult MbedTLSCryptoProvider::ReadOctetString(
     const uint8_t* end = p + data.Size();
 
     size_t len = 0;
-    if (int32_t ret = mbedtls_asn1_get_tag(const_cast<uint8_t**>(&p), end, &len, MBEDTLS_ASN1_OCTET_STRING); ret != 0) {
+    if (int32_t ret = mbedtls_asn1_get_tag(const_cast<uint8_t**>(&p), end, &len, MBEDTLS_ASN1_OCTET_STRING);
+        ret != 0) { // NOSONAR cpp:M23_090
         if (opt.mOptional) {
             return {AOS_ERROR_WRAP(ErrorEnum::eNotFound), data};
         }
@@ -2277,7 +2280,7 @@ Error MbedTLSCryptoProvider::SetCSRAlternativeNames(mbedtls_x509write_csr& csr, 
         sanList[i].node.san.unstructured_name.tag = MBEDTLS_ASN1_IA5_STRING;
         sanList[i].node.san.unstructured_name.len = templ.mDNSNames[i].Size();
         sanList[i].node.san.unstructured_name.p
-            = reinterpret_cast<uint8_t*>(const_cast<char*>(templ.mDNSNames[i].Get()));
+            = reinterpret_cast<uint8_t*>(const_cast<char*>(templ.mDNSNames[i].Get())); // NOSONAR cpp:M23_090
 
         sanList[i].next = (i < dnsNameCount - 1) ? &sanList[i + 1] : nullptr;
     }
@@ -2445,7 +2448,7 @@ Error MbedTLSCryptoProvider::SetCertificateSerialNumber(
     }
 
     return AOS_ERROR_WRAP(mbedtls_x509write_crt_set_serial_raw(
-        &cert, const_cast<x509::Certificate&>(templ).mSerial.Get(), templ.mSerial.Size()));
+        &cert, const_cast<x509::Certificate&>(templ).mSerial.Get(), templ.mSerial.Size())); // NOSONAR cpp:M23_090
 }
 
 Error MbedTLSCryptoProvider::SetCertificateSubjectKeyIdentifier(
