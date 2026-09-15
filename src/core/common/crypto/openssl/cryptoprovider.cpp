@@ -1641,7 +1641,7 @@ Error OpenSSLCryptoProvider::ASN1DecodeDN(const Array<uint8_t>& dn, String& resu
         return ErrorEnum::eNone;
     }
 
-    auto buf = DeferRelease(X509_NAME_oneline(name.Get(), 0, 0), openssl::AOS_OPENSSL_free);
+    auto buf = DeferRelease(X509_NAME_oneline(name.Get(), nullptr, 0), openssl::AOS_OPENSSL_free);
 
     result.Clear();
 
