@@ -91,7 +91,7 @@ public:
      *
      * @return bool.
      */
-    explicit operator bool() const { return Size() > 0; }
+    explicit operator bool() const { return !IsEmpty(); }
 
     /**
      * Checks if container equals to another container.
