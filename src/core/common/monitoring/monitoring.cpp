@@ -388,7 +388,7 @@ void Monitoring::ProcessAlerts(NodeMonitoringData& monitoringData)
     }
 }
 
-void Monitoring::ProcessAlerts(MonitoringData& monitoringData, AlertProcessorArray& alertProcessors)
+void Monitoring::ProcessAlerts(MonitoringData& monitoringData, AlertProcessorArray& alertProcessors) const
 {
     for (auto& alertProcessor : alertProcessors) {
         auto [currentValue, err] = GetCurrentUsage(alertProcessor.GetID(), monitoringData);
