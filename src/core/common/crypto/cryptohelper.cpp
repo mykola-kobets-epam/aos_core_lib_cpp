@@ -341,6 +341,7 @@ Error CryptoHelper::GetSymmetricAlgInfo(const String& algName, size_t& keySize, 
 
         return ErrorEnum::eNone;
     } else {
+        // unsupported algorithm, handled below
     }
 
     return ErrorEnum::eNotSupported;
