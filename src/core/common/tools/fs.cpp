@@ -663,6 +663,7 @@ Error File::ReadBlock(Array<uint8_t>& buffer) const
         } else if (result == 0) {
             eof = true;
             break; // EOF
+        } else {
         }
 
         totalRead += result;
