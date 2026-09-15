@@ -95,8 +95,7 @@ Error CryptoHelper::Decrypt(const String& encryptedFile, const String& decrypted
 
     StaticString<cAlgLen> algName, modeName, paddingName;
 
-    auto err = DecodeSymAlgNames(symmetricAlgName, algName, modeName, paddingName);
-    if (!err.IsNone()) {
+    if (auto err = DecodeSymAlgNames(symmetricAlgName, algName, modeName, paddingName); !err.IsNone()) {
         return err;
     }
 
@@ -215,8 +214,7 @@ Error CryptoHelper::SetDefaultServiceDiscoveryURL(Array<StaticString<cURLLen>>& 
 
 Error CryptoHelper::GetServiceDiscoveryFromExtensions(const x509::Certificate& cert, Array<StaticString<cURLLen>>& urls)
 {
-    auto err = urls.Insert(urls.begin(), cert.mIssuerURLs.begin(), cert.mIssuerURLs.end());
-    if (!err.IsNone()) {
+    if (auto err = urls.Insert(urls.begin(), cert.mIssuerURLs.begin(), cert.mIssuerURLs.end()); !err.IsNone()) {
         return AOS_ERROR_WRAP(err);
     }
 
@@ -259,8 +257,8 @@ Error CryptoHelper::GetServiceDiscoveryFromOrganization(
         return AOS_ERROR_WRAP(ErrorEnum::eNoMemory);
     }
 
-    auto assignErr = orgName->Insert(orgName->begin(), subject->begin() + valueStart, subject->begin() + valueEnd);
-    if (!assignErr.IsNone()) {
+    if (auto assignErr = orgName->Insert(orgName->begin(), subject->begin() + valueStart, subject->begin() + valueEnd);
+        !assignErr.IsNone()) {
         return AOS_ERROR_WRAP(assignErr);
     }
 
@@ -348,8 +346,7 @@ Error CryptoHelper::CheckSessionKey(
 {
     size_t keySize = 0, ivSize = 0;
 
-    auto err = GetSymmetricAlgInfo(symAlgName, keySize, ivSize);
-    if (!err.IsNone()) {
+    if (auto err = GetSymmetricAlgInfo(symAlgName, keySize, ivSize); !err.IsNone()) {
         return err;
     }
 
@@ -445,10 +442,9 @@ Error CryptoHelper::AddCertificates(const Array<CertificateInfo>& certs, SignCon
 
         (void)fingerprint.ToUpper();
 
-        auto iter = ctx.mCerts.FindIf(
-            [&fingerprint](const X509CertificateInfo& certInfo) { return certInfo.mFingerprint == fingerprint; });
-
-        if (iter != ctx.mCerts.end()) {
+        if (auto iter = ctx.mCerts.FindIf(
+                [&fingerprint](const X509CertificateInfo& certInfo) { return certInfo.mFingerprint == fingerprint; });
+            iter != ctx.mCerts.end()) {
             continue;
         }
 
@@ -477,10 +473,9 @@ Error CryptoHelper::AddCertChains(const Array<CertificateChainInfo>& chains, Sig
     ctx.mChains.Clear();
 
     for (const auto& chainInfo : chains) {
-        auto iter = ctx.mChains.FindIf(
-            [&chainInfo](const CertificateChainInfo& item) { return item.mName == chainInfo.mName; });
-
-        if (iter != ctx.mChains.end()) {
+        if (auto iter = ctx.mChains.FindIf(
+                [&chainInfo](const CertificateChainInfo& item) { return item.mName == chainInfo.mName; });
+            iter != ctx.mChains.end()) {
             continue;
         }
 
@@ -542,8 +537,8 @@ Error CryptoHelper::VerifySigns(const String& file, const SignInfo& signs, SignC
         AOS_ERROR_WRAP(Error(ErrorEnum::eNotSupported, "unknown padding for RSA"));
     }
 
-    auto verifyErr = mCryptoProvider->Verify(signCert->mPublicKey, hash, padding, *hashSum, signs.mValue);
-    if (!verifyErr.IsNone()) {
+    if (auto verifyErr = mCryptoProvider->Verify(signCert->mPublicKey, hash, padding, *hashSum, signs.mValue);
+        !verifyErr.IsNone()) {
         return AOS_ERROR_WRAP(verifyErr);
     }
 
@@ -912,8 +907,8 @@ Error CryptoHelper::GetKeyForEnvelope(const TransRecipientInfo& info, Array<uint
         return AOS_ERROR_WRAP(ErrorEnum::eNoMemory);
     }
 
-    auto err = mCertProvider->GetCert(cOfflineCert, info.mRID.mIssuer, info.mRID.mSerial, *certInfo);
-    if (!err.IsNone()) {
+    if (auto err = mCertProvider->GetCert(cOfflineCert, info.mRID.mIssuer, info.mRID.mSerial, *certInfo);
+        !err.IsNone()) {
         return AOS_ERROR_WRAP(err);
     }
 
@@ -932,8 +927,7 @@ Error CryptoHelper::DecryptCMSKey(
         return AOS_ERROR_WRAP(Error(ErrorEnum::eInvalidArgument, "unknown public encryption OID"));
     }
 
-    static constexpr auto cASN1TagNull = 5;
-    if (ktri.mKeyEncryptionAlgorithm.mParams.mTagNumber != cASN1TagNull) {
+    if (static constexpr auto cASN1TagNull = 5; ktri.mKeyEncryptionAlgorithm.mParams.mTagNumber != cASN1TagNull) {
         return AOS_ERROR_WRAP(Error(ErrorEnum::eInvalidArgument, "extra parameters for RSA algorithm found"));
     }
 
@@ -993,16 +987,14 @@ Error CryptoHelper::DecodeMessage(AESCipherItf& decoder, const Array<uint8_t>& i
         auto blockSize = Min<size_t>(cFileChunkSize, input.Size() - i);
         auto inBlock   = Array<uint8_t>(input.Get() + i, blockSize);
 
-        auto err = decoder.DecryptBlock(inBlock, *outBlock);
-        if (!err.IsNone()) {
+        if (auto err = decoder.DecryptBlock(inBlock, *outBlock); !err.IsNone()) {
             return AOS_ERROR_WRAP(err);
         }
 
         (void)message.Insert(message.end(), outBlock->begin(), outBlock->end());
     }
 
-    auto err = decoder.Finalize(*outBlock);
-    if (!err.IsNone()) {
+    if (auto err = decoder.Finalize(*outBlock); !err.IsNone()) {
         return AOS_ERROR_WRAP(err);
     }
 
