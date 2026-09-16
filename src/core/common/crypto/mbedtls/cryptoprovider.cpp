@@ -1899,7 +1899,7 @@ int32_t MbedTLSCryptoProvider::VerifyTime(void* data, mbedtls_x509_crt* crt, int
     return 0;
 }
 
-Error MbedTLSCryptoProvider::ParseX509Certs(const mbedtls_x509_crt* currentCrt, x509::Certificate& cert)
+Error MbedTLSCryptoProvider::ParseX509Certs(const mbedtls_x509_crt* currentCrt, x509::Certificate& cert) const
 {
     auto err = GetX509CertData(cert, currentCrt);
     if (!err.IsNone()) {
@@ -2332,7 +2332,7 @@ Error MbedTLSCryptoProvider::WriteCSRPem(mbedtls_x509write_csr& csr, String& pem
         return AOS_ERROR_WRAP(ret);
     }
 
-    (void)pemCSR.Resize(strlen(pemCSR.CStr()));
+    (void)pemCSR.Resize(strlen(pemCSR.CStr())); // NOSONAR cpp:S5813 - mbedtls guarantees NUL-termination here
 
     return ErrorEnum::eNone;
 }

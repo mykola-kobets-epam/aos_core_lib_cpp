@@ -5,6 +5,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <core/common/config.hpp>
+
 #if !AOS_CONFIG_PKCS11_USE_STATIC_LIB
 #include <dlfcn.h>
 #endif
@@ -29,7 +31,7 @@ Error ConvertFromPKCS11String(const Array<uint8_t>& src, String& dst)
         return ErrorEnum::eNone;
     }
 
-    int32_t size = static_cast<int32_t>(src.Size());
+    auto size = static_cast<int32_t>(src.Size());
 
     if (!dst.Resize(size).IsNone()) {
         return ErrorEnum::eNoMemory;

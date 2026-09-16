@@ -544,7 +544,8 @@ Error CryptoHelper::VerifySigns(const String& file, const SignInfo& signs, SignC
         AOS_ERROR_WRAP(Error(ErrorEnum::eNotSupported, "unknown padding for RSA"));
     }
 
-    if (auto verifyErr = mCryptoProvider->Verify(signCert->mPublicKey, hash, padding, *hashSum, signs.mValue);
+    if (auto verifyErr = mCryptoProvider->Verify(signCert->mPublicKey, // NOSONAR cpp:S2259 - non-null on success
+            hash, padding, *hashSum, signs.mValue);
         !verifyErr.IsNone()) {
         return AOS_ERROR_WRAP(verifyErr);
     }
