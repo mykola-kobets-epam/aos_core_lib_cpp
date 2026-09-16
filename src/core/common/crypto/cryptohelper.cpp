@@ -16,10 +16,7 @@ namespace aos::crypto {
  * Public
  **********************************************************************************************************************/
 
-CryptoHelper::CryptoHelper()
-    : mSemaphore(cMaxNumConcurrentItems)
-{
-}
+CryptoHelper::CryptoHelper() = default;
 
 Error CryptoHelper::Init(AllocatorItf& allocator, iamclient::CertProviderItf& certProvider,
     CryptoProviderItf& cryptoProvider, CertLoaderItf& certLoader, const String& serviceDiscoveryURL,
