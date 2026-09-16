@@ -436,7 +436,6 @@ Error VerifyRSASignature(const RSAPublicKey& pubKey, mbedtls_md_type_t hash, con
         ret = mbedtls_rsa_rsassa_pkcs1_v15_verify(&rsa, hash,
             static_cast<unsigned int>(digest.Size()), // NOSONAR cpp:M23_058
             digest.Get(), signature.Get());
-        // clang-format on
     } else if (padding == x509::PaddingEnum::ePSS) {
         ret = mbedtls_rsa_set_padding(&rsa, MBEDTLS_RSA_PKCS_V21, hash);
         if (ret != 0) {
@@ -445,7 +444,6 @@ Error VerifyRSASignature(const RSAPublicKey& pubKey, mbedtls_md_type_t hash, con
 
         ret = mbedtls_rsa_rsassa_pss_verify(&rsa, hash, static_cast<unsigned int>(digest.Size()), // NOSONAR cpp:M23_058
             digest.Get(), signature.Get());
-        // clang-format on
     } else {
         return AOS_ERROR_WRAP(Error(ErrorEnum::eNotSupported, "not supported padding"));
     }
@@ -1874,9 +1872,8 @@ MbedTLSCryptoProvider::MbedTLSRSAPrivKey::~MbedTLSRSAPrivKey()
  * Private
  **********************************************************************************************************************/
 
-// clang-format off
-int32_t MbedTLSCryptoProvider::VerifyTime(void* data, mbedtls_x509_crt* crt, int32_t, uint32_t* flags) // NOSONAR cpp:S995 - fixed external API signature
-// clang-format on
+int32_t MbedTLSCryptoProvider::VerifyTime(
+    void* data, mbedtls_x509_crt* crt, int32_t, uint32_t* flags) // NOSONAR cpp:S995 - fixed external API signature
 {
     const auto time = static_cast<Time*>(data);
 
