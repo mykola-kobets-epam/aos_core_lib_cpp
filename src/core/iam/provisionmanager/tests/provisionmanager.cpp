@@ -51,10 +51,10 @@ TEST_F(ProvisionManagerTest, StartProvisioningSucceeds)
     certhandler::ModuleConfig moduleConfig3;
     certhandler::ModuleConfig moduleConfig4;
 
-    moduleConfig1.mIsSelfSigned = false;
-    moduleConfig2.mIsSelfSigned = false;
-    moduleConfig3.mIsSelfSigned = true;
-    moduleConfig4.mIsSelfSigned = true;
+    moduleConfig1.mCertType = aos::iam::certhandler::CertModuleTypeEnum::eNormal;
+    moduleConfig2.mCertType = aos::iam::certhandler::CertModuleTypeEnum::eNormal;
+    moduleConfig3.mCertType = aos::iam::certhandler::CertModuleTypeEnum::eSelfSigned;
+    moduleConfig4.mCertType = aos::iam::certhandler::CertModuleTypeEnum::eSelfSigned;
 
     EXPECT_CALL(mCertHandler, Clear).Times(4);
     EXPECT_CALL(mCertHandler, SetOwner).Times(4);
@@ -126,10 +126,10 @@ TEST_F(ProvisionManagerTest, StartProvisioningDiscEncryptionFails)
     certhandler::ModuleConfig moduleConfig3;
     certhandler::ModuleConfig moduleConfig4;
 
-    moduleConfig1.mIsSelfSigned = false;
-    moduleConfig2.mIsSelfSigned = false;
-    moduleConfig3.mIsSelfSigned = true;
-    moduleConfig4.mIsSelfSigned = true;
+    moduleConfig1.mCertType = aos::iam::certhandler::CertModuleTypeEnum::eNormal;
+    moduleConfig2.mCertType = aos::iam::certhandler::CertModuleTypeEnum::eNormal;
+    moduleConfig3.mCertType = aos::iam::certhandler::CertModuleTypeEnum::eSelfSigned;
+    moduleConfig4.mCertType = aos::iam::certhandler::CertModuleTypeEnum::eSelfSigned;
 
     EXPECT_CALL(mCertHandler, GetModuleConfig)
         .Times(4)
@@ -182,10 +182,10 @@ TEST_F(ProvisionManagerTest, GetCertTypes)
     certhandler::ModuleConfig moduleConfig3;
     certhandler::ModuleConfig moduleConfig4;
 
-    moduleConfig1.mIsSelfSigned = false;
-    moduleConfig2.mIsSelfSigned = false;
-    moduleConfig3.mIsSelfSigned = true;
-    moduleConfig4.mIsSelfSigned = true;
+    moduleConfig1.mCertType = aos::iam::certhandler::CertModuleTypeEnum::eNormal;
+    moduleConfig2.mCertType = aos::iam::certhandler::CertModuleTypeEnum::eNormal;
+    moduleConfig3.mCertType = aos::iam::certhandler::CertModuleTypeEnum::eSelfSigned;
+    moduleConfig4.mCertType = aos::iam::certhandler::CertModuleTypeEnum::eSelfSigned;
 
     EXPECT_CALL(mCertHandler, GetModuleConfig)
         .Times(4)
