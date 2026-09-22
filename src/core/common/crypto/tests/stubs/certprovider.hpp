@@ -34,6 +34,15 @@ public:
         return ErrorEnum::eNone;
     }
 
+    Error GetAllCerts(const String& certType, Array<CertInfo>& resCerts) const override
+    {
+        if (mCerts.count(certType.CStr()) == 0) {
+            return ErrorEnum::eNotFound;
+        }
+
+        return resCerts.PushBack(mCerts.find(certType.CStr())->second);
+    }
+
     Error SubscribeListener(const String& certType, iamclient::CertListenerItf& certListener) override
     {
         (void)certType;

@@ -46,6 +46,15 @@ public:
      */
     virtual Error ApplyCert(const String& nodeID, const String& certType, const String& pemCert, CertInfo& certInfo)
         = 0;
+
+    /**
+     * Updates root certificates.
+     *
+     * @param nodeID node ID.
+     * @param pemCerts root certificates in PEM format.
+     * @returns Error.
+     */
+    virtual Error UpdateRootCerts(const String& nodeID, const Array<StaticString<crypto::cCertPEMLen>>& pemCerts) = 0;
 };
 
 } // namespace aos::iamclient
