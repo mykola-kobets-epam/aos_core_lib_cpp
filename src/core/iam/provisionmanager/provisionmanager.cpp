@@ -60,7 +60,7 @@ Error ProvisionManager::StartProvisioning(const String& password)
             return AOS_ERROR_WRAP(certModuleConfig.mError);
         }
 
-        if (certModuleConfig.mValue.mIsSelfSigned) {
+        if (certModuleConfig.mValue.mCertType == certhandler::CertModuleTypeEnum::eSelfSigned) {
             LOG_DBG() << "Create self signed cert" << Log::Field("type", certType);
 
             if (err = mCertHandler->CreateSelfSignedCert(certType, password); !err.IsNone()) {
@@ -107,7 +107,7 @@ RetWithError<CertTypes> ProvisionManager::GetCertTypes() const
             return {certTypes, AOS_ERROR_WRAP(certModuleConfig.mError)};
         }
 
-        if (!certModuleConfig.mValue.mIsSelfSigned) {
+        if (certModuleConfig.mValue.mCertType == certhandler::CertModuleTypeEnum::eNormal) {
             ++it;
 
             continue;
@@ -131,6 +131,16 @@ Error ProvisionManager::ApplyCert(const String& certType, const String& pemCert,
     LOG_DBG() << "Apply cert" << Log::Field("type", certType);
 
     return AOS_ERROR_WRAP(mCertHandler->ApplyCertificate(certType, pemCert, certInfo));
+}
+
+Error ProvisionManager::UpdateRootCerts(
+    const Array<StaticString<crypto::cCertPEMLen>>& pemCerts, Array<CertInfo>& resCerts)
+{
+    static constexpr auto cRootCertsType = "rootcerts";
+
+    LOG_DBG() << "Update root certs" << Log::Field("count", pemCerts.Size());
+
+    return AOS_ERROR_WRAP(mCertHandler->UpdateCerts(cRootCertsType, pemCerts, "", resCerts));
 }
 
 } // namespace aos::iam::provisionmanager
