@@ -53,6 +53,15 @@ public:
         = 0;
 
     /**
+     * Returns all certificates for the given type.
+     *
+     * @param certType certificate type.
+     * @param[out] resCerts result certificates.
+     * @returns Error.
+     */
+    virtual Error GetAllCerts(const String& certType, Array<CertInfo>& resCerts) const = 0;
+
+    /**
      * Subscribes certificates listener.
      *
      * @param certType certificate type.
