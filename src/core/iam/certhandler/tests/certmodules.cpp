@@ -68,7 +68,7 @@ TEST_F(CertModuleTest, InitSelfSignedModuleSucceeds)
 {
     CertModule certModule;
 
-    mModuleConfig.mIsSelfSigned    = true;
+    mModuleConfig.mCertType        = CertModuleTypeEnum::eSelfSigned;
     mModuleConfig.mMaxCertificates = 1;
 
     auto err = certModule.Init(mAllocator, cCertType, mModuleConfig, mX509Provider, mHSM, mStorage);
@@ -79,7 +79,7 @@ TEST_F(CertModuleTest, InitFailsOnOneMaxCertsConfigValueForNonSelfSignedModule)
 {
     CertModule certModule;
 
-    mModuleConfig.mIsSelfSigned    = false;
+    mModuleConfig.mCertType        = CertModuleTypeEnum::eNormal;
     mModuleConfig.mMaxCertificates = 1;
 
     auto err = certModule.Init(mAllocator, cCertType, mModuleConfig, mX509Provider, mHSM, mStorage);
@@ -232,4 +232,55 @@ TEST_F(CertModuleTest, ApplyCertOldCertsAreTrimmedOnMaxCertsLimitReached)
     ASSERT_TRUE(err.IsNone()) << "GetCertsInfo failed: " << err.StrValue();
 
     ASSERT_EQ(cCertsPerModule, certInfoArray.Size());
+}
+
+TEST_F(CertModuleTest, RootModuleCreateKeyNotSupported)
+{
+    CertModule certModule;
+
+    mModuleConfig.mCertType       = CertModuleTypeEnum::eRoot;
+    mModuleConfig.mSkipValidation = true;
+
+    auto err = certModule.Init(mAllocator, cCertType, mModuleConfig, mX509Provider, mHSM, mStorage);
+    ASSERT_EQ(ErrorEnum::eNone, err) << "Init failed: " << err.StrValue();
+
+    EXPECT_CALL(mHSM, CreateKey).Times(0);
+
+    auto key = certModule.CreateKey("password");
+    ASSERT_EQ(ErrorEnum::eNotSupported, key.mError) << "NotSupported expected: " << key.mError.StrValue();
+}
+
+TEST_F(CertModuleTest, RootModuleApplyCertNotSupported)
+{
+    CertModule certModule;
+
+    mModuleConfig.mCertType       = CertModuleTypeEnum::eRoot;
+    mModuleConfig.mSkipValidation = true;
+
+    auto err = certModule.Init(mAllocator, cCertType, mModuleConfig, mX509Provider, mHSM, mStorage);
+    ASSERT_EQ(ErrorEnum::eNone, err) << "Init failed: " << err.StrValue();
+
+    EXPECT_CALL(mHSM, ApplyCert).Times(0);
+
+    String pemCert;
+
+    err = certModule.ApplyCert(pemCert, mCertInfo);
+    ASSERT_EQ(ErrorEnum::eNotSupported, err) << "NotSupported expected: " << err.StrValue();
+}
+
+TEST_F(CertModuleTest, RootModuleCreateSelfSignedCertNotSupported)
+{
+    CertModule certModule;
+
+    mModuleConfig.mCertType       = CertModuleTypeEnum::eRoot;
+    mModuleConfig.mSkipValidation = true;
+
+    auto err = certModule.Init(mAllocator, cCertType, mModuleConfig, mX509Provider, mHSM, mStorage);
+    ASSERT_EQ(ErrorEnum::eNone, err) << "Init failed: " << err.StrValue();
+
+    EXPECT_CALL(mHSM, CreateKey).Times(0);
+    EXPECT_CALL(mHSM, ApplyCert).Times(0);
+
+    err = certModule.CreateSelfSignedCert("password");
+    ASSERT_EQ(ErrorEnum::eNotSupported, err) << "NotSupported expected: " << err.StrValue();
 }
