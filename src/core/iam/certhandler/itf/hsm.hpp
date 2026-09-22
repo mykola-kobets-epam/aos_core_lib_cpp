@@ -63,6 +63,17 @@ public:
         = 0;
 
     /**
+     * Adds a certificate, reusing it if already present.
+     * On failure, rolls back the certificate added by this call.
+     *
+     * @param cert certificate to add/reuse.
+     * @param password owner password.
+     * @param[out] resCert result certificate information.
+     * @return Error.
+     */
+    virtual Error AddCert(const crypto::x509::Certificate& cert, const String& password, CertInfo& resCert) = 0;
+
+    /**
      * Removes certificate chain using top level certificate URL and password.
      *
      * @param certURL top level certificate URL.
@@ -91,6 +102,15 @@ public:
     virtual Error ValidateCertificates(Array<StaticString<cURLLen>>& invalidCerts,
         Array<StaticString<cURLLen>>& invalidKeys, Array<CertInfo>& validCerts)
         = 0;
+
+    /**
+     * Returns every root certificate currently stored. Root certs have no private key, so there is no
+     * key-pair validation and no concept of an invalid certificate here.
+     *
+     * @param[out] validCerts result certificate information.
+     * @return Error.
+     */
+    virtual Error ValidateRootCertificates(Array<CertInfo>& validCerts) = 0;
 
     /**
      * Destroys object instance.

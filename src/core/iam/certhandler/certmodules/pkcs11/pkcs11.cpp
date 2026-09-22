@@ -314,6 +314,48 @@ Error PKCS11Module::ApplyCert(const Array<crypto::x509::Certificate>& certChain,
     return ErrorEnum::eNone;
 }
 
+Error PKCS11Module::AddCert(const crypto::x509::Certificate& cert, const String& password, CertInfo& resCert)
+{
+    (void)password;
+
+    Error                             err = ErrorEnum::eNone;
+    SharedPtr<pkcs11::SessionContext> session;
+
+    Tie(session, err) = CreateSession(true, mUserPIN);
+    if (!err.IsNone()) {
+        return AOS_ERROR_WRAP(err);
+    }
+
+    auto utils = pkcs11::Utils(*mAllocator, session, *mCryptoProvider);
+
+    uuid::UUID uuid;
+
+    Tie(uuid, err) = mCryptoProvider->CreateUUIDv4();
+    if (!err.IsNone()) {
+        return AOS_ERROR_WRAP(err);
+    }
+
+    if (auto importErr = utils.ImportCertificate(uuid, mCertType, cert); !importErr.IsNone()) {
+        return AOS_ERROR_WRAP(importErr);
+    }
+
+    // Deletes the just-imported certificate unless Release() is called once resCert is fully populated.
+    auto releaseCert
+        = DeferRelease(&uuid, [this, &utils](uuid::UUID* id) { (void)utils.DeleteCertificate(*id, mCertType); });
+
+    resCert.mIssuer   = cert.mIssuer;
+    resCert.mNotAfter = cert.mNotAfter;
+    resCert.mSerial   = cert.mSerial;
+
+    if (auto urlErr = CreateURL(mCertType, uuid, resCert.mCertURL); !urlErr.IsNone()) {
+        return AOS_ERROR_WRAP(urlErr);
+    }
+
+    (void)releaseCert.Release();
+
+    return ErrorEnum::eNone;
+}
+
 Error PKCS11Module::RemoveCert(const String& certURL, const String& password)
 {
     (void)password;
@@ -437,6 +479,40 @@ Error PKCS11Module::ValidateCertificates(
     // Return either private or public keys, otherwise we will have the same URLs in the list
     // Currently removing key-pairs is supported only. Priv/Pub keys without pair can't be deleted from the storage.
     return CreateInvalidURLs(pubKeys, invalidKeys);
+}
+
+Error PKCS11Module::ValidateRootCertificates(Array<CertInfo>& validCerts)
+{
+    Error                             err     = ErrorEnum::eNone;
+    bool                              isOwned = false;
+    SharedPtr<pkcs11::SessionContext> session;
+
+    LOG_DBG() << "Validate root certificates: certType=" << mCertType;
+
+    Tie(isOwned, err) = IsOwned();
+    if (!err.IsNone() || !isOwned) {
+        return err;
+    }
+
+    Tie(session, err) = CreateSession(true, mUserPIN);
+    if (!err.IsNone()) {
+        return AOS_ERROR_WRAP(err);
+    }
+
+    StaticArray<SearchObject, cCertsPerModule> certificates;
+
+    SearchObject filter;
+
+    filter.mLabel = mCertType;
+    filter.mType  = CKO_CERTIFICATE;
+
+    err = FindObject(*session, filter, certificates);
+    if (!err.IsNone() && !err.Is(ErrorEnum::eNotFound)) {
+        return err;
+    }
+
+    // Root certs have no private key to pair against: every certificate found is valid as-is.
+    return GetValidRootInfo(*session, certificates, validCerts);
 }
 
 /***********************************************************************************************************************
@@ -939,7 +1015,7 @@ Error PKCS11Module::GetValidInfo(const pkcs11::SessionContext& session, Array<Se
             return err;
         }
 
-        err = CreateCertInfo(*x509Cert, privKey->mID, cert->mID, *validCert);
+        err = CreateCertInfo(*x509Cert, privKey->mID, cert->mID, true, *validCert);
         if (!err.IsNone()) {
             return err;
         }
@@ -953,6 +1029,45 @@ Error PKCS11Module::GetValidInfo(const pkcs11::SessionContext& session, Array<Se
         (void)certs.Erase(cert);
         (void)pubKeys.Erase(pubKey);
         privKey = privKeys.Erase(privKey);
+    }
+
+    return ErrorEnum::eNone;
+}
+
+Error PKCS11Module::GetValidRootInfo(
+    const pkcs11::SessionContext& session, Array<SearchObject>& certs, Array<CertInfo>& resCerts)
+{
+    for (auto cert = certs.begin(); cert != certs.end();) {
+        LOG_DBG() << "Certificate found: ID=" << uuid::UUIDToString(cert->mID);
+
+        auto x509Cert = MakeUnique<crypto::x509::Certificate>(mAllocator);
+        if (!x509Cert) {
+            return AOS_ERROR_WRAP(ErrorEnum::eNoMemory);
+        }
+
+        auto validCert = MakeUnique<CertInfo>(mAllocator);
+        if (!validCert) {
+            return AOS_ERROR_WRAP(ErrorEnum::eNoMemory);
+        }
+
+        auto err = GetX509Cert(session, cert->mHandle, *x509Cert);
+        if (!err.IsNone()) {
+            LOG_ERR() << "Can't get x509 certificate: ID=" << uuid::UUIDToString(cert->mID);
+
+            return err;
+        }
+
+        err = CreateCertInfo(*x509Cert, Array<uint8_t>(), cert->mID, false, *validCert);
+        if (!err.IsNone()) {
+            return err;
+        }
+
+        err = resCerts.PushBack(*validCert);
+        if (!err.IsNone()) {
+            return AOS_ERROR_WRAP(err);
+        }
+
+        cert = certs.Erase(cert);
     }
 
     return ErrorEnum::eNone;
@@ -1055,7 +1170,7 @@ Error PKCS11Module::GetX509Cert(
 }
 
 Error PKCS11Module::CreateCertInfo(const crypto::x509::Certificate& cert, const Array<uint8_t>& keyID,
-    const Array<uint8_t>& certID, CertInfo& certInfo)
+    const Array<uint8_t>& certID, bool hasKey, CertInfo& certInfo)
 {
     certInfo.mIssuer   = cert.mIssuer;
     certInfo.mNotAfter = cert.mNotAfter;
@@ -1064,6 +1179,11 @@ Error PKCS11Module::CreateCertInfo(const crypto::x509::Certificate& cert, const 
     auto err = CreateURL(mCertType, certID, certInfo.mCertURL);
     if (!err.IsNone()) {
         return AOS_ERROR_WRAP(err);
+    }
+
+    // Root certs have no private key, so mKeyURL is left empty in that case.
+    if (!hasKey) {
+        return ErrorEnum::eNone;
     }
 
     err = CreateURL(mCertType, keyID, certInfo.mKeyURL);
