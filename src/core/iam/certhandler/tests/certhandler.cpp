@@ -74,7 +74,7 @@ protected:
         config.mAlternativeNames.EmplaceBack("epam.com");
         config.mAlternativeNames.EmplaceBack("www.epam.com");
         config.mSkipValidation = false;
-        config.mIsSelfSigned   = isSelfSigned;
+        config.mCertType       = isSelfSigned ? CertModuleTypeEnum::eSelfSigned : CertModuleTypeEnum::eNormal;
 
         return config;
     }
@@ -228,7 +228,7 @@ TEST_F(CerthandlerTest, GetModuleConfig)
     EXPECT_EQ(config.mValue.mAlternativeNames[1], "www.epam.com");
 
     EXPECT_FALSE(config.mValue.mSkipValidation);
-    EXPECT_FALSE(config.mValue.mIsSelfSigned);
+    EXPECT_EQ(config.mValue.mCertType, CertModuleTypeEnum::eNormal);
 
     config = mCertHandler->GetModuleConfig("sm");
 
@@ -244,7 +244,7 @@ TEST_F(CerthandlerTest, GetModuleConfig)
     EXPECT_EQ(config.mValue.mAlternativeNames[1], "www.epam.com");
 
     EXPECT_FALSE(config.mValue.mSkipValidation);
-    EXPECT_TRUE(config.mValue.mIsSelfSigned);
+    EXPECT_EQ(config.mValue.mCertType, CertModuleTypeEnum::eSelfSigned);
 }
 
 TEST_F(CerthandlerTest, SetOwner)
