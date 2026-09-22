@@ -42,8 +42,14 @@ Error CertModule::Init(AllocatorItf& allocator, const String& certType, const Mo
         return AOS_ERROR_WRAP(ErrorEnum::eNoMemory);
     }
 
-    if (auto err = mHSM->ValidateCertificates(mInvalidCerts, mInvalidKeys, *validCerts); !err.IsNone()) {
-        return AOS_ERROR_WRAP(err);
+    if (mModuleConfig.mCertType == CertModuleTypeEnum::eRoot) {
+        if (auto err = mHSM->ValidateRootCertificates(*validCerts); !err.IsNone()) {
+            return AOS_ERROR_WRAP(err);
+        }
+    } else {
+        if (auto err = mHSM->ValidateCertificates(mInvalidCerts, mInvalidKeys, *validCerts); !err.IsNone()) {
+            return AOS_ERROR_WRAP(err);
+        }
     }
 
     return SyncValidCerts(*validCerts);
@@ -90,6 +96,15 @@ Error CertModule::GetCertificate(const Array<uint8_t>& issuer, const Array<uint8
     return ErrorEnum::eNone;
 }
 
+Error CertModule::GetCertificates(Array<CertInfo>& resCerts)
+{
+    if (auto err = mStorage->GetCertsInfo(GetCertType(), resCerts); !err.IsNone()) {
+        return AOS_ERROR_WRAP(err);
+    }
+
+    return ErrorEnum::eNone;
+}
+
 Error CertModule::SetOwner(const String& password)
 {
     auto err = mHSM->SetOwner(password);
@@ -117,6 +132,13 @@ Error CertModule::Clear()
 
 RetWithError<SharedPtr<crypto::PrivateKeyItf>> CertModule::CreateKey(const String& password)
 {
+    if (mModuleConfig.mCertType == CertModuleTypeEnum::eRoot) {
+        LOG_ERR() << "Operation not supported for root cert module" << Log::Field("type", GetCertType())
+                  << Log::Field("operation", "create key");
+
+        return {nullptr, AOS_ERROR_WRAP(ErrorEnum::eNotSupported)};
+    }
+
     auto err = RemoveInvalidCerts(password);
     if (!err.IsNone()) {
         return {nullptr, err};
@@ -198,6 +220,13 @@ Error CertModule::CreateCSR(const String& subjectCommonName, const crypto::Priva
 
 Error CertModule::ApplyCert(const String& pemCert, CertInfo& info)
 {
+    if (mModuleConfig.mCertType == CertModuleTypeEnum::eRoot) {
+        LOG_ERR() << "Operation not supported for root cert module" << Log::Field("type", GetCertType())
+                  << Log::Field("operation", "apply cert");
+
+        return AOS_ERROR_WRAP(ErrorEnum::eNotSupported);
+    }
+
     auto certificates = MakeUnique<crypto::x509::CertificateChain>(mAllocator);
     if (!certificates) {
         return AOS_ERROR_WRAP(ErrorEnum::eNoMemory);
@@ -231,6 +260,186 @@ Error CertModule::ApplyCert(const String& pemCert, CertInfo& info)
     }
 
     return ErrorEnum::eNone;
+}
+
+Error CertModule::UpdateCerts(
+    const Array<StaticString<crypto::cCertPEMLen>>& pemCerts, const String& password, Array<CertInfo>& resCerts)
+{
+    auto existing = MakeUnique<ModuleCertificates>(mAllocator);
+    if (!existing) {
+        return AOS_ERROR_WRAP(ErrorEnum::eNoMemory);
+    }
+
+    if (auto err = mStorage->GetCertsInfo(GetCertType(), *existing); !err.IsNone() && !err.Is(ErrorEnum::eNotFound)) {
+        return AOS_ERROR_WRAP(err);
+    }
+
+    auto certs = MakeUnique<StaticArray<crypto::x509::Certificate, cCertsPerModule>>(mAllocator);
+    if (!certs) {
+        return AOS_ERROR_WRAP(ErrorEnum::eNoMemory);
+    }
+
+    size_t newCertCount = 0;
+
+    // Each entry is a single certificate, not a chain: reject an entry that resolves to anything
+    // other than exactly one certificate instead of silently keeping only the first one.
+    for (const auto& pemCert : pemCerts) {
+        auto certificates = MakeUnique<crypto::x509::CertificateChain>(mAllocator);
+        if (!certificates) {
+            return AOS_ERROR_WRAP(ErrorEnum::eNoMemory);
+        }
+
+        if (auto err = mX509Provider->PEMToX509Certs(pemCert, *certificates); !err.IsNone()) {
+            return AOS_ERROR_WRAP(err);
+        }
+
+        if (certificates->Size() != 1) {
+            LOG_ERR() << "Each cert entry must contain exactly one certificate" << Log::Field("type", GetCertType())
+                      << Log::Field("count", certificates->Size());
+
+            return AOS_ERROR_WRAP(ErrorEnum::eInvalidArgument);
+        }
+
+        if (!HasCert(*existing, (*certificates)[0].mIssuer, (*certificates)[0].mSerial)) {
+            ++newCertCount;
+        }
+
+        if (auto err = certs->PushBack((*certificates)[0]); !err.IsNone()) {
+            return AOS_ERROR_WRAP(err);
+        }
+    }
+
+    if (certs->Size() > mModuleConfig.mMaxCertificates) {
+        LOG_ERR() << "Updated cert set exceeds max certificates" << Log::Field("type", GetCertType())
+                  << Log::Field("update", certs->Size()) << Log::Field("max", mModuleConfig.mMaxCertificates);
+
+        return AOS_ERROR_WRAP(ErrorEnum::eNoMemory);
+    }
+
+    // Keep old + newly added certs in storage during update (add first, then remove). Reused certs do
+    // not consume extra slots.
+    if (existing->Size() + newCertCount > mModuleConfig.mMaxCertificates) {
+        LOG_ERR() << "Max certificates must fit stored and newly added certs at once"
+                  << Log::Field("type", GetCertType()) << Log::Field("stored", existing->Size())
+                  << Log::Field("new", newCertCount) << Log::Field("max", mModuleConfig.mMaxCertificates);
+
+        return AOS_ERROR_WRAP(ErrorEnum::eNoMemory);
+    }
+
+    resCerts.Clear();
+
+    // Rolls back certificates newly added by this call (not ones reused from the previous set),
+    // unless Release() is reached once the whole requested set has been collected successfully.
+    auto rollbackAdded = DeferRelease(&resCerts, [this, &password, &existing](Array<CertInfo>* added) {
+        for (const auto& info : *added) {
+            if (!HasCert(*existing, info.mIssuer, info.mSerial)) {
+                (void)RemoveCert(info, password);
+            }
+        }
+    });
+
+    // Commit each certificate to the HSM and storage in lockstep: AddCert rolls back its own partial
+    // work (HSM add without a matching storage entry) internally on failure, and rollbackAdded above
+    // unwinds everything newly committed in earlier iterations.
+    for (const auto& cert : *certs) {
+        auto addedInfo = MakeUnique<CertInfo>(mAllocator);
+        if (!addedInfo) {
+            return AOS_ERROR_WRAP(ErrorEnum::eNoMemory);
+        }
+
+        if (auto err = AddCert(cert, *existing, resCerts, password, *addedInfo); !err.IsNone()) {
+            return err;
+        }
+
+        if (auto err = resCerts.PushBack(*addedInfo); !err.IsNone()) {
+            (void)RemoveCert(*addedInfo, password);
+
+            return AOS_ERROR_WRAP(err);
+        }
+    }
+
+    (void)rollbackAdded.Release();
+
+    // Drop whatever was trusted before this update but isn't part of the new set.
+    for (const auto& old : *existing) {
+        if (HasCert(resCerts, old.mIssuer, old.mSerial)) {
+            continue;
+        }
+
+        if (auto err = RemoveCert(old, password); !err.IsNone()) {
+            return err;
+        }
+    }
+
+    return ErrorEnum::eNone;
+}
+
+Error CertModule::AddCert(const crypto::x509::Certificate& cert, const Array<CertInfo>& curCerts,
+    const Array<CertInfo>& newCerts, const String& password, CertInfo& resInfo)
+{
+    for (const auto& info : newCerts) {
+        if (info.mIssuer == cert.mIssuer && info.mSerial == cert.mSerial) {
+            LOG_WRN() << "Cert with the same issuer and serial already exists in update set"
+                      << Log::Field("type", GetCertType());
+
+            resInfo = info;
+
+            return ErrorEnum::eNone;
+        }
+    }
+
+    for (const auto& info : curCerts) {
+        if (info.mIssuer == cert.mIssuer && info.mSerial == cert.mSerial) {
+            resInfo = info;
+
+            return ErrorEnum::eNone;
+        }
+    }
+
+    auto addedInfo = MakeUnique<CertInfo>(mAllocator);
+    if (!addedInfo) {
+        return AOS_ERROR_WRAP(ErrorEnum::eNoMemory);
+    }
+
+    if (auto err = mHSM->AddCert(cert, password, *addedInfo); !err.IsNone()) {
+        return AOS_ERROR_WRAP(err);
+    }
+
+    if (auto err = mStorage->AddCertInfo(GetCertType(), *addedInfo); !err.IsNone()) {
+        (void)mHSM->RemoveCert(addedInfo->mCertURL, password);
+
+        return AOS_ERROR_WRAP(err);
+    }
+
+    resInfo = *addedInfo;
+
+    return ErrorEnum::eNone;
+}
+
+Error CertModule::RemoveCert(const CertInfo& info, const String& password)
+{
+    auto err = mHSM->RemoveCert(info.mCertURL, password);
+    if (!err.IsNone()) {
+        return AOS_ERROR_WRAP(err);
+    }
+
+    err = mStorage->RemoveCertInfo(GetCertType(), info.mCertURL);
+    if (!err.IsNone()) {
+        return AOS_ERROR_WRAP(err);
+    }
+
+    return ErrorEnum::eNone;
+}
+
+bool CertModule::HasCert(const Array<CertInfo>& infos, const Array<uint8_t>& issuer, const Array<uint8_t>& serial)
+{
+    for (const auto& info : infos) {
+        if (info.mIssuer == issuer && info.mSerial == serial) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 Error CertModule::CreateSelfSignedCert(const String& password)
@@ -288,21 +497,21 @@ Error CertModule::ValidateConfig()
     if (mModuleConfig.mMaxCertificates == 0) {
         LOG_ERR() << "Max certificates module config must be greater than 0: type=" << GetCertType();
 
-        return ErrorEnum::eInvalidArgument;
+        return AOS_ERROR_WRAP(ErrorEnum::eInvalidArgument);
     }
 
-    if (!mModuleConfig.mIsSelfSigned && mModuleConfig.mMaxCertificates < 2) {
-        LOG_ERR() << "Max certificates module config must be set to at least 2 for non self signed modules: type="
+    if (mModuleConfig.mCertType == CertModuleTypeEnum::eNormal && mModuleConfig.mMaxCertificates < 2) {
+        LOG_ERR() << "Max certificates module config must be set to at least 2 for normal modules: type="
                   << GetCertType() << ", value=" << mModuleConfig.mMaxCertificates;
 
-        return ErrorEnum::eInvalidArgument;
+        return AOS_ERROR_WRAP(ErrorEnum::eInvalidArgument);
     }
 
     if (mModuleConfig.mMaxCertificates > cCertsPerModule) {
         LOG_ERR() << "Max certificates module config exceeds application limit: type=" << GetCertType()
                   << ", value=" << mModuleConfig.mMaxCertificates << ", limit=" << cCertsPerModule;
 
-        return ErrorEnum::eNoMemory;
+        return AOS_ERROR_WRAP(ErrorEnum::eNoMemory);
     }
 
     return ErrorEnum::eNone;

@@ -57,6 +57,14 @@ public:
     Error GetCertificate(const Array<uint8_t>& issuer, const Array<uint8_t>& serial, CertInfo& resCert);
 
     /**
+     * Returns all certificates for this module.
+     *
+     * @param[out] resCerts result certificates.
+     * @return Error.
+     */
+    Error GetCertificates(Array<CertInfo>& resCerts);
+
+    /**
      * Owns the module.
      *
      * @param password certificate password.
@@ -99,6 +107,17 @@ public:
     Error ApplyCert(const String& pemCert, CertInfo& info);
 
     /**
+     * Updates certificates for this module (replaces the whole set).
+     *
+     * @param pemCerts certificates in PEM format.
+     * @param password owner password.
+     * @param[out] resCerts result certificate information.
+     * @returns Error.
+     */
+    Error UpdateCerts(
+        const Array<StaticString<crypto::cCertPEMLen>>& pemCerts, const String& password, Array<CertInfo>& resCerts);
+
+    /**
      * Creates a self signed certificate.
      *
      * @param password owner password.
@@ -125,12 +144,16 @@ private:
     using CertificateChain      = StaticArray<crypto::x509::Certificate, crypto::cCertChainSize>;
     using SelfSignedCertificate = StaticString<crypto::cCertPEMLen>;
 
-    Error ValidateConfig();
-    Error RemoveInvalidCerts(const String& password);
-    Error RemoveInvalidKeys(const String& password);
-    Error TrimCerts(const String& password);
-    Error CheckCertChain(const Array<crypto::x509::Certificate>& chain);
-    Error SyncValidCerts(const Array<CertInfo>& validCert);
+    Error       ValidateConfig();
+    Error       RemoveInvalidCerts(const String& password);
+    Error       RemoveInvalidKeys(const String& password);
+    Error       TrimCerts(const String& password);
+    Error       CheckCertChain(const Array<crypto::x509::Certificate>& chain);
+    Error       SyncValidCerts(const Array<CertInfo>& validCert);
+    Error       AddCert(const crypto::x509::Certificate& cert, const Array<CertInfo>& curCerts,
+              const Array<CertInfo>& newCerts, const String& password, CertInfo& resInfo);
+    Error       RemoveCert(const CertInfo& info, const String& password);
+    static bool HasCert(const Array<CertInfo>& infos, const Array<uint8_t>& issuer, const Array<uint8_t>& serial);
 
     crypto::x509::ProviderItf* mX509Provider {};
     HSMItf*                    mHSM {};
