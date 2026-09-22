@@ -154,6 +154,20 @@ Error CertHandler::GetCert(
     return ErrorEnum::eNone;
 }
 
+Error CertHandler::GetAllCerts(const String& certType, Array<CertInfo>& resCerts) const
+{
+    LockGuard lock {mMutex};
+
+    LOG_DBG() << "Get all certificates" << Log::Field("type", certType);
+
+    auto* certModule = FindModule(certType);
+    if (certModule == nullptr) {
+        return AOS_ERROR_WRAP(ErrorEnum::eNotFound);
+    }
+
+    return AOS_ERROR_WRAP(certModule->GetCertificates(resCerts));
+}
+
 Error CertHandler::SubscribeListener(const String& certType, iamclient::CertListenerItf& certListener)
 {
     LockGuard lock {mMutex};
@@ -195,6 +209,25 @@ Error CertHandler::UnsubscribeListener(iamclient::CertListenerItf& certListener)
     }
 
     return ErrorEnum::eNone;
+}
+
+Error CertHandler::UpdateCerts(const String& certType, const Array<StaticString<crypto::cCertPEMLen>>& pemCerts,
+    const String& password, Array<CertInfo>& resCerts)
+{
+    LockGuard lock {mMutex};
+
+    LOG_INF() << "Update certs" << Log::Field("type", certType) << Log::Field("count", pemCerts.Size());
+
+    auto* certModule = FindModule(certType);
+    if (certModule == nullptr) {
+        return AOS_ERROR_WRAP(ErrorEnum::eNotFound);
+    }
+
+    if (auto err = certModule->UpdateCerts(pemCerts, password, resCerts); !err.IsNone()) {
+        return AOS_ERROR_WRAP(err);
+    }
+
+    return UpdateCerts(*certModule);
 }
 
 Error CertHandler::CreateSelfSignedCert(const String& certType, const String& password)
