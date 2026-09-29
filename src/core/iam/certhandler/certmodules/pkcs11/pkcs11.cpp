@@ -341,7 +341,7 @@ Error PKCS11Module::AddCert(const crypto::x509::Certificate& cert, const String&
 
     // Deletes the just-imported certificate unless Release() is called once resCert is fully populated.
     auto releaseCert
-        = DeferRelease(&uuid, [this, &utils](uuid::UUID* id) { (void)utils.DeleteCertificate(*id, mCertType); });
+        = DeferRelease(&uuid, [this, &utils](const uuid::UUID* id) { (void)utils.DeleteCertificate(*id, mCertType); });
 
     resCert.mIssuer   = cert.mIssuer;
     resCert.mNotAfter = cert.mNotAfter;

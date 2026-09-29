@@ -61,7 +61,7 @@ class CertModuleTypeType {
 public:
     enum class Enum { eNormal, eSelfSigned, eRoot };
 
-    static const Array<const char* const> GetStrings()
+    static Array<const char* const> GetStrings()
     {
         static const char* const sCertModuleTypeStrings[] = {"normal", "selfSigned", "root"};
         return Array<const char* const>(sCertModuleTypeStrings, ArraySize(sCertModuleTypeStrings));

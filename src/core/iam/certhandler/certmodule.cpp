@@ -278,32 +278,8 @@ Error CertModule::UpdateCerts(
 
     size_t newCertCount = 0;
 
-    // Each entry is a single certificate, not a chain: reject an entry that resolves to anything
-    // other than exactly one certificate instead of silently keeping only the first one.
-    for (const auto& pemCert : pemCerts) {
-        auto certificates = MakeUnique<crypto::x509::CertificateChain>(mAllocator);
-        if (!certificates) {
-            return AOS_ERROR_WRAP(ErrorEnum::eNoMemory);
-        }
-
-        if (auto err = mX509Provider->PEMToX509Certs(pemCert, *certificates); !err.IsNone()) {
-            return AOS_ERROR_WRAP(err);
-        }
-
-        if (certificates->Size() != 1) {
-            LOG_ERR() << "Each cert entry must contain exactly one certificate" << Log::Field("type", GetCertType())
-                      << Log::Field("count", certificates->Size());
-
-            return AOS_ERROR_WRAP(ErrorEnum::eInvalidArgument);
-        }
-
-        if (!HasCert(*existing, (*certificates)[0].mIssuer, (*certificates)[0].mSerial)) {
-            ++newCertCount;
-        }
-
-        if (auto err = certs->PushBack((*certificates)[0]); !err.IsNone()) {
-            return AOS_ERROR_WRAP(err);
-        }
+    if (auto err = CollectUpdateCerts(pemCerts, *existing, *certs, newCertCount); !err.IsNone()) {
+        return err;
     }
 
     if (certs->Size() > mModuleConfig.mMaxCertificates) {
@@ -327,7 +303,7 @@ Error CertModule::UpdateCerts(
 
     // Rolls back certificates newly added by this call (not ones reused from the previous set),
     // unless Release() is reached once the whole requested set has been collected successfully.
-    auto rollbackAdded = DeferRelease(&resCerts, [this, &password, &existing](Array<CertInfo>* added) {
+    auto rollbackAdded = DeferRelease(&resCerts, [this, &password, &existing](const Array<CertInfo>* added) {
         for (const auto& info : *added) {
             if (!HasCert(*existing, info.mIssuer, info.mSerial)) {
                 (void)RemoveCert(info, password);
@@ -365,6 +341,40 @@ Error CertModule::UpdateCerts(
 
         if (auto err = RemoveCert(old, password); !err.IsNone()) {
             return err;
+        }
+    }
+
+    return ErrorEnum::eNone;
+}
+
+Error CertModule::CollectUpdateCerts(const Array<StaticString<crypto::cCertPEMLen>>& pemCerts,
+    const Array<CertInfo>& existing, Array<crypto::x509::Certificate>& certs, size_t& newCertCount)
+{
+    newCertCount = 0;
+
+    for (const auto& pemCert : pemCerts) {
+        auto certificates = MakeUnique<crypto::x509::CertificateChain>(mAllocator);
+        if (!certificates) {
+            return AOS_ERROR_WRAP(ErrorEnum::eNoMemory);
+        }
+
+        if (auto err = mX509Provider->PEMToX509Certs(pemCert, *certificates); !err.IsNone()) {
+            return AOS_ERROR_WRAP(err);
+        }
+
+        if (certificates->Size() != 1) {
+            LOG_ERR() << "Each cert entry must contain exactly one certificate" << Log::Field("type", GetCertType())
+                      << Log::Field("count", certificates->Size());
+
+            return AOS_ERROR_WRAP(ErrorEnum::eInvalidArgument);
+        }
+
+        if (!HasCert(existing, (*certificates)[0].mIssuer, (*certificates)[0].mSerial)) {
+            ++newCertCount;
+        }
+
+        if (auto err = certs.PushBack((*certificates)[0]); !err.IsNone()) {
+            return AOS_ERROR_WRAP(err);
         }
     }
 

@@ -155,6 +155,8 @@ private:
     Error AddCert(const crypto::x509::Certificate& cert, const Array<CertInfo>& curCerts,
         const Array<CertInfo>& newCerts, const String& password, CertInfo& resInfo);
     Error RemoveCert(const CertInfo& info, const String& password);
+    Error CollectUpdateCerts(const Array<StaticString<crypto::cCertPEMLen>>& pemCerts, const Array<CertInfo>& existing,
+        Array<crypto::x509::Certificate>& certs, size_t& newCertCount);
 
     crypto::x509::ProviderItf* mX509Provider {};
     HSMItf*                    mHSM {};

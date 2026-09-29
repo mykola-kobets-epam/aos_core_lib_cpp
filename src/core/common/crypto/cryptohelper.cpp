@@ -254,11 +254,13 @@ Error CryptoHelper::Init(AllocatorItf& allocator, iamclient::CertProviderItf& ce
         }
 
         for (const auto& cert : *certs) {
-            if (err = ValidateCACert(cert); !err.IsNone()) {
+            err = ValidateCACert(cert);
+            if (!err.IsNone()) {
                 return AOS_ERROR_WRAP(err);
             }
 
-            if (err = mCACerts.PushBack(cert); !err.IsNone()) {
+            err = mCACerts.PushBack(cert);
+            if (!err.IsNone()) {
                 return AOS_ERROR_WRAP(err);
             }
         }
