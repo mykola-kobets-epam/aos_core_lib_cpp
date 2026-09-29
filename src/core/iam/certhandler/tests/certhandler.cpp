@@ -997,7 +997,7 @@ TEST_F(CerthandlerTest, UpdateRootCertsAndGetAllCerts)
     StaticArray<CertInfo, cCertsPerModule>            infos;
     StaticArray<CertInfo, cCertsPerModule>            allCerts;
 
-    RegisterPKCS11Module("rootcerts", crypto::KeyTypeEnum::eRSA);
+    RegisterPKCS11Module("rootcerts", crypto::KeyTypeEnum::eRSA, CertModuleTypeEnum::eRootCerts);
     ASSERT_TRUE(mCertHandler->SetOwner("rootcerts", cPIN).IsNone());
 
     ASSERT_TRUE(fs::ReadFileToString(CERTIFICATES_DIR "/ca.pem", caCert).IsNone());
@@ -1016,7 +1016,7 @@ TEST_F(CerthandlerTest, UpdateRootCertsAndGetAllCerts)
 
     mCertHandler = MakeShared<CertHandler>(&mAllocator, mAllocator);
 
-    RegisterPKCS11Module("rootcerts", crypto::KeyTypeEnum::eRSA);
+    RegisterPKCS11Module("rootcerts", crypto::KeyTypeEnum::eRSA, CertModuleTypeEnum::eRootCerts);
 
     ASSERT_TRUE(mCertHandler->GetAllCerts("rootcerts", allCerts).IsNone());
     EXPECT_EQ(allCerts, infos);
@@ -1044,10 +1044,30 @@ TEST_F(CerthandlerTest, UpdateCertsRejectsEmptySet)
     StaticArray<StaticString<crypto::cCertPEMLen>, 1> pemCerts;
     StaticArray<CertInfo, cCertsPerModule>            infos;
 
-    RegisterPKCS11Module("rootcerts", crypto::KeyTypeEnum::eRSA);
+    RegisterPKCS11Module("rootcerts", crypto::KeyTypeEnum::eRSA, CertModuleTypeEnum::eRootCerts);
     ASSERT_TRUE(mCertHandler->SetOwner("rootcerts", cPIN).IsNone());
 
     ASSERT_TRUE(mCertHandler->UpdateCerts("rootcerts", pemCerts, "", infos).Is(ErrorEnum::eInvalidArgument));
+}
+
+TEST_F(CerthandlerTest, GetRootCertType)
+{
+    StaticString<cCertTypeLen> certType;
+
+    RegisterPKCS11Module("iam");
+    RegisterPKCS11Module("rootcerts", crypto::KeyTypeEnum::eRSA, CertModuleTypeEnum::eRootCerts);
+
+    ASSERT_TRUE(mCertHandler->GetRootCertType(certType).IsNone());
+    EXPECT_EQ(certType, "rootcerts");
+}
+
+TEST_F(CerthandlerTest, GetRootCertTypeNotFound)
+{
+    StaticString<cCertTypeLen> certType;
+
+    RegisterPKCS11Module("iam");
+
+    ASSERT_TRUE(mCertHandler->GetRootCertType(certType).Is(ErrorEnum::eNotFound));
 }
 
 } // namespace aos::iam::certhandler

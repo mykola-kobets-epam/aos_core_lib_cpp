@@ -43,6 +43,45 @@ private:
     crypto::RSAPublicKey mPublic {Array<uint8_t>(), Array<uint8_t>()};
 };
 
+class FailingStorageStub : public StorageStub {
+public:
+    void FailAdd() { mFailAdd = true; }
+    void FailGet() { mFailGet = true; }
+    void FailRemove() { mFailRemove = true; }
+
+    Error AddCertInfo(const String& certType, const CertInfo& certInfo) override
+    {
+        if (mFailAdd) {
+            return ErrorEnum::eFailed;
+        }
+
+        return StorageStub::AddCertInfo(certType, certInfo);
+    }
+
+    Error GetCertsInfo(const String& certType, Array<CertInfo>& certsInfo) override
+    {
+        if (mFailGet) {
+            return ErrorEnum::eFailed;
+        }
+
+        return StorageStub::GetCertsInfo(certType, certsInfo);
+    }
+
+    Error RemoveCertInfo(const String& certType, const String& certURL) override
+    {
+        if (mFailRemove) {
+            return ErrorEnum::eFailed;
+        }
+
+        return StorageStub::RemoveCertInfo(certType, certURL);
+    }
+
+private:
+    bool mFailAdd {};
+    bool mFailGet {};
+    bool mFailRemove {};
+};
+
 /***********************************************************************************************************************
  * Suite
  **********************************************************************************************************************/
@@ -563,6 +602,169 @@ TEST_F(CertModuleTest, UpdateCertsRollsBackOnAddFailure)
 
     ASSERT_TRUE(mStorage.GetCertsInfo(cCertType, storedCerts).IsNone());
     EXPECT_TRUE(storedCerts.IsEmpty()) << "Storage should be empty after rollback";
+}
+
+TEST_F(CertModuleTest, InitFailsOnMaxCertsConfigValueExceedingLimit)
+{
+    CertModule certModule;
+
+    mModuleConfig.mMaxCertificates = cCertsPerModule + 1;
+
+    ASSERT_TRUE(
+        certModule.Init(mAllocator, cCertType, mModuleConfig, mX509Provider, mHSM, mStorage).Is(ErrorEnum::eNoMemory));
+}
+
+TEST_F(CertModuleTest, InitRootFailsWhenValidateRootCertificatesFails)
+{
+    CertModule certModule;
+
+    mModuleConfig.mCertType       = CertModuleTypeEnum::eRootCerts;
+    mModuleConfig.mSkipValidation = false;
+
+    EXPECT_CALL(mHSM, ValidateRootCertificates).WillOnce(Return(ErrorEnum::eFailed));
+
+    ASSERT_TRUE(
+        certModule.Init(mAllocator, cCertType, mModuleConfig, mX509Provider, mHSM, mStorage).Is(ErrorEnum::eFailed));
+}
+
+TEST_F(CertModuleTest, UpdateCertsFailsOnStorageError)
+{
+    CertModule                                        certModule;
+    FailingStorageStub                                storage;
+    StaticArray<StaticString<crypto::cCertPEMLen>, 1> pemCerts;
+    StaticArray<CertInfo, cCertsPerModule>            infos;
+
+    mModuleConfig.mSkipValidation = true;
+
+    ASSERT_TRUE(certModule.Init(mAllocator, cCertType, mModuleConfig, mX509Provider, mHSM, storage).IsNone());
+
+    ASSERT_TRUE(pemCerts.EmplaceBack("pem-cert").IsNone());
+
+    EXPECT_CALL(mX509Provider, PEMToX509Certs).Times(0);
+
+    storage.FailGet();
+
+    ASSERT_TRUE(certModule.UpdateCerts(pemCerts, "password", infos).Is(ErrorEnum::eFailed));
+}
+
+TEST_F(CertModuleTest, UpdateCertsExceedsTemporaryModuleLimit)
+{
+    CertModule                                        certModule;
+    StaticArray<StaticString<crypto::cCertPEMLen>, 1> pemCerts;
+    StaticArray<CertInfo, cCertsPerModule>            infos;
+
+    mModuleConfig.mSkipValidation  = true;
+    mModuleConfig.mMaxCertificates = 2;
+
+    ASSERT_TRUE(certModule.Init(mAllocator, cCertType, mModuleConfig, mX509Provider, mHSM, mStorage).IsNone());
+
+    for (size_t i = 0; i < cCertsPerModule; ++i) {
+        const auto serial = "serial-" + std::to_string(i);
+        const auto url    = "url-" + std::to_string(i);
+        const auto info   = CreateCertInfo(cCertIssuer, serial.c_str(), url.c_str(), mCertInfo.mNotAfter);
+
+        ASSERT_TRUE(mStorage.AddCertInfo(cCertType, info).IsNone());
+    }
+
+    ASSERT_TRUE(pemCerts.EmplaceBack("pem-cert").IsNone());
+
+    EXPECT_CALL(mX509Provider, PEMToX509Certs).WillOnce(ReturnPEMCert(cCertIssuer, "serial-new"));
+    EXPECT_CALL(mHSM, AddCert).Times(0);
+
+    ASSERT_TRUE(certModule.UpdateCerts(pemCerts, "password", infos).Is(ErrorEnum::eNoMemory));
+}
+
+TEST_F(CertModuleTest, UpdateCertsAddsDuplicateCertOnce)
+{
+    CertModule                                        certModule;
+    StaticArray<StaticString<crypto::cCertPEMLen>, 2> pemCerts;
+    StaticArray<CertInfo, cCertsPerModule>            infos;
+    StaticArray<CertInfo, cCertsPerModule>            storedCerts;
+
+    mModuleConfig.mSkipValidation  = true;
+    mModuleConfig.mMaxCertificates = 2;
+
+    ASSERT_TRUE(certModule.Init(mAllocator, cCertType, mModuleConfig, mX509Provider, mHSM, mStorage).IsNone());
+
+    ASSERT_TRUE(pemCerts.EmplaceBack("pem-1").IsNone());
+    ASSERT_TRUE(pemCerts.EmplaceBack("pem-2").IsNone());
+
+    EXPECT_CALL(mX509Provider, PEMToX509Certs).Times(2).WillRepeatedly(ReturnPEMCert(cCertIssuer, "serial-dup"));
+    EXPECT_CALL(mHSM, AddCert).WillOnce(ReturnAddCert("dup-cert-url"));
+
+    ASSERT_TRUE(certModule.UpdateCerts(pemCerts, "password", infos).IsNone());
+
+    ASSERT_TRUE(mStorage.GetCertsInfo(cCertType, storedCerts).IsNone());
+    EXPECT_EQ(storedCerts, ConvertToArray({CreateCertInfo(cCertIssuer, "serial-dup", "dup-cert-url")}));
+}
+
+TEST_F(CertModuleTest, UpdateCertsRemovesHSMCertOnStorageAddFailure)
+{
+    CertModule                                        certModule;
+    FailingStorageStub                                storage;
+    StaticArray<StaticString<crypto::cCertPEMLen>, 1> pemCerts;
+    StaticArray<CertInfo, cCertsPerModule>            infos;
+
+    mModuleConfig.mSkipValidation = true;
+
+    ASSERT_TRUE(certModule.Init(mAllocator, cCertType, mModuleConfig, mX509Provider, mHSM, storage).IsNone());
+
+    ASSERT_TRUE(pemCerts.EmplaceBack("pem-cert").IsNone());
+
+    EXPECT_CALL(mX509Provider, PEMToX509Certs).WillOnce(ReturnPEMCert(cCertIssuer, "serial-new"));
+    EXPECT_CALL(mHSM, AddCert).WillOnce(ReturnAddCert("new-cert-url"));
+    EXPECT_CALL(mHSM, RemoveCert(String("new-cert-url"), _)).WillOnce(Return(ErrorEnum::eNone));
+
+    storage.FailAdd();
+
+    ASSERT_TRUE(certModule.UpdateCerts(pemCerts, "password", infos).Is(ErrorEnum::eFailed));
+}
+
+TEST_F(CertModuleTest, UpdateCertsFailsWhenHSMRemoveObsoleteFails)
+{
+    CertModule                                        certModule;
+    StaticArray<StaticString<crypto::cCertPEMLen>, 1> pemCerts;
+    StaticArray<CertInfo, cCertsPerModule>            infos;
+
+    mModuleConfig.mSkipValidation = true;
+
+    ASSERT_TRUE(certModule.Init(mAllocator, cCertType, mModuleConfig, mX509Provider, mHSM, mStorage).IsNone());
+
+    ASSERT_TRUE(
+        mStorage.AddCertInfo(cCertType, CreateCertInfo(cCertIssuer, "serial-a", "old-cert-url", mCertInfo.mNotAfter))
+            .IsNone());
+    ASSERT_TRUE(pemCerts.EmplaceBack("pem-cert").IsNone());
+
+    EXPECT_CALL(mX509Provider, PEMToX509Certs).WillOnce(ReturnPEMCert(cCertIssuer, "serial-b"));
+    EXPECT_CALL(mHSM, AddCert).WillOnce(ReturnAddCert("new-cert-url"));
+    EXPECT_CALL(mHSM, RemoveCert(String("old-cert-url"), _)).WillOnce(Return(ErrorEnum::eFailed));
+
+    ASSERT_TRUE(certModule.UpdateCerts(pemCerts, "password", infos).Is(ErrorEnum::eFailed));
+}
+
+TEST_F(CertModuleTest, UpdateCertsFailsWhenStorageRemoveObsoleteFails)
+{
+    CertModule                                        certModule;
+    FailingStorageStub                                storage;
+    StaticArray<StaticString<crypto::cCertPEMLen>, 1> pemCerts;
+    StaticArray<CertInfo, cCertsPerModule>            infos;
+
+    mModuleConfig.mSkipValidation = true;
+
+    ASSERT_TRUE(certModule.Init(mAllocator, cCertType, mModuleConfig, mX509Provider, mHSM, storage).IsNone());
+
+    ASSERT_TRUE(
+        storage.AddCertInfo(cCertType, CreateCertInfo(cCertIssuer, "serial-a", "old-cert-url", mCertInfo.mNotAfter))
+            .IsNone());
+    ASSERT_TRUE(pemCerts.EmplaceBack("pem-cert").IsNone());
+
+    EXPECT_CALL(mX509Provider, PEMToX509Certs).WillOnce(ReturnPEMCert(cCertIssuer, "serial-b"));
+    EXPECT_CALL(mHSM, AddCert).WillOnce(ReturnAddCert("new-cert-url"));
+    EXPECT_CALL(mHSM, RemoveCert(String("old-cert-url"), _)).WillOnce(Return(ErrorEnum::eNone));
+
+    storage.FailRemove();
+
+    ASSERT_TRUE(certModule.UpdateCerts(pemCerts, "password", infos).Is(ErrorEnum::eFailed));
 }
 
 TEST_F(CertModuleTest, InitFailsNoMemoryAllocatingValidCerts)
