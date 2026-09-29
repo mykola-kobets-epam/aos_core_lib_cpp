@@ -9,6 +9,7 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
 #include <core/common/iamclient/itf/certprovider.hpp>
 
@@ -36,6 +37,17 @@ public:
 
     Error GetAllCerts(const String& certType, Array<CertInfo>& resCerts) const override
     {
+        const auto multi = mAllCerts.find(certType.CStr());
+        if (multi != mAllCerts.end()) {
+            for (const auto& cert : multi->second) {
+                if (auto err = resCerts.PushBack(cert); !err.IsNone()) {
+                    return err;
+                }
+            }
+
+            return ErrorEnum::eNone;
+        }
+
         if (mCerts.count(certType.CStr()) == 0) {
             return ErrorEnum::eNotFound;
         }
@@ -66,6 +78,36 @@ public:
         certInfo.mKeyURL  = ("file://" + FullKeyPath(certName)).c_str();
 
         mCerts[certType] = certInfo;
+        mAllCerts.erase(certType);
+    }
+
+    void AddEmptyCertType(const std::string& certType)
+    {
+        mCerts.erase(certType);
+        mAllCerts[certType] = {};
+    }
+
+    void AddCertURL(const std::string& certType, const std::string& url)
+    {
+        CertInfo certInfo;
+
+        certInfo.mCertURL = url.c_str();
+
+        mAllCerts[certType].push_back(certInfo);
+        mCerts.erase(certType);
+    }
+
+    void AddCertCopies(const std::string& certType, const std::string& certName, size_t count)
+    {
+        mCerts.erase(certType);
+        mAllCerts[certType].clear();
+
+        for (size_t i = 0; i < count; ++i) {
+            CertInfo certInfo;
+
+            certInfo.mCertURL = ("file://" + FullCertPath(certName)).c_str();
+            mAllCerts[certType].push_back(certInfo);
+        }
     }
 
 private:
@@ -79,7 +121,8 @@ private:
         return std::string(CRYPTOHELPER_CERTS_DIR) + "/" + name + ".key";
     }
 
-    std::map<std::string, CertInfo> mCerts;
+    std::map<std::string, CertInfo>              mCerts;
+    std::map<std::string, std::vector<CertInfo>> mAllCerts;
 };
 
 } // namespace aos::crypto

@@ -7,6 +7,7 @@
 
 #include <gmock/gmock.h>
 
+#include <core/common/tests/utils/utils.hpp>
 #include <core/iam/provisionmanager/provisionmanager.hpp>
 #include <core/iam/tests/mocks/certhandlermock.hpp>
 #include <core/iam/tests/mocks/provisionmanagermock.hpp>
@@ -14,6 +15,7 @@
 using namespace testing;
 using namespace aos::iam;
 using namespace aos::iam::provisionmanager;
+using namespace aos::tests::utils;
 
 /***********************************************************************************************************************
  * Suite
@@ -166,27 +168,28 @@ TEST_F(ProvisionManagerTest, StartProvisioningDiscEncryptionFails)
 
 TEST_F(ProvisionManagerTest, GetCertTypes)
 {
-    CertTypes generatedCertTypes;
+    CertTypes                 generatedCertTypes;
+    CertTypes                 expectedCertTypes;
+    certhandler::ModuleConfig moduleConfig1;
+    certhandler::ModuleConfig moduleConfig2;
+    certhandler::ModuleConfig moduleConfig3;
+    certhandler::ModuleConfig moduleConfig4;
 
     generatedCertTypes.EmplaceBack("certType1");
     generatedCertTypes.EmplaceBack("certType2");
     generatedCertTypes.EmplaceBack("certType3");
     generatedCertTypes.EmplaceBack("diskEncryption");
-
-    EXPECT_CALL(mCertHandler, GetCertTypes)
-        .Times(1)
-        .WillOnce(DoAll(SetArgReferee<0>(generatedCertTypes), Return(aos::ErrorEnum::eNone)));
-
-    certhandler::ModuleConfig moduleConfig1;
-    certhandler::ModuleConfig moduleConfig2;
-    certhandler::ModuleConfig moduleConfig3;
-    certhandler::ModuleConfig moduleConfig4;
+    ASSERT_TRUE(expectedCertTypes.EmplaceBack("certType1").IsNone());
+    ASSERT_TRUE(expectedCertTypes.EmplaceBack("certType2").IsNone());
 
     moduleConfig1.mCertType = aos::iam::certhandler::CertModuleTypeEnum::eNormal;
     moduleConfig2.mCertType = aos::iam::certhandler::CertModuleTypeEnum::eNormal;
     moduleConfig3.mCertType = aos::iam::certhandler::CertModuleTypeEnum::eSelfSigned;
     moduleConfig4.mCertType = aos::iam::certhandler::CertModuleTypeEnum::eSelfSigned;
 
+    EXPECT_CALL(mCertHandler, GetCertTypes)
+        .Times(1)
+        .WillOnce(DoAll(SetArgReferee<0>(generatedCertTypes), Return(aos::ErrorEnum::eNone)));
     EXPECT_CALL(mCertHandler, GetModuleConfig)
         .Times(4)
         .WillOnce(Return(aos::RetWithError<certhandler::ModuleConfig>(moduleConfig1)))
@@ -195,11 +198,7 @@ TEST_F(ProvisionManagerTest, GetCertTypes)
         .WillOnce(Return(aos::RetWithError<certhandler::ModuleConfig>(moduleConfig4)));
 
     auto certTypes = mProvisionManager.GetCertTypes();
-
-    EXPECT_TRUE(certTypes.mError.IsNone());
-    EXPECT_EQ(certTypes.mValue.Size(), 2);
-    EXPECT_EQ(certTypes.mValue[0], "certType1");
-    EXPECT_EQ(certTypes.mValue[1], "certType2");
+    EXPECT_EQ(certTypes, aos::RetWithError<CertTypes>(expectedCertTypes));
 }
 
 TEST_F(ProvisionManagerTest, FinishProvisioning)
@@ -278,4 +277,35 @@ TEST_F(ProvisionManagerTest, Deprovision)
 
     err = mProvisionManager.Deprovision("password");
     EXPECT_TRUE(!err.IsNone()) << err.Message();
+}
+
+TEST_F(ProvisionManagerTest, UpdateRootCertsSucceeds)
+{
+    aos::StaticArray<aos::StaticString<aos::crypto::cCertPEMLen>, 1> pemCerts;
+    aos::CertInfo                                                    certInfo;
+    aos::StaticArray<aos::CertInfo, 1>                               generatedCerts;
+    aos::StaticArray<aos::CertInfo, 1>                               resCerts;
+
+    ASSERT_TRUE(pemCerts.EmplaceBack("pem-root-cert").IsNone());
+    certInfo.mCertURL = "root-cert-url";
+    ASSERT_TRUE(generatedCerts.PushBack(certInfo).IsNone());
+
+    EXPECT_CALL(mCertHandler, UpdateCerts(aos::String("rootcerts"), _, aos::String(""), _))
+        .WillOnce(DoAll(SetArgReferee<3>(generatedCerts), Return(aos::ErrorEnum::eNone)));
+
+    EXPECT_TRUE(mProvisionManager.UpdateRootCerts(pemCerts, resCerts).IsNone());
+    EXPECT_EQ(resCerts, ConvertToArray({certInfo}));
+}
+
+TEST_F(ProvisionManagerTest, UpdateRootCertsFails)
+{
+    aos::StaticArray<aos::StaticString<aos::crypto::cCertPEMLen>, 1> pemCerts;
+    aos::StaticArray<aos::CertInfo, 1>                               resCerts;
+
+    ASSERT_TRUE(pemCerts.EmplaceBack("pem-root-cert").IsNone());
+
+    EXPECT_CALL(mCertHandler, UpdateCerts(aos::String("rootcerts"), _, aos::String(""), _))
+        .WillOnce(Return(aos::ErrorEnum::eFailed));
+
+    EXPECT_TRUE(mProvisionManager.UpdateRootCerts(pemCerts, resCerts).Is(aos::ErrorEnum::eFailed));
 }

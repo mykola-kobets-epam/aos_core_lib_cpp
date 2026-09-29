@@ -99,6 +99,21 @@ struct ModuleConfig {
      * Certificate module type.
      */
     CertModuleType mCertType {};
+
+    /**
+     * Compares module configs for equality.
+     */
+    friend bool operator==(const ModuleConfig& lhs, const ModuleConfig& rhs)
+    {
+        return lhs.mKeyType == rhs.mKeyType && lhs.mMaxCertificates == rhs.mMaxCertificates
+            && lhs.mExtendedKeyUsage == rhs.mExtendedKeyUsage && lhs.mAlternativeNames == rhs.mAlternativeNames
+            && lhs.mSkipValidation == rhs.mSkipValidation && lhs.mCertType == rhs.mCertType;
+    }
+
+    /**
+     * Compares module configs for inequality.
+     */
+    friend bool operator!=(const ModuleConfig& lhs, const ModuleConfig& rhs) { return !(lhs == rhs); }
 };
 
 /**
