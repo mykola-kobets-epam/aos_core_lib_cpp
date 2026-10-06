@@ -7,7 +7,7 @@
 #ifndef AOS_CORE_COMMON_IAMCLIENT_ITF_CERTHANDLER_HPP_
 #define AOS_CORE_COMMON_IAMCLIENT_ITF_CERTHANDLER_HPP_
 
-#include <core/common/types/common.hpp>
+#include <core/common/types/certificates.hpp>
 
 namespace aos::iamclient {
 
@@ -55,6 +55,15 @@ public:
      * @returns Error.
      */
     virtual Error UpdateRootCerts(const String& nodeID, const Array<StaticString<crypto::cCertPEMLen>>& pemCerts) = 0;
+
+    /**
+     * Gets root certificate SHA-256 thumbnails.
+     *
+     * @param nodeID node ID.
+     * @param[out] thumbnails root certificate SHA-256 thumbnails.
+     * @returns Error.
+     */
+    virtual Error GetRootCerts(const String& nodeID, Array<SHA256Thumbnail>& thumbnails) = 0;
 };
 
 } // namespace aos::iamclient
