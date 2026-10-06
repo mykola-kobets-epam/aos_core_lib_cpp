@@ -359,6 +359,13 @@
 #endif
 
 /**
+ * Max number of root certificates per node.
+ */
+#ifndef AOS_CONFIG_TYPES_ROOT_CERTS_PER_NODE
+#define AOS_CONFIG_TYPES_ROOT_CERTS_PER_NODE 5
+#endif
+
+/**
  * Node title len.
  */
 #ifndef AOS_CONFIG_TYPES_NODE_TITLE_LEN
