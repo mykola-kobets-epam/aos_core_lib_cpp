@@ -19,7 +19,7 @@ namespace aos::iam::certhandler {
 /**
  * Max number of IAM certificates per module.
  */
-constexpr auto cCertsPerModule = AOS_CONFIG_CERTHANDLER_CERTS_PER_MODULE;
+constexpr auto cCertsPerModule = AOS_CONFIG_CERTS_PER_MODULE;
 
 /**
  * Platform dependent secure certificate storage.
