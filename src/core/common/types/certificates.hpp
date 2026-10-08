@@ -36,14 +36,14 @@ static constexpr auto cCertsPerUnitCount = cMaxNumNodes * cCertsPerNodeCount;
 static constexpr auto cSHA256HexLen = crypto::cSHA256Size * 2;
 
 /**
- * SHA-256 certificate thumbnail.
+ * SHA-256 certificate fingerprint.
  */
-using SHA256Thumbnail = StaticString<cSHA256HexLen>;
+using SHA256Fingerprint = StaticString<cSHA256HexLen>;
 
 /**
- * SHA-256 certificate thumbnail array.
+ * SHA-256 certificate fingerprint array.
  */
-using SHA256ThumbnailArray = StaticArray<SHA256Thumbnail, crypto::cMaxRootCerts>;
+using SHA256FingerprintArray = StaticArray<SHA256Fingerprint, crypto::cMaxRootCerts>;
 
 /**
  * Certificate identification.
@@ -352,8 +352,8 @@ struct InstallUnitCertsConfirmation : public Protocol {
  * Root certificates report for a node (unit → cloud).
  */
 struct NodeRootCertificates {
-    StaticString<cIDLen> mNodeID; /**< Node identifier. */
-    SHA256ThumbnailArray mSHA256Thumbnails; /**< Root certificate SHA-256 thumbnails. */
+    StaticString<cIDLen>   mNodeID; /**< Node identifier. */
+    SHA256FingerprintArray mSHA256Fingerprints; /**< Root certificate SHA-256 fingerprints. */
 
     /**
      * Compares node root certificates.
@@ -364,7 +364,7 @@ struct NodeRootCertificates {
      */
     friend bool operator==(const NodeRootCertificates& lhs, const NodeRootCertificates& rhs)
     {
-        return lhs.mNodeID == rhs.mNodeID && lhs.mSHA256Thumbnails == rhs.mSHA256Thumbnails;
+        return lhs.mNodeID == rhs.mNodeID && lhs.mSHA256Fingerprints == rhs.mSHA256Fingerprints;
     };
 
     /**

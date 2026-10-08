@@ -57,13 +57,13 @@ public:
     virtual Error UpdateRootCerts(const String& nodeID, const Array<StaticString<crypto::cCertPEMLen>>& pemCerts) = 0;
 
     /**
-     * Gets root certificate SHA-256 thumbnails.
+     * Gets root certificate SHA-256 fingerprints.
      *
      * @param nodeID node ID.
-     * @param[out] thumbnails root certificate SHA-256 thumbnails.
+     * @param[out] fingerprints root certificate SHA-256 fingerprints.
      * @returns Error.
      */
-    virtual Error GetRootCerts(const String& nodeID, Array<SHA256Thumbnail>& thumbnails) = 0;
+    virtual Error GetRootCerts(const String& nodeID, Array<SHA256Fingerprint>& fingerprints) = 0;
 };
 
 } // namespace aos::iamclient

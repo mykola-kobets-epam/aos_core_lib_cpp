@@ -59,7 +59,7 @@ TEST(CommonTest, NodeRootCertificatesComparison)
     NodeRootCertificates rootCert2;
 
     rootCert1.mNodeID = "node0";
-    ASSERT_TRUE(rootCert1.mSHA256Thumbnails.EmplaceBack("thumbnail0").IsNone());
+    ASSERT_TRUE(rootCert1.mSHA256Fingerprints.EmplaceBack("fingerprint0").IsNone());
 
     rootCert2 = rootCert1;
 
